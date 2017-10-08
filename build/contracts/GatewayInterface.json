@@ -1,0 +1,90 @@
+{
+  "contract_name": "GatewayInterface",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "link",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getApplicationEntityAddress",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_address",
+          "type": "address"
+        }
+      ],
+      "name": "addApplicationEntity",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "changeOwner",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "name": "_address",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    }
+  ],
+  "unlinked_binary": "0x6060604052341561000f57600080fd5b6040516020806102cd8339810160405280805160008054600160a060020a03338116600160a060020a03199283161790925560018054929093169116179055505061026e8061005f6000396000f300606060405263ffffffff60e060020a6000350416631c4695f4811461004f5780634576af361461007e5780638da5cb5b14610091578063972edddd146100a4578063a6f9dae1146100c557600080fd5b341561005a57600080fd5b6100626100e4565b604051600160a060020a03909116815260200160405180910390f35b341561008957600080fd5b6100626100f3565b341561009c57600080fd5b61006261015c565b34156100af57600080fd5b6100c3600160a060020a036004351661016b565b005b34156100d057600080fd5b6100c3600160a060020a03600435166101f8565b600154600160a060020a031681565b600154600090600160a060020a0316634576af3682604051602001526040518163ffffffff1660e060020a028152600401602060405180830381600087803b151561013d57600080fd5b6102c65a03f1151561014e57600080fd5b505050604051805191505090565b600054600160a060020a031681565b600154600160a060020a0316632d580ef68260405160e060020a63ffffffff8416028152600160a060020a0390911660048201527f5f5f636f6e7374727563740000000000000000000000000000000000000000006024820152604401600060405180830381600087803b15156101e157600080fd5b6102c65a03f115156101f257600080fd5b50505050565b60005433600160a060020a0390811691161461021357600080fd5b6000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03929092169190911790555600a165627a7a72305820d0eed1b675fb58afa76ea0f1a4166a36ce456304909d000bfa2b962e9fa4cee20029",
+  "networks": {},
+  "schema_version": "0.0.5",
+  "updated_at": 1507356451786
+}

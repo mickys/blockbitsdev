@@ -1,0 +1,74 @@
+{
+  "contract_name": "Meetings",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_owner",
+          "type": "address"
+        }
+      ],
+      "name": "setOwner",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "_initialized",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "RecordNum",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "add",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "unlinked_binary": "0x60606040526000805461ffff19169055341561001a57600080fd5b61022a806100296000396000f300606060405263ffffffff7c010000000000000000000000000000000000000000000000000000000060003504166313af403581146100685780633072cf60146100895780634a1a650d146100b05780634f2be91f146100d95780638da5cb5b146100ec57600080fd5b341561007357600080fd5b610087600160a060020a036004351661011b565b005b341561009457600080fd5b61009c610191565b604051901515815260200160405180910390f35b34156100bb57600080fd5b6100c361019f565b60405160ff909116815260200160405180910390f35b34156100e457600080fd5b6100876101a8565b34156100f757600080fd5b6100ff6101e9565b604051600160a060020a03909116815260200160405180910390f35b600054620100009004600160a060020a03161580159061014f575060005433600160a060020a039081166201000090920416145b151561015a57600080fd5b60008054600160a060020a03909216620100000275ffffffffffffffffffffffffffffffffffffffff000019909216919091179055565b600054610100900460ff1681565b60005460ff1681565b600054620100009004600160a060020a0316158015906101dc575060005433600160a060020a039081166201000090920416145b15156101e757600080fd5b565b600054620100009004600160a060020a0316815600a165627a7a72305820d1c1a26ed42c30e905a60865005cc9301644190c6205a99f92e2e3e93af3d5d20029",
+  "networks": {},
+  "schema_version": "0.0.5",
+  "updated_at": 1507356451784
+}

@@ -1,0 +1,8 @@
+{
+  "contract_name": "Math",
+  "abi": [],
+  "unlinked_binary": "0x60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00a165627a7a723058206d1bcea332d3838e11613cdcebbc0745d856668a3b77e03acd37f2aac069351c0029",
+  "networks": {},
+  "schema_version": "0.0.5",
+  "updated_at": 1507356451788
+}

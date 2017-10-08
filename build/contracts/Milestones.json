@@ -1,0 +1,614 @@
+{
+  "contract_name": "Milestones",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "BylawsMinTimeInTheFutureForMeetingCreation",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "nextStepCycle",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "requirements",
+      "outputs": [
+        {
+          "name": "index",
+          "type": "uint8"
+        },
+        {
+          "name": "done",
+          "type": "bool"
+        },
+        {
+          "name": "time_requirement",
+          "type": "bool"
+        },
+        {
+          "name": "before_time",
+          "type": "uint256"
+        },
+        {
+          "name": "complete_time",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_owner",
+          "type": "address"
+        }
+      ],
+      "name": "setOwner",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "_recordId",
+          "type": "uint8"
+        },
+        {
+          "name": "_state",
+          "type": "uint8"
+        }
+      ],
+      "name": "getRequirementsKey",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "BylawsCashBackOwnerMiaDuration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "_initialized",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "initializeData",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getBylawsCashBackOwnerMiaDuration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "RecordNum",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "_RecordId",
+          "type": "uint8"
+        }
+      ],
+      "name": "getAllowedUpdateState",
+      "outputs": [
+        {
+          "name": "",
+          "type": "int8"
+        },
+        {
+          "name": "",
+          "type": "int16"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getBylawsMinTimeInTheFutureForMeetingCreation",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "_recordId",
+          "type": "uint8"
+        }
+      ],
+      "name": "getProposalVotingResult",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "_RecordId",
+          "type": "uint8"
+        },
+        {
+          "name": "_new_state",
+          "type": "uint8"
+        }
+      ],
+      "name": "isUpdateAllowed",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getBylawsProposalVotingDuration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getProjectDevelopmentState",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "BylawsProposalVotingDuration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getBylawsCashBackVoteRejectedDuration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "BylawsProjectDevelopmentStart",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_state",
+          "type": "uint8"
+        },
+        {
+          "name": "_start_time",
+          "type": "uint256"
+        },
+        {
+          "name": "bylaw_meeting_time",
+          "type": "uint256"
+        },
+        {
+          "name": "bylaw_voting_duration",
+          "type": "uint256"
+        },
+        {
+          "name": "bylaw_cashback_owner_mia_duration",
+          "type": "uint256"
+        },
+        {
+          "name": "bylaw_cashback_vote_rejected_duration",
+          "type": "uint256"
+        }
+      ],
+      "name": "setProjectSettings",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_record_id",
+          "type": "uint8"
+        },
+        {
+          "name": "_new_state",
+          "type": "uint8"
+        }
+      ],
+      "name": "updateRecord",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "getProjectCurrentState",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "BylawsCashBackVoteRejectedDuration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "ProjectCurrentState",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "getBylawsProjectDevelopmentStart",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "stateChanges",
+      "outputs": [
+        {
+          "name": "record_id",
+          "type": "uint8"
+        },
+        {
+          "name": "from_state",
+          "type": "uint8"
+        },
+        {
+          "name": "to_state",
+          "type": "uint8"
+        },
+        {
+          "name": "time",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "name": "collection",
+      "outputs": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description_hash",
+          "type": "bytes32"
+        },
+        {
+          "name": "state",
+          "type": "uint8"
+        },
+        {
+          "name": "duration",
+          "type": "uint256"
+        },
+        {
+          "name": "time_start",
+          "type": "uint256"
+        },
+        {
+          "name": "last_state_change_time",
+          "type": "uint256"
+        },
+        {
+          "name": "time_end",
+          "type": "uint256"
+        },
+        {
+          "name": "time_ended",
+          "type": "uint256"
+        },
+        {
+          "name": "meeting_time",
+          "type": "uint256"
+        },
+        {
+          "name": "funding_percentage",
+          "type": "uint8"
+        },
+        {
+          "name": "index",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_name",
+          "type": "string"
+        },
+        {
+          "name": "_duration",
+          "type": "uint256"
+        },
+        {
+          "name": "_state",
+          "type": "uint8"
+        },
+        {
+          "name": "_time_start",
+          "type": "uint256"
+        },
+        {
+          "name": "_time_end",
+          "type": "uint256"
+        },
+        {
+          "name": "_time_ended",
+          "type": "uint256"
+        },
+        {
+          "name": "_meeting_time",
+          "type": "uint256"
+        }
+      ],
+      "name": "addTestRecord",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_name",
+          "type": "string"
+        },
+        {
+          "name": "_description_hash",
+          "type": "bytes32"
+        },
+        {
+          "name": "_duration",
+          "type": "uint256"
+        },
+        {
+          "name": "_funding_percentage",
+          "type": "uint8"
+        }
+      ],
+      "name": "addRecord",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "unlinked_binary": "0x60606040526000805461ffff60b060020a60ff0201191681556001819055600281905560038190556004819055600555341561003a57600080fd5b611125806100496000396000f3006060604052361561017d5763ffffffff7c010000000000000000000000000000000000000000000000000000000060003504166306c29cc881146101825780630eb39ac7146101a757806311d9c34a146101d057806313af4035146102215780631abdefe01461024257806326d5efce146102615780633072cf60146102745780633f9a3c9c1461029b57806348468cbd146102ae5780634a1a650d146102c157806376d2dac9146102d45780637d6dc73714610316578063836cbcca146103295780638393c263146103425780638da5cb5b146103615780638fa5614f14610390578063902d94c3146103a357806394b83adb146103b657806398a892c9146103c95780639a871317146103dc578063a567e64e146103ef578063a921034914610417578063b5d5c10614610436578063c3277f0b14610449578063c5debbd71461045c578063d427ce741461046f578063e14bb69514610482578063e88e65ec146104c8578063ed13e8e9146105c4578063fda2a15114610635575b600080fd5b341561018d57600080fd5b610195610696565b60405190815260200160405180910390f35b34156101b257600080fd5b6101ba61069c565b60405160ff909116815260200160405180910390f35b34156101db57600080fd5b6101e660043561075c565b60405160ff909516855292151560208501529015156040808501919091526060840191909152608083019190915260a0909101905180910390f35b341561022c57600080fd5b610240600160a060020a0360043516610792565b005b341561024d57600080fd5b61019560ff60043581169060243516610808565b341561026c57600080fd5b61019561087c565b341561027f57600080fd5b610287610882565b604051901515815260200160405180910390f35b34156102a657600080fd5b610287610890565b34156102b957600080fd5b61019561090a565b34156102cc57600080fd5b6101ba610910565b34156102df57600080fd5b6102ed60ff60043516610919565b604051808360000b60000b81526020018260010b60010b81526020019250505060405180910390f35b341561032157600080fd5b610195610bb0565b341561033457600080fd5b61028760ff60043516610bb6565b341561034d57600080fd5b61028760ff60043581169060243516610bbc565b341561036c57600080fd5b610374610bf2565b604051600160a060020a03909116815260200160405180910390f35b341561039b57600080fd5b610195610c07565b34156103ae57600080fd5b6101ba610c0d565b34156103c157600080fd5b610195610c12565b34156103d457600080fd5b610195610c18565b34156103e757600080fd5b610195610c1e565b34156103fa57600080fd5b61024060ff6004351660243560443560643560843560a435610c24565b341561042257600080fd5b61024060ff60043581169060243516610c80565b341561044157600080fd5b6101ba610cfd565b341561045457600080fd5b610195610d20565b341561046757600080fd5b6101ba610d26565b341561047a57600080fd5b610195610d49565b341561048d57600080fd5b610498600435610d4f565b60405160ff9485168152928416602084015292166040808301919091526060820192909252608001905180910390f35b34156104d357600080fd5b6104e160ff60043516610d81565b604051602081018b905260ff808b166040830152606082018a90526080820189905260a0820188905260c0820187905260e082018690526101008083018690528482166101208401529083166101408301526101608083528d546002600182161590930260001901169190910490820181905281906101808201908e9080156105ab5780601f10610580576101008083540402835291602001916105ab565b820191906000526020600020905b81548152906001019060200180831161058e57829003601f168201915b50509c5050505050505050505050505060405180910390f35b34156105cf57600080fd5b6101ba60046024813581810190830135806020601f820181900481020160405190810160405281815292919060208401838380828437509496505084359460ff602082013516945060408101359350606081013592506080810135915060a00135610dda565b341561064057600080fd5b6101ba60046024813581810190830135806020601f8201819004810201604051908101604052818152929190602084018383808284375094965050843594602081013594506040013560ff169250610e6a915050565b60025481565b6000805481908190819060ff6101009091041615156001146106bd57600080fd5b6106c5610c0d565b60ff166106d0610cfd565b60ff161415610751576106e1610ef5565b925060008360ff16111561074857505060ff80821660009081526006602052604090206002810154909116600101610717610f75565b600483018190556003830154016006830155600982015461074090610100900460ff1682610c80565b829350610756565b60009350610756565b600093505b50505090565b60086020526000908152604090208054600182015460029092015460ff8083169361010084048216936201000090049091169185565b600054620100009004600160a060020a0316158015906107c6575060005433600160a060020a039081166201000090920416145b15156107d157600080fd5b60008054600160a060020a03909216620100000275ffffffffffffffffffffffffffffffffffffffff000019909216919091179055565b600082826040517f010000000000000000000000000000000000000000000000000000000000000060ff938416810282527f5f000000000000000000000000000000000000000000000000000000000000006001830152919092160260028201526003016040518091039020905092915050565b60045481565b600054610100900460ff1681565b60008054610100900460ff161580156108ad57506000805460ff16115b156108c2576000805461ff0019166101001790555b6108ca610d49565b6001600090815260066020527f3e5fec24aa4dc4e5aee2e025e51e1392c72a2500577559fae9665c6d52bd6a359190915554610100900460ff1690505b90565b60045490565b60005460ff1681565b600080600080610927610fe6565b60ff86166000908152600660205260408082206000199550859450829161016090519081016040529081600082018054600181600116156101000203166002900480601f0160208091040260200160405190810160405280929190818152602001828054600181600116156101000203166002900480156109e95780601f106109be576101008083540402835291602001916109e9565b820191906000526020600020905b8154815290600101906020018083116109cc57829003601f168201915b50505091835250506001828101546020830152600283015460ff90811660408401526003840154606084015260048401546080840152600584015460a0840152600684015460c0840152600784015460e0840152600884015461010080850191909152600990940154808216610120850152939093049092166101409091015290935060ff16836040015160ff161415610a94578260800151421115610a8f5760025b94505b610ba2565b6002604084015160ff161415610acd57610aac610bb0565b8360c0015103915081421015610ac65760035b9450610a8f565b6004610a8c565b6004604084015160ff161415610aeb57600594506103e89350610ba2565b6005604084015160ff161415610b05576103e99350610ba2565b6003604084015160ff161415610b28578260c00151421115610a8f576006610a8c565b6006604084015160ff161415610b5757610b40610c07565b8360c0015101905080421115610a8f576007610a8c565b6007604084015160ff161415610b8357610b7088610bb6565b15610b7c576009610abf565b6008610a8c565b6008604084015160ff161415610b9857610ba2565b6009604084015150505b509296919550909350505050565b60025490565b50600190565b6000806000610bca85610919565b915091508160ff168460ff161415610be55760019250610bea565b600092505b505092915050565b600054620100009004600160a060020a031681565b60035490565b600590565b60035481565b60055490565b60015481565b6000805460ff9097167601000000000000000000000000000000000000000000000276ff000000000000000000000000000000000000000000001990971696909617909555600193909355600291909155600355600455600555565b6000805460ff610100909104161515600114610c9b57600080fd5b8282610ca78282610bbc565b1515610cb257600080fd5b60ff8086166000908152600660205260409020935084166009811115610cd457fe5b6009811115610cdf57fe5b600293909301805460ff191660ff9094169390931790925550505050565b600054760100000000000000000000000000000000000000000000900460ff1690565b60055481565b600054760100000000000000000000000000000000000000000000900460ff1681565b60015490565b6007602052600090815260409020805460019091015460ff808316926101008104821692620100009091049091169084565b600660208190526000918252604090912060018101546002820154600383015460048401546005850154958501546007860154600887015460098801549798969760ff968716979596949594818116916101009004168b565b6000805460ff8082166001011660ff1990911681178255815260066020526040812080898051610e0e929160200190611053565b5060038101979097555060028601805460ff191660ff96871617905560048601939093556006850191909155600784015560088301556000546009909201805461ff001916610100938316840217908190559190910416919050565b6000805460ff8082166001011660ff1990911681178255815260066020526040812080868051610e9e929160200190611053565b5060018181019590955560038101939093555060028201805460ff1990811690941790556009909101805490921660ff9182161780835560005461ff00199091166101009183168202179283905590910416919050565b600080548190819060ff610100909104161515600114610f1457600080fd5b600191505b60005460ff90811690831611610f6b575060ff81811660009081526006602052604090206002810154909116600914610f60576009810154610100900460ff169250610f70565b600190910190610f19565b600092505b505090565b60008054819060ff610100909104161515600114610f9257600080fd5b610f9a610ef5565b90508060ff1660011415610fc55760ff81166000908152600660205260409020600401549150610fe2565b60ff60001982011660009081526006602052604090206007015491505b5090565b61016060405190810160405280610ffb6110cd565b815260200160008019168152602001600060ff168152602001600081526020016000815260200160008152602001600081526020016000815260200160008152602001600060ff168152602001600060ff1681525090565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061109457805160ff19168380011785556110c1565b828001600101855582156110c1579182015b828111156110c15782518255916020019190600101906110a6565b50610fe29291506110df565b60206040519081016040526000815290565b61090791905b80821115610fe257600081556001016110e55600a165627a7a723058200b1c71feeb294e7ab64d4d936cb62add4fa12321399ea53f380729c20d13790f0029",
+  "networks": {},
+  "schema_version": "0.0.5",
+  "updated_at": 1507356451785
+}
