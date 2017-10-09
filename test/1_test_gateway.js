@@ -7,28 +7,30 @@ contract('Link Database', accounts => {
     let gateway, app, linkdb = {};
 
     beforeEach(async () => {
-        linkdb = await LinkDatabase.new();
-        // gateway = await GatewayInterface.new(linkdb.address);
-        // app = await ApplicationEntity.new(gateway.address, linkdb.address);
+        // linkdb = await LinkDatabase.new();
+        gateway = await GatewayInterface.new();
+        app = await ApplicationEntity.new();
     });
 
-    it('current app address should be empty', async () => {
-        assert.equal(await linkdb.getApplicationEntityAddress(), 0x0, 'app should have returned correct parent address')
+    it('gateway: current app address should be empty', async () => {
+        assert.equal(await gateway.getApplicationEntityAddress(), 0x0, 'app should have returned correct parent address')
     });
 
+    it('app: parent address should be empty', async () => {
+        assert.equal(await app.ParentAddress(), 0x0, 'app should have returned correct parent address')
+    });
+
+    /*
     it('throws when called by unauthorized entity', async () => {
         return assertInvalidOpcode(async () => {
             await linkdb.add(10, { from: accounts[1] })
         })
     })
-
-    it('current app address should be empty', async () => {
-        assert.equal(await linkdb.getApplicationEntityAddress(), 0x0, 'app should have returned correct parent address')
-    });
+    */
 
     // linkdb.add( address _new, bytes32 _url)
     /*
-    context('link database deployed', async () => {
+    context('link database deployed', async 0xc4fc67e7ad06d848d89e6c6628e53c0b9871709c() => {
         beforeEach(async () => {
             await linkdb.setAppCode(appId, appCode1.address)
         })

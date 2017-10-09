@@ -11,8 +11,6 @@
 pragma solidity ^0.4.17;
 
 import "./GatewayInterface.sol";
-
-// import "./Entity/LinkDatabase.sol";
 // import "./Entity/Meetings.sol";
 // import "./Entity/Proposals.sol";
 // import "./Entity/Milestones.sol";
@@ -43,7 +41,9 @@ contract ApplicationEntity {
 
         ParentAddress = _ParentInterfaceAddress;
 
-        GatewayInterfaceEntity = GatewayInterface(_LinkDatabaseAddress);
+        // init gateway entity and set app address
+        GatewayInterfaceEntity = GatewayInterface(_ParentInterfaceAddress);
+        GatewayInterfaceEntity.setApplicationEntityAddress( address(this) );
 
         // MilestonesEntity = new Milestones();
         // MilestonesEntity.setOwner( address(this) );
@@ -64,7 +64,6 @@ contract ApplicationEntity {
         // ProposalsEntity.add();
     }
 
-
     function processLinkRequest(uint16 _requestId) onlyParentInterface() {
         // add state change request
         // then on tick run request
@@ -73,7 +72,6 @@ contract ApplicationEntity {
         // GatewayInterfaceEntity.approve(_requestId);
         // GatewayInterfaceEntity.deny(_requestId);
     }
-
 
     // since we might change contract structure in the future,
     // new contracts should hold "old to new" conversion
@@ -89,18 +87,6 @@ contract ApplicationEntity {
         require(ParentAddress != address(0) && msg.sender == ParentAddress);
         _;
     }
-
-
-    function setOwner(address _owner) public onlyOwner {
-        owner = _owner;
-        OwnerSet(owner);
-    }
-
-    modifier onlyOwner() {
-        require(owner != address(0) && msg.sender == owner);
-        _;
-    }
-
 
     modifier requireNotInitialised() {
         require(_initialized == false);
