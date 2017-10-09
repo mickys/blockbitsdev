@@ -1,25 +1,227 @@
 const { assertInvalidOpcode } = require('./helpers/assertThrow');
 const GatewayInterface = artifacts.require('GatewayInterface');
-const LinkDatabase = artifacts.require('LinkDatabase');
-const ApplicationEntity = artifacts.require('ApplicationEntity');
+const ApplicationEntity = artifacts.require('ApplicationEntityMock');
+const EmptyMock = artifacts.require('EmptyMock');
+const Proposals = artifacts.require('ProposalsMock');
 
-contract('Link Database', accounts => {
-    let gateway, app, linkdb = {};
+const sourceCodeUrl = "http://test.com/SourceCodeValidator";
+
+function hasEvent(receipt, eventName){
+    return receipt.logs.filter(x => x.event == eventName);
+}
+
+contract('Gateway Interface', accounts => {
+    let gateway, emptymock = {};
 
     beforeEach(async () => {
-        // linkdb = await LinkDatabase.new();
         gateway = await GatewayInterface.new();
+        emptymock = await EmptyMock.new();
+    });
+
+    it('current Application Entity address is empty', async () => {
+        assert.equal(await gateway.getApplicationAddress(), 0x0, 'app should have returned an empty address')
+    });
+
+    // requestCodeUpgrade will always throw because ApplicationEntity initialize will only work if gateway address is
+    // set as parent before running it
+
+    it('requestCodeUpgrade throws if address is empty', async () => {
+        return assertInvalidOpcode(async () => {
+            await gateway.requestCodeUpgrade(0x0, sourceCodeUrl)
+        })
+    });
+
+    it('requestCodeUpgrade throws if calling object misses the initialize() method', async () => {
+        return assertInvalidOpcode(async () => {
+            await gateway.requestCodeUpgrade(emptymock.address, sourceCodeUrl)
+        })
+    })
+
+});
+
+contract('Application Entity', accounts => {
+    let app, app2, gateway, proposals = {};
+
+    beforeEach(async () => {
         app = await ApplicationEntity.new();
     });
 
-    it('gateway: current app address should be empty', async () => {
-        assert.equal(await gateway.getApplicationEntityAddress(), 0x0, 'app should have returned correct parent address')
+    context('Initial State', async () => {
+        beforeEach(async () => {
+            app = await ApplicationEntity.new();
+        });
+
+        it('parent address is empty: 0x0', async () => {
+            let value = await app.getParentAddress();
+            assert.equal(value, 0x0, 'app should have returned correct parent address')
+        });
+
+        it('_initialized is bool: false', async () => {
+            let value = await app._initialized();
+            assert.isFalse(value, 'app should have returned false for initialized')
+        });
     });
 
-    it('app: parent address should be empty', async () => {
-        assert.equal(await app.ParentAddress(), 0x0, 'app should have returned correct parent address')
+    context('Application - Initial Deployment - Linking', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+            app = await ApplicationEntity.new();
+        });
+
+        it('app1: linkToGateway will emit EventApplicationReady', async () => {
+            const eventFilter = hasEvent(
+                await app.linkToGateway(gateway.address, sourceCodeUrl),
+                'EventApplicationReady'
+            );
+            assert.equal(eventFilter.length, 1, 'EventApplicationReady event not received.')
+        });
+
     });
 
+    context('Application - Initial Deployment - Validation', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+            app = await ApplicationEntity.new();
+            await app.linkToGateway(gateway.address, sourceCodeUrl);
+        });
+
+        it('app1: parent address is gateway address', async () => {
+            let value = await app.getParentAddress();
+            assert.equal(value, gateway.address, 'app should have returned correct parent address')
+        });
+
+        it('gw: current Application Entity address is app address', async () => {
+            let value = await gateway.getApplicationAddress();
+            assert.equal(value, app.address, 'app should have returned correct app address')
+        });
+
+        it('app1: _initialized is bool: true', async () => {
+            let value = await app._initialized();
+            assert.isTrue(value, 'app should have returned true for initialized')
+        });
+    });
+
+    context('Application - Upgrade - Linking', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+            app = await ApplicationEntity.new();
+            await app.linkToGateway(gateway.address, sourceCodeUrl);
+            app2 = await ApplicationEntity.new();
+        });
+
+        it('app2: linkToGateway will emit EventCodeUpgradeProposal', async () => {
+            const eventFilter = hasEvent(
+                await app2.linkToGateway(gateway.address, sourceCodeUrl),
+                'EventCodeUpgradeProposal'
+            );
+            assert.equal(eventFilter.length, 1, 'EventCodeUpgradeProposal event not received.')
+        });
+
+    });
+
+    context('Application - Upgrade - Validation', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+            app = await ApplicationEntity.new();
+            await app.linkToGateway(gateway.address, sourceCodeUrl);
+            app2 = await ApplicationEntity.new();
+            await app2.linkToGateway(gateway.address, sourceCodeUrl);
+        });
+
+        it('app2: parent address is gateway address', async () => {
+            let value = await app.getParentAddress();
+            assert.equal(value, gateway.address, 'app should have returned correct parent address')
+        });
+
+        it('gw: current Application Entity address is still app1 address', async () => {
+            let value = await gateway.getApplicationAddress();
+            assert.equal(value, app.address, 'app should have returned correct app address')
+        });
+
+        it('app2: _initialized is bool: false', async () => {
+            let value = await app2._initialized();
+            assert.isFalse(value, 'app should have returned true for initialized')
+        });
+    });
+
+    context('Application - Upgrade - Validation', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+            app = await ApplicationEntity.new();
+            await app.linkToGateway(gateway.address, sourceCodeUrl);
+            proposals = await Proposals.new();
+            await app.setProposalEntity(proposals.address);
+            app2 = await ApplicationEntity.new();
+            await app2.linkToGateway(gateway.address, sourceCodeUrl);
+        });
+
+        it('app2: parent address is gateway address', async () => {
+            let value = await app.getParentAddress();
+            assert.equal(value, gateway.address, 'app should have returned correct parent address')
+        });
+
+        it('gw: current Application Entity address is still app1 address', async () => {
+            let value = await gateway.getApplicationAddress();
+            assert.equal(value, app.address, 'app should have returned correct app address')
+        });
+
+        it('app2: _initialized is bool: false', async () => {
+            let value = await app2._initialized();
+            assert.isFalse(value, 'app should have returned true for initialized')
+        });
+    });
+
+
+
+});
+
+/*
+contract('Gateway with Linked Application Entity', accounts => {
+
+
+
+    it('requestCodeUpgrade emits EventNewLinkRequest if address is usable', async () => {
+        const eventFilter = hasEvent(
+            await gateway.requestCodeUpgrade(ApplicationEntity.address, "http://test.url"),
+            'EventNewLinkRequest'
+        );
+
+        console.log( eventFilter );
+
+        assert.equal(1, 1, 'EventNewLinkRequest event not received.')
+    });
+
+    context('Application - Initial Linking', async () => {
+        beforeEach(async () => {
+            app = await ApplicationEntity.new();
+        });
+
+
+        it('app has correct parent address (gateway)', async () => {
+            // app2 returns the double of the value in storage
+            let parent = await app.ParentAddress();
+            console.log("Parent Address: "+parent);
+
+            assert.equal(parent, gateway.address, 'app should have returned correct parent address')
+        })
+    })
+
+    context('Application - Code Upgrades', async () => {
+        beforeEach(async () => {
+            app = await ApplicationEntity.new();
+        });
+
+
+        it('app has correct parent address (gateway)', async () => {
+            // app2 returns the double of the value in storage
+            let parent = await app.ParentAddress();
+            console.log("Parent Address: "+parent);
+
+            assert.equal(parent, gateway.address, 'app should have returned correct parent address')
+        })
+    })
+});
+*/
     /*
     it('throws when called by unauthorized entity', async () => {
         return assertInvalidOpcode(async () => {
@@ -95,10 +297,10 @@ contract('Link Database', accounts => {
         })
     })
 
-    */
 
-});
-/*
+
+
+
 const Kernel = artifacts.require('Kernel')
 const AppProxy = artifacts.require('AppProxy')
 const AppStub = artifacts.require('AppStub')

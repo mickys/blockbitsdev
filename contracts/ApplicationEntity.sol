@@ -11,21 +11,33 @@
 pragma solidity ^0.4.17;
 
 import "./GatewayInterface.sol";
+import "./Entity/Proposals.sol";
+
 // import "./Entity/Meetings.sol";
-// import "./Entity/Proposals.sol";
 // import "./Entity/Milestones.sol";
 
 
 contract ApplicationEntity {
 
+    /* Source Code Url */
+    bytes32 sourceCodeUrl;
+
     /* Entity initialised or not */
     bool public _initialized = false;
 
-    /* Parent address ( GatewayInterface or ListingContract for child ) */
-    address public ParentAddress;
+    /* GatewayInterface address */
+    address GatewayInterfaceAddress;
 
     /* Parent Entity Instance */
     GatewayInterface GatewayInterfaceEntity;
+
+    /* Asset Entities */
+    Proposals ProposalsEntity;
+
+
+    event EventApplicationReady ( address indexed _address );
+    event EventCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
+
 
     /*
         Empty Constructor
@@ -35,56 +47,97 @@ contract ApplicationEntity {
     }
 
     /*
-    *   Initialize Entity and it's assets
+    * Initialize Application and it's assets
+    * If gateway is freshly deployed, just link
+    * else, create a voting proposal that needs to be accepted for the linking
+    *
+    * @param        address _newAddress
+    * @param        bytes32 _sourceCodeUrl
+    *
+    * @modifiers    requireNoParent, requireNotInitialised
     */
-    function initialize(address _ParentInterfaceAddress) external requireNotInitialised {
-
-        ParentAddress = _ParentInterfaceAddress;
+    function linkToGateway(
+        address _GatewayInterfaceAddress,
+        bytes32 _sourceCodeUrl
+    )
+        external
+        requireNoParent
+        requireNotInitialised
+    {
+        GatewayInterfaceAddress = _GatewayInterfaceAddress;
+        sourceCodeUrl = _sourceCodeUrl;
 
         // init gateway entity and set app address
-        GatewayInterfaceEntity = GatewayInterface(_ParentInterfaceAddress);
-        GatewayInterfaceEntity.setApplicationEntityAddress( address(this) );
+        GatewayInterfaceEntity = GatewayInterface(GatewayInterfaceAddress);
+        GatewayInterfaceEntity.requestCodeUpgrade( address(this), sourceCodeUrl );
+    }
 
-        // MilestonesEntity = new Milestones();
+
+    function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
+
+        // MilestonesEntity = Milestones();
         // MilestonesEntity.setOwner( address(this) );
 
-        // for now we just create the entity and link ourselves in.. no migrations
         // MeetingsEntity = new Meetings( address(this) );
         // ProposalsEntity = new Proposals(); // , address(MeetingsEntity)
         // ProposalsEntity.setOwner( address(this) );
 
         _initialized = true;
+
+        EventApplicationReady( address(this) );
+
+        return true;
     }
 
     function getParentAddress() external view returns(address) {
-        return ParentAddress;
+        return GatewayInterfaceAddress;
     }
 
-    function addProposal() external pure {
-        // ProposalsEntity.add();
+    function createCodeUpgradeProposal(
+        address _newAddress,
+        bytes32 _sourceCodeUrl
+    )
+        external
+        onlyGatewayInterface
+        returns (bool)
+    {
+        // proposals create new.. code upgrade proposal
+        EventCodeUpgradeProposal ( _newAddress, _sourceCodeUrl );
     }
 
-    function processLinkRequest(uint16 _requestId) onlyParentInterface() {
-        // add state change request
-        // then on tick run request
-        // tick checks if allowed or not
-
-        // GatewayInterfaceEntity.approve(_requestId);
-        // GatewayInterfaceEntity.deny(_requestId);
-    }
-
-    // since we might change contract structure in the future,
-    // new contracts should hold "old to new" conversion
-    function migrate(address _oldVersionAddress) external view onlyParentInterface  {
-        // do nothing for now
-        require(address(_oldVersionAddress) != 0);
+    /*
+    * Only a proposal can update the ApplicationEntity Contract address
+    *
+    * @param        address _newAddress
+    * @modifiers    onlyProposalsAsset
+    */
+    function acceptCodeUpgradeProposal(address _newAddress) external onlyProposalsAsset  {
+        GatewayInterfaceEntity.approveCodeUpgrade( _newAddress );
     }
 
     /*
     * Throws if called by any other entity except GatewayInterface
     */
-    modifier onlyParentInterface() {
-        require(ParentAddress != address(0) && msg.sender == ParentAddress);
+    modifier onlyGatewayInterface() {
+        require(GatewayInterfaceAddress != address(0) && msg.sender == GatewayInterfaceAddress);
+        _;
+    }
+
+    /*
+    * Throws if called by any other entity except Proposals Asset Contract
+    */
+    modifier onlyProposalsAsset() {
+        require(msg.sender == address(ProposalsEntity));
+        _;
+    }
+
+    modifier requireParent() {
+        require(GatewayInterfaceAddress != address(0x0));
+        _;
+    }
+
+    modifier requireNoParent() {
+        require(GatewayInterfaceAddress == address(0x0));
         _;
     }
 

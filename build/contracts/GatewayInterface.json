@@ -2,17 +2,22 @@
   "contract_name": "GatewayInterface",
   "abi": [
     {
-      "constant": true,
-      "inputs": [],
-      "name": "getApplicationEntityAddress",
-      "outputs": [
+      "constant": false,
+      "inputs": [
         {
-          "name": "",
+          "name": "_newAddress",
           "type": "address"
         }
       ],
+      "name": "approveCodeUpgrade",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
       "payable": false,
-      "stateMutability": "view",
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -30,15 +35,38 @@
       "type": "function"
     },
     {
-      "constant": false,
-      "inputs": [
+      "constant": true,
+      "inputs": [],
+      "name": "getApplicationAddress",
+      "outputs": [
         {
-          "name": "_address",
+          "name": "",
           "type": "address"
         }
       ],
-      "name": "setApplicationEntityAddress",
-      "outputs": [],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_newAddress",
+          "type": "address"
+        },
+        {
+          "name": "_sourceCodeUrl",
+          "type": "bytes32"
+        }
+      ],
+      "name": "requestCodeUpgrade",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -53,7 +81,19 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
+          "indexed": true,
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "EventNewLinkRequest",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
           "name": "newAddress",
           "type": "address"
         }
@@ -62,7 +102,7 @@
       "type": "event"
     }
   ],
-  "unlinked_binary": "0x6060604052341561000f57600080fd5b6101938061001e6000396000f300606060405263ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634576af3681146100525780635cbbdfc914610081578063a3266cd41461009457600080fd5b341561005d57600080fd5b6100656100b5565b604051600160a060020a03909116815260200160405180910390f35b341561008c57600080fd5b6100656100c4565b341561009f57600080fd5b6100b3600160a060020a03600435166100d3565b005b600054600160a060020a031690565b600054600160a060020a031681565b600054600160a060020a0316156100ff5760005433600160a060020a039081169116146100ff57600080fd5b6000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0383161790557f0e278c4a9cd116e4f8f3f5a6e965583c833b6300464e66ba390bddcf7445e2ec81604051600160a060020a03909116815260200160405180910390a1505600a165627a7a723058206bdf63bc7a56f3b559a9211e5eaa2e89d4bb08277e0c288297854b3ffcb834290029",
+  "unlinked_binary": "0x6060604052341561000f57600080fd5b6103078061001e6000396000f300606060405263ffffffff60e060020a6000350416630e09461d81146100445780635cbbdfc91461007757806370d8915a146100a65780637913c465146100b957600080fd5b341561004f57600080fd5b610063600160a060020a03600435166100db565b604051901515815260200160405180910390f35b341561008257600080fd5b61008a610106565b604051600160a060020a03909116815260200160405180910390f35b34156100b157600080fd5b61008a610115565b34156100c457600080fd5b610063600160a060020a0360043516602435610124565b6000805433600160a060020a039081169116146100f757600080fd5b610100826101fe565b92915050565b600054600160a060020a031681565b600054600160a060020a031690565b600082600160a060020a03167fed4350596f4deea10759a23ee76de976a7a0ceb6b45e8148c99f7589d12c6aa860405160405180910390a2600054600160a060020a0316151561017e57610177836101fe565b9050610100565b600154600160a060020a031663584ae175848460006040516020015260405160e060020a63ffffffff8516028152600160a060020a0390921660048301526024820152604401602060405180830381600087803b15156101dd57600080fd5b6102c65a03f115156101ee57600080fd5b5050506040518051505092915050565b60008054600160a060020a0380841673ffffffffffffffffffffffffffffffffffffffff199283161780845560018054909316908216179182905516638129fc1c82604051602001526040518163ffffffff1660e060020a028152600401602060405180830381600087803b151561027557600080fd5b6102c65a03f1151561028657600080fd5b50505060405180519050151561029b57600080fd5b600054600160a060020a03167f0e278c4a9cd116e4f8f3f5a6e965583c833b6300464e66ba390bddcf7445e2ec60405160405180910390a25060019190505600a165627a7a723058205f891db06fc85a6e0e735c701004adfd1f34b32216b59a6521ee157ca34109860029",
   "networks": {
     "15": {
       "events": {
@@ -70,20 +110,32 @@
           "anonymous": false,
           "inputs": [
             {
-              "indexed": false,
+              "indexed": true,
               "name": "newAddress",
               "type": "address"
             }
           ],
           "name": "EventNewAddress",
           "type": "event"
+        },
+        "0xed4350596f4deea10759a23ee76de976a7a0ceb6b45e8148c99f7589d12c6aa8": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "name": "newAddress",
+              "type": "address"
+            }
+          ],
+          "name": "EventNewLinkRequest",
+          "type": "event"
         }
       },
       "links": {},
-      "address": "0x3b36c543a971c36f1b7963831f4a9f29a872a363",
-      "updated_at": 1507521754717
+      "address": "0x3e31f6fbf86aa6fc28d8e1e038f90601bcd3ca48",
+      "updated_at": 1507554574356
     }
   },
   "schema_version": "0.0.5",
-  "updated_at": 1507521754717
+  "updated_at": 1507554574356
 }

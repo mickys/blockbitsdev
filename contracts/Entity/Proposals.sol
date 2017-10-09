@@ -64,7 +64,9 @@ contract Proposals is ApplicationAsset {
 
     }
 
+    function accepted() external {
 
+    }
 
 
 }

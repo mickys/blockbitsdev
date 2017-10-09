@@ -5,6 +5,9 @@ const getContract = (name) => artifacts.require(name);
 module.exports = (deployer, network) => {
 
     console.log();
+    console.log('  ----------------------------------------------------------------');
+    console.log('  Stage 1 - Initial Gateway and Application Deployment');
+    console.log('  ----------------------------------------------------------------');
 
     const entities = [
         'Funding',
@@ -19,11 +22,29 @@ module.exports = (deployer, network) => {
         .then(() => deployer.deploy(ApplicationEntity) )
         .then(() => {
             return ApplicationEntity.at(ApplicationEntity.address).then(function(instance) {
-                instance.initialize(GatewayInterface.address);
+
                 console.log();
                 console.log('  ----------------------------------------------------------------');
-                console.log("  Initialization Report: ");
+                console.log("  Report: ");
                 console.log('  ----------------------------------------------------------------');
+
+                return instance.linkToGateway(GatewayInterface.address, "http://dummy.url").then(function(receipt) {
+
+                    // make this thing read all events fired by the app and based on that decide if successful or not!
+                    /*
+                    console.log(receipt.receipt);
+                    console.log(receipt.receipt.logs);
+                    console.log(receipt.logs);
+                    const linkRequestInLogs = receipt.logs.filter(log => log.event == 'EventNewLinkRequest')
+                    const EventNewAddressInLogs = receipt.logs.filter(log => log.event == 'EventNewAddress')
+                    console.log("  linkRequestInLogs: ", linkRequestInLogs.length);
+                    console.log("  EventNewAddressInLogs: ", EventNewAddressInLogs.length);
+                    */
+
+                    const EventApplicationReadyInLogs = receipt.logs.filter(log => log.event == 'EventApplicationReady')
+                    console.log("  >> EventApplicationReady: ", EventApplicationReadyInLogs.length);
+                    console.log();
+                })
             });
         }).then(() => {
 
