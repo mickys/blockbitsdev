@@ -13,8 +13,12 @@ pragma solidity ^0.4.17;
 import "./GatewayInterface.sol";
 import "./Entity/Proposals.sol";
 
-// import "./Entity/Meetings.sol";
-// import "./Entity/Milestones.sol";
+import "./Entity/Funding.sol";
+import "./Entity/Meetings.sol";
+import "./Entity/Milestones.sol";
+import "./Entity/GeneralVault.sol";
+import "./Entity/ListingContract.sol";
+
 
 
 contract ApplicationEntity {
@@ -33,12 +37,15 @@ contract ApplicationEntity {
 
     /* Asset Entities */
     Proposals ProposalsEntity;
-
+    Funding FundingEntity;
+    Milestones MilestonesEntity;
+    Meetings MeetingsEntity;
+    GeneralVault GeneralVaultEntity;
+    ListingContract ListingContractEntity;
 
     event EventApplicationReady ( address indexed _address );
     event EventCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
-
-
+    event EventInitAsset ( bytes32 indexed _name, address indexed _address );
     /*
         Empty Constructor
     */
@@ -73,6 +80,40 @@ contract ApplicationEntity {
     }
 
 
+    /*
+        For the sake of simplicity, and solidity warnings about "unknown gas usage" do this.. instead of sending
+        an array of addresses
+    */
+    function addAssetProposals(address _assetAddresses) external requireNotInitialised {
+        ProposalsEntity = Proposals(_assetAddresses);
+        EventInitAsset("Proposals", _assetAddresses);
+    }
+
+    function addAssetFunding(address _assetAddresses) external requireNotInitialised {
+        FundingEntity = Funding(_assetAddresses);
+        EventInitAsset("Funding", _assetAddresses);
+    }
+
+    function addAssetMilestones(address _assetAddresses) external requireNotInitialised {
+        MilestonesEntity = Milestones(_assetAddresses);
+        EventInitAsset("Milestones", _assetAddresses);
+    }
+
+    function addAssetMeetings(address _assetAddresses) external requireNotInitialised {
+        MeetingsEntity = Meetings(_assetAddresses);
+        EventInitAsset("Meetings", _assetAddresses);
+    }
+
+    function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised {
+        GeneralVaultEntity = GeneralVault(_assetAddresses);
+        EventInitAsset("GeneralVault", _assetAddresses);
+    }
+
+    function addAssetListingContract(address _assetAddresses) external requireNotInitialised {
+        ListingContractEntity = ListingContract(_assetAddresses);
+        EventInitAsset("ListingContract", _assetAddresses);
+    }
+
     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
 
         // MilestonesEntity = Milestones();
@@ -98,11 +139,14 @@ contract ApplicationEntity {
         bytes32 _sourceCodeUrl
     )
         external
+        requireInitialised
         onlyGatewayInterface
         returns (bool)
     {
         // proposals create new.. code upgrade proposal
         EventCodeUpgradeProposal ( _newAddress, _sourceCodeUrl );
+
+        ProposalsEntity.acceptCodeUpgrade(_newAddress, _sourceCodeUrl);
     }
 
     /*

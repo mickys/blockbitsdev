@@ -24,6 +24,8 @@ contract GatewayInterface {
     address public currentApplicationEntityAddress;     // currently linked ApplicationEntity address
     ApplicationEntity private currentApp;
 
+    address[] entities;
+
     // constructor
     function GatewayInterface() public {
 

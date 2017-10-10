@@ -4,7 +4,9 @@ import "../../contracts/ApplicationEntity.sol";
 
 contract ApplicationEntityMock is ApplicationEntity {
 
-    function setProposalEntity(address _address) {
+    function setProposalEntity(address _address) public {
          ProposalsEntity = Proposals(_address);
     }
+
+
 }

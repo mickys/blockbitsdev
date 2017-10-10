@@ -64,9 +64,8 @@ contract Proposals is ApplicationAsset {
 
     }
 
-    function accepted() external {
+    function acceptCodeUpgrade(address _addr, bytes32 _sourceCodeUrl) public {
 
     }
-
 
 }

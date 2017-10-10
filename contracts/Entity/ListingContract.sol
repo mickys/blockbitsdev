@@ -32,21 +32,7 @@ contract ListingContract {
     event ListingContractNewNewsItem(bytes32 itemHash, uint256 index);
 
     function ListingContract() public {
-        // add test data
-        addChildItem("Test Child 1");
-        addNewsItem(childItemNum, "HASH01");
-        addNewsItem(childItemNum, "HASH01_2");
-        addNewsItem(childItemNum, "HASH01_3");
-        addChildItem("Test Child 2");
-        addNewsItem(childItemNum, "HASH02");
-        addChildItem("Test Child 3");
-        addNewsItem(childItemNum, "HASH03");
-        addChildItem("Test Child 4");
-        addNewsItem(childItemNum, "HASH04");
-        addNewsItem(childItemNum, "HASH04_2");
-        addNewsItem(childItemNum, "HASH04_3");
-        addNewsItem(childItemNum, "HASH04_4");
-        addNewsItem(childItemNum, "HASH04_5");
+
     }
 
     function addNewsItem(uint256 _childId, bytes32 _hash) public childExists(_childId) {

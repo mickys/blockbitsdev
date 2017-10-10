@@ -1,10 +1,24 @@
-const { assertInvalidOpcode } = require('./helpers/assertThrow');
-const GatewayInterface = artifacts.require('GatewayInterface');
-const ApplicationEntity = artifacts.require('ApplicationEntityMock');
-const EmptyMock = artifacts.require('EmptyMock');
-const Proposals = artifacts.require('ProposalsMock');
 
-const sourceCodeUrl = "http://test.com/SourceCodeValidator";
+const { assertInvalidOpcode }   = require('./helpers/assertThrow');
+const GatewayInterface          = artifacts.require('GatewayInterface');
+const ApplicationEntity         = artifacts.require('ApplicationEntityMock');
+const EmptyMock                 = artifacts.require('EmptyMock');
+const sourceCodeUrl             = "http://test.com/SourceCodeValidator";
+
+const ProposalsEntity           = artifacts.require('Proposals');
+
+const getContract               = (name) => artifacts.require(name);
+const getContractName           = (obj) => obj.contract._json.contract_name;
+
+
+const assetEntities = [
+    'Proposals',
+    'Funding',
+    'Milestones',
+    'Meetings',
+    'GeneralVault',
+    'ListingContract'
+];
 
 function hasEvent(receipt, eventName){
     return receipt.logs.filter(x => x.event == eventName);
@@ -40,7 +54,7 @@ contract('Gateway Interface', accounts => {
 });
 
 contract('Application Entity', accounts => {
-    let app, app2, gateway, proposals = {};
+    let app, app2, gateway, proposals, deployedEntities = {};
 
     beforeEach(async () => {
         app = await ApplicationEntity.new();
@@ -66,6 +80,39 @@ contract('Application Entity', accounts => {
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
             app = await ApplicationEntity.new();
+
+
+            proposals = await ProposalsEntity.new();
+
+            // console.log("testing1 _json: ",proposals._json);
+            console.log("testing1 contract: ",proposals.contract_name);
+
+            let name = ProposalsEntity.at(proposals.address).contract_name;
+            console.log("testing2 contract: ",name);
+
+            // console.log("testing4: ",proposals.contract.contract_name);
+            // console.log("testing3: ",proposals.contract._json.contract_name);
+
+
+            /*
+            deployedEntities = {
+                addresses: [ProposalsEntity.address],
+                names: [ProposalsEntity.contract_name]
+            }
+            */
+        });
+
+        it('app1: addAssets will emit EventInitAsset', async () => {
+            console.log(proposals.contract.contract_name);
+            console.log(proposals._json.contract_name);
+            // console.log(getContractName(proposals));
+
+
+            const eventFilter = hasEvent(
+                await app.addAssets(deployedEntities.names, deployedEntities.addresses),
+                'EventInitAsset'
+            );
+            assert.equal(eventFilter.length, deployedEntities.length, 'EventApplicationReady event not received.')
         });
 
         it('app1: linkToGateway will emit EventApplicationReady', async () => {
@@ -149,10 +196,41 @@ contract('Application Entity', accounts => {
             gateway = await GatewayInterface.new();
             app = await ApplicationEntity.new();
             await app.linkToGateway(gateway.address, sourceCodeUrl);
-            proposals = await Proposals.new();
-            await app.setProposalEntity(proposals.address);
+
+
             app2 = await ApplicationEntity.new();
             await app2.linkToGateway(gateway.address, sourceCodeUrl);
+        });
+
+        it('app2: parent address is gateway address', async () => {
+            let value = await app.getParentAddress();
+            assert.equal(value, gateway.address, 'app should have returned correct parent address')
+        });
+
+        it('gw: current Application Entity address is still app1 address', async () => {
+            let value = await gateway.getApplicationAddress();
+            assert.equal(value, app.address, 'app should have returned correct app address')
+        });
+
+        it('app2: _initialized is bool: false', async () => {
+            let value = await app2._initialized();
+            assert.isFalse(value, 'app should have returned true for initialized')
+        });
+    });
+
+
+    context('Application - Upgrade - Acceptance', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+            app = await ApplicationEntity.new();
+            await app.linkToGateway(gateway.address, sourceCodeUrl);
+
+
+
+            app2 = await ApplicationEntity.new();
+            await app2.linkToGateway(gateway.address, sourceCodeUrl);
+
+
         });
 
         it('app2: parent address is gateway address', async () => {
