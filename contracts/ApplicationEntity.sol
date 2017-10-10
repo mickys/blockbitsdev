@@ -44,7 +44,7 @@ contract ApplicationEntity {
     ListingContract ListingContractEntity;
 
     event EventApplicationReady ( address indexed _address );
-    event EventCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
+    event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
     event EventInitAsset ( bytes32 indexed _name, address indexed _address );
     /*
         Empty Constructor
@@ -144,9 +144,9 @@ contract ApplicationEntity {
         returns (bool)
     {
         // proposals create new.. code upgrade proposal
-        EventCodeUpgradeProposal ( _newAddress, _sourceCodeUrl );
+        EventAppEntityCodeUpgradeProposal ( _newAddress, _sourceCodeUrl );
 
-        ProposalsEntity.acceptCodeUpgrade(_newAddress, _sourceCodeUrl);
+        ProposalsEntity.addCodeUpgradeProposal(_newAddress, _sourceCodeUrl);
     }
 
     /*

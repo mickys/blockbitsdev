@@ -1,11 +1,11 @@
-
+const web3util                  = require('web3-utils');
 const { assertInvalidOpcode }   = require('./helpers/assertThrow');
 const GatewayInterface          = artifacts.require('GatewayInterface');
 const ApplicationEntity         = artifacts.require('ApplicationEntityMock');
 const EmptyMock                 = artifacts.require('EmptyMock');
 const sourceCodeUrl             = "http://test.com/SourceCodeValidator";
 
-const ProposalsEntity           = artifacts.require('Proposals');
+const ProposalsMockEntity       = artifacts.require('ProposalsMock');
 
 const getContract               = (name) => artifacts.require(name);
 const getContractName           = (obj) => obj.contract._json.contract_name;
@@ -156,12 +156,12 @@ contract('Application Entity', accounts => {
             app2 = await ApplicationEntity.new();
         });
 
-        it('app2: linkToGateway will emit EventCodeUpgradeProposal', async () => {
+        it('app2: linkToGateway will emit EventAppEntityCodeUpgradeProposal', async () => {
             const eventFilter = hasEvent(
                 await app2.linkToGateway(gateway.address, sourceCodeUrl),
-                'EventCodeUpgradeProposal'
+                'EventAppEntityCodeUpgradeProposal'
             );
-            assert.equal(eventFilter.length, 1, 'EventCodeUpgradeProposal event not received.')
+            assert.equal(eventFilter.length, 1, 'EventAppEntityCodeUpgradeProposal event not received.')
         });
 
     });
