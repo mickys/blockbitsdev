@@ -1,9 +1,9 @@
 function assertError(error, s, message) {
     /*
-    console.log(error)
-    console.log(s)
-    console.log(message)
-    */
+     console.log(error)
+     console.log(s)
+     console.log(message)
+     */
     assert.isAbove(error.message.search(s), -1, message);
 }
 

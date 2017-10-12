@@ -71,24 +71,24 @@ async function doStage(deployer)  {
     deployedAssets = assets.map(mapDeployedAssets);
 
     toLog("  Deploy ApplicationEntity");
-    await deployer.deploy(ApplicationEntity)
+    await deployer.deploy(ApplicationEntity);
     let app = await ApplicationEntity.at( ApplicationEntity.address );
 
     toLog("  Link assets to ApplicationEntity");
 
     await Promise.all(deployedAssets.map(async (entity) => {
-        toLog("    Asset: " + entity.name);
+        // toLog("    Asset: " + entity.name);
         let receipt = await app[entity.method]( entity.address );
-        let eventFilter = await hasEvent(receipt, 'EventInitAsset');
+        let eventFilter = await hasEvent(receipt, 'EventAppEntityInitAsset');
 
-        toLog("  "+"EventInitAsset returned name: " +CGRN+ web3util.toAscii(eventFilter[0].args._name) +" => "+ eventFilter.length+logColor);
+        toLog("    Successfully linked: " +CGRN+ web3util.toAscii(eventFilter[0].args._name) );
     }));
 
     toLog("  Link ApplicationEntity to GatewayInterface");
 
     let receipt = await app.linkToGateway(GatewayInterface.address, "http://dummy.url");
-    let eventFilter = hasEvent(receipt, 'EventApplicationReady');
-    toLog("  "+CGRN+"EventApplicationReady => " + eventFilter.length+NOC);
+    let eventFilter = hasEvent(receipt, 'EventAppEntityReady');
+    toLog("    "+CGRN+"EventAppEntityReady => " + eventFilter.length+NOC);
 
     toLog(
         '\n  ----------------------------------------------------------------\n'+

@@ -1,8 +1,17 @@
+/*
+
+ * @name        Test Funding Contract
+ * @package     BlockBitsIO
+ * @author      Micky Socaci <micky@nowlive.ro>
+
+*/
+
 pragma solidity ^0.4.17;
 
 import "../../contracts/Entity/Funding.sol";
+import "./TestApplicationAsset.sol";
 
-contract FundingMock is Funding {
+contract TestFunding is Funding, TestApplicationAsset {
     uint _mockTime = now;
 
     function getTimestamp() view internal returns (uint256) {

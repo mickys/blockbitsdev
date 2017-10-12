@@ -18,13 +18,11 @@ import "./ApplicationEntity.sol";
 
 contract GatewayInterface {
 
-    event EventNewLinkRequest ( address indexed newAddress );
-    event EventNewAddress ( address indexed newAddress );
+    event EventGatewayNewLinkRequest ( address indexed newAddress );
+    event EventGatewayNewAddress ( address indexed newAddress );
 
     address public currentApplicationEntityAddress;     // currently linked ApplicationEntity address
     ApplicationEntity private currentApp;
-
-    address[] entities;
 
     // constructor
     function GatewayInterface() public {
@@ -49,7 +47,7 @@ contract GatewayInterface {
     function requestCodeUpgrade( address _newAddress, bytes32 _sourceCodeUrl ) external returns (bool) {
         require(_newAddress != address(0));
 
-        EventNewLinkRequest ( _newAddress );
+        EventGatewayNewLinkRequest ( _newAddress );
 
         /*
             case 1 - Newly Deployed Gateway and Application
@@ -57,7 +55,8 @@ contract GatewayInterface {
             gateway links to app and initializes
         */
         if(currentApplicationEntityAddress == address(0x0)) {
-            return link(_newAddress);
+            link(_newAddress);
+            return true;
         } else {
             /*
                 case 2 - Actual Code Upgrade Request
@@ -87,7 +86,8 @@ contract GatewayInterface {
         // unlock new
         // ?? needed ??
 
-        return link(_newAddress);
+        link(_newAddress);
+        return true;
     }
 
     /*
@@ -96,12 +96,13 @@ contract GatewayInterface {
     * @param        address _newAddress
     */
     function link( address _newAddress ) internal returns (bool) {
+
         currentApplicationEntityAddress = _newAddress;
         currentApp = ApplicationEntity(currentApplicationEntityAddress);
         if( !currentApp.initialize() ) {
             revert();
         }
-        EventNewAddress(currentApplicationEntityAddress);
+        EventGatewayNewAddress(currentApplicationEntityAddress);
         return true;
     }
 

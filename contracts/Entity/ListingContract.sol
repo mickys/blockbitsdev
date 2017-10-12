@@ -8,6 +8,8 @@
  - used by the platform to find child campaigns
  - used by mobile application to retrieve News Items
 
+ropsten - 0x1ec6988a826c4236b3b07c5eed9059e3aa033fe2
+
 */
 
 pragma solidity ^0.4.14;

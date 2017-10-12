@@ -43,9 +43,9 @@ contract ApplicationEntity {
     GeneralVault GeneralVaultEntity;
     ListingContract ListingContractEntity;
 
-    event EventApplicationReady ( address indexed _address );
+    event EventAppEntityReady ( address indexed _address );
     event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
-    event EventInitAsset ( bytes32 indexed _name, address indexed _address );
+    event EventAppEntityInitAsset ( bytes32 indexed _name, address indexed _address );
     /*
         Empty Constructor
     */
@@ -86,46 +86,39 @@ contract ApplicationEntity {
     */
     function addAssetProposals(address _assetAddresses) external requireNotInitialised {
         ProposalsEntity = Proposals(_assetAddresses);
-        EventInitAsset("Proposals", _assetAddresses);
+        EventAppEntityInitAsset("Proposals", _assetAddresses);
     }
 
     function addAssetFunding(address _assetAddresses) external requireNotInitialised {
         FundingEntity = Funding(_assetAddresses);
-        EventInitAsset("Funding", _assetAddresses);
+        EventAppEntityInitAsset("Funding", _assetAddresses);
     }
 
     function addAssetMilestones(address _assetAddresses) external requireNotInitialised {
         MilestonesEntity = Milestones(_assetAddresses);
-        EventInitAsset("Milestones", _assetAddresses);
+        EventAppEntityInitAsset("Milestones", _assetAddresses);
     }
 
     function addAssetMeetings(address _assetAddresses) external requireNotInitialised {
         MeetingsEntity = Meetings(_assetAddresses);
-        EventInitAsset("Meetings", _assetAddresses);
+        EventAppEntityInitAsset("Meetings", _assetAddresses);
     }
 
     function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised {
         GeneralVaultEntity = GeneralVault(_assetAddresses);
-        EventInitAsset("GeneralVault", _assetAddresses);
+        EventAppEntityInitAsset("GeneralVault", _assetAddresses);
     }
 
     function addAssetListingContract(address _assetAddresses) external requireNotInitialised {
         ListingContractEntity = ListingContract(_assetAddresses);
-        EventInitAsset("ListingContract", _assetAddresses);
+        EventAppEntityInitAsset("ListingContract", _assetAddresses);
     }
 
     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
 
-        // MilestonesEntity = Milestones();
-        // MilestonesEntity.setOwner( address(this) );
-
-        // MeetingsEntity = new Meetings( address(this) );
-        // ProposalsEntity = new Proposals(); // , address(MeetingsEntity)
-        // ProposalsEntity.setOwner( address(this) );
-
         _initialized = true;
 
-        EventApplicationReady( address(this) );
+        EventAppEntityReady( address(this) );
 
         return true;
     }
@@ -141,12 +134,13 @@ contract ApplicationEntity {
         external
         requireInitialised
         onlyGatewayInterface
-        returns (bool)
+        returns (uint256)
     {
         // proposals create new.. code upgrade proposal
         EventAppEntityCodeUpgradeProposal ( _newAddress, _sourceCodeUrl );
 
-        ProposalsEntity.addCodeUpgradeProposal(_newAddress, _sourceCodeUrl);
+        // return true;
+        return ProposalsEntity.addCodeUpgradeProposal(_newAddress, _sourceCodeUrl);
     }
 
     /*
