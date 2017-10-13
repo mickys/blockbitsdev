@@ -7,6 +7,7 @@
 */
 
 pragma solidity ^0.4.17;
+
 import "./../Entity/PurchaseVaultGeneral.sol";
 
 contract PurchaseVaultMilestone is PurchaseVaultGeneral {

@@ -13,7 +13,6 @@ if (!process.env.SOLIDITY_COVERAGE){
 
 if (process.env.LIVE_NETWORKS) {
   ropstenProvider = new HDWalletProvider(mnemonic, 'https://ropsten.infura.io/')
-  kovanProvider = new HDWalletProvider(mnemonic, 'https://kovan.aragon.one')
 }
 
 module.exports = {
@@ -33,11 +32,6 @@ module.exports = {
       network_id: 3,
       provider: ropstenProvider,
       gas: 4.712e6,
-    },
-    kovan: {
-      network_id: 42,
-      provider: kovanProvider,
-      gas: 4.6e6,
     },
     coverage: {
       host: "localhost",

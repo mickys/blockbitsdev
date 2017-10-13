@@ -8,7 +8,7 @@
 
 */
 
-pragma solidity ^0.4.14;
+pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
 

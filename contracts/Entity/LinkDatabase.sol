@@ -47,7 +47,7 @@ contract LinkDatabase {
     mapping (uint16 => address) public reqById;
     uint16 public reqNum = 0;
 
-    function LinkDatabase() {
+    function LinkDatabase() public {
 
     }
 

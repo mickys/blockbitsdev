@@ -12,7 +12,9 @@ pragma solidity ^0.4.17;
 
 contract ApplicationAsset {
 
-    event OwnerSet(address indexed _owner);
+    event EventAppAssetOwnerSet(bytes32 indexed _name, address indexed _owner);
+
+    bytes32 assetName;
 
     /* Asset records */
     uint8 public RecordNum = 0;
@@ -21,20 +23,39 @@ contract ApplicationAsset {
     bool public _initialized = false;
     
     /* Asset owner ( ApplicationEntity address ) */
-    address public owner;
+    address public owner = address(0x0) ;
 
-    function setOwner(address _owner) public onlyOwner {
+    function ApplicationAsset() public {
+
+    }
+
+    function setInitialOwnerAndName(bytes32 _name, address _owner) external requireNotInitialised {
+        require(owner == address(0x0) && _owner != address(0x0));
         owner = _owner;
-        OwnerSet(owner);
+        assetName = _name;
+        _initialized = true;
+        EventAppAssetOwnerSet(_name, owner);
+    }
+
+    function transferToNewOwner(address _newOwner) public onlyOwner returns (bool) {
+        require(owner != address(0x0) && _newOwner != address(0x0));
+        owner = _newOwner;
+        EventAppAssetOwnerSet(assetName, owner);
+        return true;
     }
 
     modifier onlyOwner() {
-        require(owner != address(0) && msg.sender == owner);
+        require(msg.sender == owner);
         _;
     }
 
     modifier requireInitialised() {
         require(_initialized == true);
+        _;
+    }
+
+    modifier requireNotInitialised() {
+        require(_initialized == false);
         _;
     }
 }

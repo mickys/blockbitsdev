@@ -74,6 +74,20 @@ async function doStage(deployer)  {
     await deployer.deploy(ApplicationEntity);
     let app = await ApplicationEntity.at( ApplicationEntity.address );
 
+    toLog("  Set assets ownership and initialize");
+    await Promise.all(deployedAssets.map(async (entity) => {
+
+        let name = entity.name;
+        let arts = await artifacts.require(name);
+        let contract = await arts.at(arts.address);
+
+        let eventFilter = await hasEvent(
+            await contract.setInitialOwnerAndName( name, app.address ),
+            'EventAppAssetOwnerSet'
+        );
+        toLog("    Successfully initialized: " +CGRN+ web3util.toAscii(eventFilter[0].args._name)+NOC) ;
+    }));
+
     toLog("  Link assets to ApplicationEntity");
 
     await Promise.all(deployedAssets.map(async (entity) => {

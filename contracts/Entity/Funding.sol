@@ -83,7 +83,7 @@ contract Funding is ApplicationAsset {
     //
     uint8 public currentFundingStage = 0;
 
-    function Funding() public {
+    function Funding() ApplicationAsset public {
 
         // add pre-ico stage
         FundingStage storage record = Collection[++FundingStageNum];
@@ -121,9 +121,6 @@ contract Funding is ApplicationAsset {
         record.use_parity_from_previous = true;
         record.token_share_percentage = 40;
         record.index = FundingStageNum;
-
-        // Asset initialized
-        _initialized = true;
     }
 
     function saveRequiredStateChanges() public returns (bool) {

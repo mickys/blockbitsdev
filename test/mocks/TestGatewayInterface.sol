@@ -11,11 +11,15 @@ import "../../contracts/GatewayInterface.sol";
 
 contract TestGatewayInterface is GatewayInterface {
 
-    function setCurrentApplicationEntityAddress(address _address) external {
+    function setTestCurrentApplicationEntityAddress(address _address) external {
         currentApplicationEntityAddress = _address;
     }
 
-    function callApplicationEntityInitialize(address _address) external {
-        ApplicationEntity(_address).initialize();
+    function callTestApplicationEntityInitialize() external {
+        ApplicationEntity(currentApplicationEntityAddress).initialize();
+    }
+
+    function callTestLockCurrentApp() external {
+        ApplicationEntity(currentApplicationEntityAddress).lock();
     }
 }

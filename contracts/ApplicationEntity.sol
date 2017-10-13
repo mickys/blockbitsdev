@@ -29,8 +29,11 @@ contract ApplicationEntity {
     /* Entity initialised or not */
     bool public _initialized = false;
 
+    /* Entity locked or not */
+    bool public _locked = false;
+
     /* GatewayInterface address */
-    address GatewayInterfaceAddress;
+    address public GatewayInterfaceAddress;
 
     /* Parent Entity Instance */
     GatewayInterface GatewayInterfaceEntity;
@@ -43,9 +46,17 @@ contract ApplicationEntity {
     GeneralVault GeneralVaultEntity;
     ListingContract ListingContractEntity;
 
+    /* Asset Collection */
+    mapping (bytes32 => address) AssetCollection;
+    mapping (uint8 => bytes32) AssetCollectionIdToName;
+    uint8 AssetCollectionNum = 0;
+
     event EventAppEntityReady ( address indexed _address );
     event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
     event EventAppEntityInitAsset ( bytes32 indexed _name, address indexed _address );
+    event EventAppEntityAssetsToNewApplication ( address indexed _address );
+    event EventAppEntityLocked ( address indexed _address );
+
     /*
         Empty Constructor
     */
@@ -86,32 +97,42 @@ contract ApplicationEntity {
     */
     function addAssetProposals(address _assetAddresses) external requireNotInitialised {
         ProposalsEntity = Proposals(_assetAddresses);
-        EventAppEntityInitAsset("Proposals", _assetAddresses);
+        assetInitialized("Proposals", _assetAddresses);
     }
 
     function addAssetFunding(address _assetAddresses) external requireNotInitialised {
         FundingEntity = Funding(_assetAddresses);
-        EventAppEntityInitAsset("Funding", _assetAddresses);
+        assetInitialized("Funding", _assetAddresses);
     }
 
     function addAssetMilestones(address _assetAddresses) external requireNotInitialised {
         MilestonesEntity = Milestones(_assetAddresses);
-        EventAppEntityInitAsset("Milestones", _assetAddresses);
+        assetInitialized("Milestones", _assetAddresses);
     }
 
     function addAssetMeetings(address _assetAddresses) external requireNotInitialised {
         MeetingsEntity = Meetings(_assetAddresses);
-        EventAppEntityInitAsset("Meetings", _assetAddresses);
+        assetInitialized("Meetings", _assetAddresses);
     }
 
     function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised {
         GeneralVaultEntity = GeneralVault(_assetAddresses);
-        EventAppEntityInitAsset("GeneralVault", _assetAddresses);
+        assetInitialized("GeneralVault", _assetAddresses);
     }
 
     function addAssetListingContract(address _assetAddresses) external requireNotInitialised {
         ListingContractEntity = ListingContract(_assetAddresses);
-        EventAppEntityInitAsset("ListingContract", _assetAddresses);
+        assetInitialized("ListingContract", _assetAddresses);
+    }
+
+    function assetInitialized(bytes32 name, address _assetAddresses) internal {
+        require(AssetCollection[name] == 0x0);
+
+        AssetCollection[name] = _assetAddresses;
+        uint8 currentNum = ++AssetCollectionNum;
+        AssetCollectionIdToName[currentNum] = name;
+
+        EventAppEntityInitAsset(name, _assetAddresses);
     }
 
     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
@@ -153,6 +174,28 @@ contract ApplicationEntity {
         GatewayInterfaceEntity.approveCodeUpgrade( _newAddress );
     }
 
+    function transferAssetsToNewApplication(address _newAddress) external onlyGatewayInterface returns (bool){
+        for(uint8 i = 0; i < AssetCollectionNum; i++ ) {
+            address current = AssetCollection[AssetCollectionIdToName[i]];
+            if(! current.call(bytes4(keccak256("transferToNewOwner(address)")), _newAddress) ) {
+                revert();
+            }
+        }
+        EventAppEntityAssetsToNewApplication ( _newAddress );
+        return true;
+    }
+
+    /*
+    * Only the gateway interface can lock current app after a successful code upgrade proposal
+    *
+    * @modifiers    onlyGatewayInterface
+    */
+    function lock() external onlyGatewayInterface returns (bool) {
+        _locked = true;
+        EventAppEntityLocked(address(this));
+        return true;
+    }
+
     /*
     * Throws if called by any other entity except GatewayInterface
     */
@@ -180,12 +223,12 @@ contract ApplicationEntity {
     }
 
     modifier requireNotInitialised() {
-        require(_initialized == false);
+        require(_initialized == false && _locked == false);
         _;
     }
 
     modifier requireInitialised() {
-        require(_initialized == true);
+        require(_initialized == true && _locked == false);
         _;
     }
 

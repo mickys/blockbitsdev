@@ -11,12 +11,20 @@ import "../../contracts/ApplicationEntity.sol";
 
 contract TestApplicationEntity is ApplicationEntity {
 
-    function setInitialized() external {
+    function setTestInitialized() external {
         _initialized = true;
     }
 
-    function setGatewayInterfaceEntity(address _address) external {
+    function setTestGatewayInterfaceEntity(address _address) external {
         GatewayInterfaceAddress = _address;
         GatewayInterfaceEntity = GatewayInterface(GatewayInterfaceAddress);
+    }
+
+    function callTestApproveCodeUpgrade(address _address) external {
+        GatewayInterfaceEntity.approveCodeUpgrade(_address);
+    }
+
+    function callTestAssetTransferToNewOwner(address _address, address _newOwner) external returns (bool) {
+        return _address.call(bytes4(keccak256("transferToNewOwner(address)")), _newOwner);
     }
 }

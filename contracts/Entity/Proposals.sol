@@ -8,7 +8,7 @@
 
 */
 
-pragma solidity ^0.4.14;
+pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
 import "./../ApplicationEntity.sol";
@@ -66,8 +66,11 @@ contract Proposals is ApplicationAsset {
 
     mapping (uint256 => codeUpgradeRecord) public codeUpgradeRegistry;
 
-
     event EventProposalsCodeUpgradeNew ( bytes32 indexed _hash, uint256 indexed _requestId );
+
+    function Proposals() public {
+
+    }
 
     function getHash(uint8 actionType, bytes32 arg1, bytes32 arg2) public pure returns ( bytes32 ) {
         return keccak256(actionType, arg1, arg2);

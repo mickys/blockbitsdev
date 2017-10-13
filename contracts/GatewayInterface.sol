@@ -81,13 +81,30 @@ contract GatewayInterface {
     function approveCodeUpgrade( address _newAddress ) external returns (bool) {
         require(msg.sender == currentApplicationEntityAddress);
 
-        // lock old app
-        // link new
-        // unlock new
-        // ?? needed ??
-
+        lockCurrentApp();
+        transferAssetsToNewApplication(_newAddress);
         link(_newAddress);
         return true;
+    }
+
+    /*
+    * Locks current Application Entity
+    *
+    */
+    function lockCurrentApp() internal {
+        if(!currentApp.lock()) {
+            revert();
+        }
+    }
+
+    /*
+    * Transfer current Application Entity Assets to new Application
+    *
+    */
+    function transferAssetsToNewApplication(address _newAddress) internal {
+        if(!currentApp.transferAssetsToNewApplication(_newAddress)) {
+            revert();
+        }
     }
 
     /*

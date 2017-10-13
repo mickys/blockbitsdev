@@ -12,9 +12,11 @@ ropsten - 0x1ec6988a826c4236b3b07c5eed9059e3aa033fe2
 
 */
 
-pragma solidity ^0.4.14;
+pragma solidity ^0.4.17;
 
-contract ListingContract {
+import "./../ApplicationAsset.sol";
+
+contract ListingContract is ApplicationAsset {
 
     // child items
     struct childItem {
@@ -33,7 +35,7 @@ contract ListingContract {
     event ListingContractNewChildItem(bytes32 childName, uint256 index);
     event ListingContractNewNewsItem(bytes32 itemHash, uint256 index);
 
-    function ListingContract() public {
+    function ListingContract() ApplicationAsset public {
 
     }
 
