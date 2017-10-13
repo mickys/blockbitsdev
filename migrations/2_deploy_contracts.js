@@ -74,6 +74,10 @@ async function doStage(deployer)  {
     await deployer.deploy(ApplicationEntity);
     let app = await ApplicationEntity.at( ApplicationEntity.address );
 
+    /*
+
+    no longer done one by one .. assets get linked to app when gw links app to itself
+
     toLog("  Set assets ownership and initialize");
     await Promise.all(deployedAssets.map(async (entity) => {
 
@@ -87,7 +91,7 @@ async function doStage(deployer)  {
         );
         toLog("    Successfully initialized: " +CGRN+ web3util.toAscii(eventFilter[0].args._name)+NOC) ;
     }));
-
+    */
     toLog("  Link assets to ApplicationEntity");
 
     await Promise.all(deployedAssets.map(async (entity) => {

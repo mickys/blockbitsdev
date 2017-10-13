@@ -62,7 +62,6 @@ contract('Gateway Interface', accounts => {
 
         it('links Application if valid', async () => {
             await testapp.setTestGatewayInterfaceEntity(gateway.address);
-
             const eventFilter = utils.hasEvent(
                 await gateway.requestCodeUpgrade(testapp.address, sourceCodeUrl),
                 'EventGatewayNewAddress(address)'
@@ -71,14 +70,11 @@ contract('Gateway Interface', accounts => {
         });
 
         it('creates "Upgrade Proposal" if a previous Application is already linked', async () => {
-
             let proposals = await Proposals.new();
-            await proposals.setInitialOwnerAndName("Proposals", testapp.address);
             await testapp.addAssetProposals(proposals.address);
             await testapp.linkToGateway(gateway.address, sourceCodeUrl);
             testapp2 = await ApplicationEntity.new();
             await testapp2.setTestGatewayInterfaceEntity(gateway.address);
-
             const eventFilter = utils.hasEvent(
                 await gateway.requestCodeUpgrade(testapp2.address, sourceCodeUrl),
                 'EventProposalsCodeUpgradeNew(bytes32,uint256)'
@@ -104,22 +100,17 @@ contract('Gateway Interface', accounts => {
         });
 
         it('works if sender is current Application', async () => {
-
             let proposals = await Proposals.new();
-            await proposals.setInitialOwnerAndName("Proposals", testapp.address);
             await testapp.addAssetProposals(proposals.address);
             await testapp.linkToGateway(gateway.address, sourceCodeUrl);
-
             let testapp2 = await ApplicationEntity.new();
             await testapp2.setTestGatewayInterfaceEntity(gateway.address);
-
             let approveTx = await testapp.callTestApproveCodeUpgrade(testapp2.address);
             let eventFilter = utils.hasEvent(
                 approveTx,
                 'EventGatewayNewAddress(address)'
             );
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.')
-
             eventFilter = utils.hasEvent(
                 approveTx,
                 'EventAppEntityAssetsToNewApplication(address)'
@@ -149,10 +140,8 @@ contract('Application Entity', accounts => {
         });
 
         it('throws if called when already initialized', async () => {
-
             await app.setTestGatewayInterfaceEntity(gateway.address);
             await app.setTestInitialized();
-
             return assertInvalidOpcode(async () => {
                 await app.initialize()
             });
@@ -168,7 +157,6 @@ contract('Application Entity', accounts => {
         it('works if owner is set, and it\'s the one calling', async () => {
             await app.setTestGatewayInterfaceEntity(gateway.address);
             await gateway.setTestCurrentApplicationEntityAddress(app.address);
-
             let eventFilter = utils.hasEvent(
                 await gateway.callTestApplicationEntityInitialize(),
                 'EventAppEntityReady(address)'
@@ -209,7 +197,6 @@ contract('Application Entity', accounts => {
         });
 
         it('throws if called when owner already exists', async () => {
-
             await app.setTestGatewayInterfaceEntity(gateway.address);
             return assertInvalidOpcode(async () => {
                 await app.linkToGateway(gateway.address, sourceCodeUrl)
@@ -218,7 +205,6 @@ contract('Application Entity', accounts => {
 
         it('throws if called when already initialized', async () => {
             await app.setTestInitialized();
-
             return assertInvalidOpcode(async () => {
                 await app.linkToGateway(gateway.address, sourceCodeUrl)
             });
@@ -234,12 +220,9 @@ contract('Application Entity', accounts => {
 
 
         it('will emit EventProposalsCodeUpgradeNew if a previous ApplicationEntity is already linked', async () => {
-
             let proposals = await Proposals.new();
-            await proposals.setInitialOwnerAndName("Proposals", app.address);
             await app.addAssetProposals(proposals.address);
             await app.linkToGateway(gateway.address, sourceCodeUrl);
-
             app2 = await ApplicationEntity.new();
             let eventFilter = await utils.hasEvent(
                 await app2.linkToGateway(gateway.address, sourceCodeUrl),
@@ -267,25 +250,21 @@ contract('Application Entity', accounts => {
         });
 
         it('linking an asset will emit EventAppEntityInitAsset event', async () => {
-
             let asset = assetContractNames[0];
             let contract = await getContract("Test" + asset).new();
             let assetInsertionTx = await app["addAsset" + asset](contract.address);
             let eventFilter = utils.hasEvent(assetInsertionTx, 'EventAppEntityInitAsset(bytes32,address)');
-
             assert.equal(eventFilter.length, 1, 'EventAppEntityInitAsset event not received.')
         });
 
 
 
         it('linking all assets will emit the same number of EventAppEntityInitAsset events', async () => {
-
             let eventCollection = await Promise.all(assetContractNames.map(async (asset) => {
                 let contract = await getContract("Test" + asset).new();
                 let assetInsertionTx = await app["addAsset" + asset](contract.address);
                 return utils.hasEvent(assetInsertionTx, 'EventAppEntityInitAsset(bytes32,address)');
             }));
-
             assert.equal(eventCollection.length, assetContractNames.length, 'EventAppEntityInitAsset event not received.')
         });
     });
@@ -316,29 +295,23 @@ contract('Application Assets', accounts => {
             assetContract = await getContract("Test" + assetName).new();
         });
 
-        it('throws if requested address is invalid ( 0x0 )', async () => {
-
-            return assertInvalidOpcode(async () => {
-                await assetContract.setInitialOwnerAndName(assetName, 0x0);
-            });
+        it('works if linking an asset for the first time', async () => {
+            let eventFilter = utils.hasEvent(
+                await assetContract.setInitialOwnerAndName(assetName),
+                'EventAppAssetOwnerSet(bytes32,address)'
+            );
+            assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
+            assert.equal(await assetContract.owner(), accounts[0], 'Asset Owner is not accounts[0]')
         });
 
         it('throws if already owned', async () => {
-            await assetContract.setInitialOwnerAndName(assetName, app.address);
+            await assetContract.setInitialOwnerAndName(assetName);
             return assertInvalidOpcode(async () => {
-                await assetContract.setInitialOwnerAndName(assetName, 0x0);
+                await assetContract.setInitialOwnerAndName(assetName);
             });
         });
 
-        it('works if linking an asset for the first time', async () => {
-            let eventFilter = utils.hasEvent(
-                await assetContract.setInitialOwnerAndName(assetName, app.address),
-                'EventAppAssetOwnerSet(bytes32,address)'
-            );
 
-            assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
-            assert.equal(await assetContract.owner(), app.address, 'Asset Owner is not app.address')
-        });
     });
 
     context("transferToNewOwner()", async () => {
@@ -348,7 +321,6 @@ contract('Application Assets', accounts => {
             app = await ApplicationEntity.new();
             assetName = assetContractNames[0];
             assetContract = await getContract("Test" + assetName).new();
-
         });
 
         it('throws if called when internal owner address is invalid', async () => {
@@ -357,19 +329,19 @@ contract('Application Assets', accounts => {
             });
         });
 
-        it('throws if requested address is invalid', async () => {
-            await assetContract.setInitialOwnerAndName(assetName, app.address);
+        it('throws if owned and called by other address', async () => {
+            await assetContract.setInitialOwnerAndName(assetName, {from:accounts[0]});
             return assertInvalidOpcode(async () => {
-                await assetContract.transferToNewOwner(app.address)
+                await assetContract.transferToNewOwner(app.address, {from:accounts[1]})
             });
         });
 
         it('works if current caller is owner and requested address is not 0x0', async () => {
             let app2 = await ApplicationEntity.new();
-            await assetContract.setInitialOwnerAndName(assetName, app.address);
+            await assetContract.setInitialOwnerAndName(assetName);
 
             let eventFilter = utils.hasEvent(
-                await app.callTestAssetTransferToNewOwner(assetContract.address, app2.address),
+                await assetContract.transferToNewOwner(app2.address),
                 'EventAppAssetOwnerSet(bytes32,address)'
             );
             assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.')
@@ -402,12 +374,9 @@ contract('Gateway and Application Integration', accounts => {
         let proposals, app2 = {};
 
         beforeEach(async () => {
-
             proposals = await Proposals.new();
-            await proposals.setInitialOwnerAndName("Proposals", app.address);
             await app.addAssetProposals(proposals.address);
             await app.linkToGateway(gateway.address, sourceCodeUrl);
-
         });
 
         it('first upgrade', async () => {
@@ -418,14 +387,11 @@ contract('Gateway and Application Integration', accounts => {
                 await app2.linkToGateway(gateway.address, sourceCodeUrl),
                 'EventProposalsCodeUpgradeNew(bytes32,uint256)'
             );
-
             const requestId = utils.getProposalRequestId(eventFilter);
-
             eventFilter = utils.hasEvent(
                 await proposals.callTestAcceptCodeUpgrade(requestId),
                 'EventGatewayNewAddress(address)'
             );
-
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
             assert.equal(await gateway.getApplicationAddress(), app2.address, 'gateway should have returned correct app address');
             assert.equal(await app2.getParentAddress(), gateway.address, 'app2 should have returned gateway app address');
@@ -434,71 +400,46 @@ contract('Gateway and Application Integration', accounts => {
 
         });
 
-
-
-
         it('second upgrade', async () => {
-
             app2 = await ApplicationEntity.new();
             await app2.addAssetProposals(proposals.address);
-
             let eventFilter = await utils.hasEvent(
                 await app2.linkToGateway(gateway.address, sourceCodeUrl),
                 'EventProposalsCodeUpgradeNew(bytes32,uint256)'
             );
-
             let requestId = utils.getProposalRequestId(eventFilter);
-
             eventFilter = utils.hasEvent(
                 await proposals.callTestAcceptCodeUpgrade(requestId),
                 'EventGatewayNewAddress(address)'
             );
-
-            // check deployment of first upgrade
-
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
             assert.equal(await gateway.getApplicationAddress(), app2.address, 'gateway should have returned correct app address');
             assert.equal(await app2.getParentAddress(), gateway.address, 'app2 should have returned gateway app address');
             assert.isTrue(await app2._initialized(), 'app2 _initialized should be true');
             assert.isTrue(await app._locked(), 'app1 _lock should be true');
-            assert.isFalse(await app2._locked(), 'app2 _lock should be false');
 
-            console.log("Deployment of stage 2 ok");
             // do deployment of second upgrade
-
             let app3 = await ApplicationEntity.new();
             await app3.addAssetProposals(proposals.address);
-
-            console.log("app3 ok");
-            console.log("app2.address:", app2.address);
-            console.log("gateway.getApplicationAddress:", await gateway.getApplicationAddress());
-            console.log("proposals.owner:", await proposals.owner());
-            console.log("proposals.codeUpgradeRegistry:", await proposals.codeUpgradeRegistry(1));
 
             eventFilter = await utils.hasEvent(
                 await app3.linkToGateway(gateway.address, sourceCodeUrl),
                 'EventProposalsCodeUpgradeNew(bytes32,uint256)'
             );
-            console.log("app3 linkToGateway");
-
-
             requestId = utils.getProposalRequestId(eventFilter);
-            console.log("app3 requestId: ",requestId);
 
             eventFilter = utils.hasEvent(
                 await proposals.callTestAcceptCodeUpgrade(requestId),
                 'EventGatewayNewAddress(address)'
             );
 
-            console.log("app3 accept eventFilter", eventFilter);
-
-
-
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
-            assert.equal(await gateway.getApplicationAddress(), app2.address, 'gateway should have returned correct app address');
+            assert.equal(await gateway.getApplicationAddress(), app3.address, 'gateway should have returned correct app address');
             assert.equal(await app3.getParentAddress(), gateway.address, 'app3 should have returned gateway app address');
             assert.isTrue(await app3._initialized(), 'app3 _initialized should be true');
             assert.isTrue(await app2._locked(), 'app2 _lock should be true');
+            assert.equal(await proposals.owner(), app3.address, 'proposal asset should have returned correct owner address');
+
         });
 
     });

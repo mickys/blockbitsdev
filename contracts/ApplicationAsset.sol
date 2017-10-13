@@ -29,12 +29,14 @@ contract ApplicationAsset {
 
     }
 
-    function setInitialOwnerAndName(bytes32 _name, address _owner) external requireNotInitialised {
-        require(owner == address(0x0) && _owner != address(0x0));
-        owner = _owner;
+    function setInitialOwnerAndName(bytes32 _name) external requireNotInitialised returns (bool){
+        address _newOwner = msg.sender;
+        require(owner == address(0x0) && _newOwner != address(0x0));
+        owner = _newOwner;
         assetName = _name;
         _initialized = true;
         EventAppAssetOwnerSet(_name, owner);
+        return true;
     }
 
     function transferToNewOwner(address _newOwner) public onlyOwner returns (bool) {

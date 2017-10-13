@@ -47,9 +47,9 @@ contract ApplicationEntity {
     ListingContract ListingContractEntity;
 
     /* Asset Collection */
-    mapping (bytes32 => address) AssetCollection;
-    mapping (uint8 => bytes32) AssetCollectionIdToName;
-    uint8 AssetCollectionNum = 0;
+    mapping (bytes32 => address) public AssetCollection;
+    mapping (uint8 => bytes32) public AssetCollectionIdToName;
+    uint8 public AssetCollectionNum = 0;
 
     event EventAppEntityReady ( address indexed _address );
     event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
@@ -127,10 +127,10 @@ contract ApplicationEntity {
 
     function assetInitialized(bytes32 name, address _assetAddresses) internal {
         require(AssetCollection[name] == 0x0);
-
+     
+        AssetCollectionIdToName[AssetCollectionNum] = name;
         AssetCollection[name] = _assetAddresses;
-        uint8 currentNum = ++AssetCollectionNum;
-        AssetCollectionIdToName[currentNum] = name;
+        AssetCollectionNum++;
 
         EventAppEntityInitAsset(name, _assetAddresses);
     }
@@ -174,9 +174,23 @@ contract ApplicationEntity {
         GatewayInterfaceEntity.approveCodeUpgrade( _newAddress );
     }
 
+    function initializeAssetsToThisApplication() external onlyGatewayInterface returns (bool) {
+
+        for(uint8 i = 0; i < AssetCollectionNum; i++ ) {
+            bytes32 _name = AssetCollectionIdToName[i];
+            address current = AssetCollection[_name];
+            if(!current.call(bytes4(keccak256("setInitialOwnerAndName(bytes32)")), _name) ) {
+                revert();
+            }
+        }
+        return true;
+    }
+
     function transferAssetsToNewApplication(address _newAddress) external onlyGatewayInterface returns (bool){
         for(uint8 i = 0; i < AssetCollectionNum; i++ ) {
-            address current = AssetCollection[AssetCollectionIdToName[i]];
+            
+            bytes32 _name = AssetCollectionIdToName[i];
+            address current = AssetCollection[_name];
             if(! current.call(bytes4(keccak256("transferToNewOwner(address)")), _newAddress) ) {
                 revert();
             }

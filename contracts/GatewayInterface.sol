@@ -55,6 +55,10 @@ contract GatewayInterface {
             gateway links to app and initializes
         */
         if(currentApplicationEntityAddress == address(0x0)) {
+
+            if(!ApplicationEntity(_newAddress).initializeAssetsToThisApplication()) {
+                revert();
+            }
             link(_newAddress);
             return true;
         } else {
@@ -82,7 +86,9 @@ contract GatewayInterface {
         require(msg.sender == currentApplicationEntityAddress);
 
         lockCurrentApp();
-        transferAssetsToNewApplication(_newAddress);
+        if(!currentApp.transferAssetsToNewApplication(_newAddress)) {
+            revert();
+        }
         link(_newAddress);
         return true;
     }
@@ -93,16 +99,6 @@ contract GatewayInterface {
     */
     function lockCurrentApp() internal {
         if(!currentApp.lock()) {
-            revert();
-        }
-    }
-
-    /*
-    * Transfer current Application Entity Assets to new Application
-    *
-    */
-    function transferAssetsToNewApplication(address _newAddress) internal {
-        if(!currentApp.transferAssetsToNewApplication(_newAddress)) {
             revert();
         }
     }
