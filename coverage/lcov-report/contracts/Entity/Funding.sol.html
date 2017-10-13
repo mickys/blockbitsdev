@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/Entity/Funding.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/Entity/</a> Funding.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">35.44% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>28/79</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/28</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">9.09% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>1/11</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">35.9% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>28/78</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/*
+&nbsp;
+ * @name        Funding Contract
+ * @package     BlockBitsIO
+ * @author      Micky Socaci &lt;micky@nowlive.ro&gt;
+&nbsp;
+ Contains the Funding Contract code deployed and linked to the Application Entity
+&nbsp;
+&nbsp;
+    !!! Links directly to Milestones
+&nbsp;
+*/
+&nbsp;
+pragma solidity ^0.4.17;
+&nbsp;
+import "./../ApplicationAsset.sol";
+&nbsp;
+contract Funding is ApplicationAsset {
+&nbsp;
+&nbsp;
+&nbsp;
+    enum FundingEntityStates {
+        __IGNORED__,
+        NEW,
+        WAITING,
+        IN_PROGRESS,
+        COOLDOWN,
+        SUCCESSFUL,
+        FAILED
+    }
+ 
+    uint8 CurrentEntityState = uint8(FundingEntityStates.NEW);
+&nbsp;
+    enum FundingStageStates {
+        __IGNORED__,
+        NEW, 				// not started
+        IN_PROGRESS, 		// accepts payments
+        FINAL				// ended
+    }
+&nbsp;
+    enum FundingMethodIds {
+        __IGNORED__,
+        DIRECT_ONLY, 				//
+        MILESTONE_ONLY, 		    //
+        DIRECT_AND_MILESTONE		//
+    }
+&nbsp;
+&nbsp;
+    struct FundingStage {
+        bytes32 name;
+        bytes32 description;                // will change to bytes32 hash pointer ( swarm / ipfs storage )
+        uint8   state;
+        uint256 time_start;
+        uint256 time_end;
+        uint256 amount_cap_hard;            // 0 = not enforced
+        // funding method settings
+        uint256 minimum_entry;
+        uint8   methods;                    // FundingMethodIds
+        // token settings
+        uint256 start_parity;
+        bool    use_parity_from_previous;   // enforces previous if available
+        uint8   token_share_percentage;
+        uint8   index;
+    }
+&nbsp;
+    mapping (uint8 =&gt; FundingStage) public Collection;
+&nbsp;
+    // funding settings
+    uint256 public AmountRaised = 0;
+    uint256 public AmountCapSoft = 1000 ether;
+    uint256 public AmountCapHard = 3000 ether;
+ 
+    uint256 Funding_Setting_funding_time_start = now + 6 days;
+    uint256 Funding_Setting_pre_ico_duration = 7 days;
+    uint256 Funding_Setting_pre_ico_cooldown_duration = 14 days;
+    uint256 Funding_Setting_ico_duration = 30 days;
+    uint256 Funding_Setting_cashback_duration = 90 days;
+&nbsp;
+    // tests
+    uint256 public timeNow = 0;
+&nbsp;
+    uint8 FundingStageNum = 0;
+    //
+    uint8 public currentFundingStage = 0;
+&nbsp;
+    function Funding() ApplicationAsset public {
+&nbsp;
+        // add pre-ico stage
+        FundingStage storage record = Collection[++FundingStageNum];
+        record.name = "PRE ICO";
+        record.description = "PRE ICO Funding Phase";
+        record.state = uint8(FundingStageStates.NEW);
+        record.time_start = Funding_Setting_funding_time_start;
+        record.time_end = Funding_Setting_funding_time_start + Funding_Setting_pre_ico_duration;
+        record.amount_cap_hard = 100 ether;
+        // funding method settings
+        record.methods = uint8(FundingMethodIds.DIRECT_AND_MILESTONE);
+        record.minimum_entry = 10 ether;
+        // token settings
+        record.start_parity = 0;
+        record.use_parity_from_previous = false;
+        record.token_share_percentage = 10;
+        record.index = FundingStageNum;
+&nbsp;
+        // add ico stage
+        uint256 ico_start = Funding_Setting_funding_time_start + Funding_Setting_pre_ico_duration + Funding_Setting_pre_ico_cooldown_duration;
+        uint256 ico_end = ico_start + Funding_Setting_ico_duration;
+&nbsp;
+        record = Collection[++FundingStageNum];
+        record.name = "ICO";
+        record.description = "ICO Funding Phase";
+        record.state = uint8(FundingStageStates.NEW);
+        record.time_start = ico_start;
+        record.time_end = ico_end;
+        record.amount_cap_hard = 0;
+        // funding method settings
+        record.methods = uint8(FundingMethodIds.DIRECT_AND_MILESTONE);
+        record.minimum_entry = 1 ether;
+        // token settings
+        record.start_parity = 0;
+        record.use_parity_from_previous = true;
+        record.token_share_percentage = 40;
+        record.index = FundingStageNum;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function saveRequiredStateChanges() public returns (bool</span>) {
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint8 _FundingStageId = getFirstUsableFundingStageId()</span>;
+<span class="cstat-no" title="statement not covered" >        uint8 RequiredFundingStageState = getRequiredFundingStageStateChanges(_FundingStageId)</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if( RequiredFundingStageState != uint8(FundingStageStates.__IGNORED__) ) {</span>
+<span class="cstat-no" title="statement not covered" >            currentFundingStage = _FundingStageId</span>;
+<span class="cstat-no" title="statement not covered" >            return updateFundingStage( _FundingStageId, RequiredFundingStageState );</span>
+        }
+<span class="cstat-no" title="statement not covered" >        return false;</span>
+    }
+&nbsp;
+    /*
+    function getCurrentFundingStage() public returns (int8) {
+&nbsp;
+&nbsp;
+    }
+&nbsp;
+    function getAllowedFundingMethodsForCurrentPhase() public {
+&nbsp;
+    }
+    */
+&nbsp;
+    /*
+    * Next step cycle
+    *
+    * @param        bytes32 _name
+    * @param        bytes32 _description_hash
+    * @param        uint256 _duration
+    *
+    * @access       public
+    * @type         method
+    * @modifiers    onlyOwner, requireInitialised
+    *
+    * @return       uint8
+    */
+    /*
+   function nextStepCycle() private requireInitialised returns (uint8) {
+&nbsp;
+&nbsp;
+       var (CurrentFundingStageState, RequiredFundingStageState, RequiredEntityState) = getRequiredStateChanges(_FundingStageId);
+&nbsp;
+       // make sure we're in development state
+       if( getProjectCurrentState() == getProjectDevelopmentState() ) {
+&nbsp;
+           uint8 recId = getFirstUsableFundingStageId();
+           if(recId &gt; 0) {
+&nbsp;
+               // setRequirementsMet();
+&nbsp;
+               FundingStage storage rec = collection[recId];
+               uint8 nextState = rec.state + 1;
+               rec.time_start = getDevelopmentStartDate();
+               rec.time_end = rec.time_start + rec.duration;
+&nbsp;
+               // update state
+               updateFundingStage( rec.index, nextState );
+&nbsp;
+               return recId;
+           } else {
+&nbsp;
+               return 0;
+           }
+       }
+&nbsp;
+       // no records left.. or project state not in development
+       // app should change project state to -&gt; DELIVERED
+       return 0;
+&nbsp;
+    }
+    */
+    /*
+    * Get first usable record ID
+    *
+    * @access       public
+    * @type         method
+    * @modifiers    onlyOwner, requireInitialised
+    *
+    * @return       uint8
+    */
+<span class="fstat-no" title="function not covered" >    function getFirstUsableFundingStageId() private view requireInitialised returns ( uint8 </span>) {
+<span class="cstat-no" title="statement not covered" >        for(uint8 i = 1; i &lt;= FundingStageNum; i++) {</span>
+<span class="cstat-no" title="statement not covered" >            FundingStage storage rec = Collection[i]</span>;
+<span class="cstat-no" title="statement not covered" >            if(rec.state != uint8(FundingStageStates.FINAL)) {</span>
+<span class="cstat-no" title="statement not covered" >                return rec.index;</span>
+            }
+        }
+<span class="cstat-no" title="statement not covered" >        return 0;</span>
+    }
+&nbsp;
+    /*
+    * Update Existing FundingStage
+    *
+    * @param        uint8 _record_id
+    * @param        uint8 _new_state
+    * @param        uint8 _duration
+    *
+    * @access       public
+    * @type         method
+    * @modifiers    onlyOwner, requireInitialised, updateAllowed
+    *
+    * @return       void
+    */
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function updateFundingStage(</span>
+        uint8 _record_id,
+        uint8 _new_state
+    )
+    public requireInitialised FundingStageUpdateAllowed(_record_id, _new_state) returns (bool) {
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        FundingStage storage rec = Collection[_record_id]</span>;
+<span class="cstat-no" title="statement not covered" >        rec.state       = uint8(FundingStageStates(_new_state))</span> ;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        return true;</span>
+    }
+&nbsp;
+&nbsp;
+    /*
+    * Modifier: Validate if record updates are allowed
+    *
+    * @type         modifier
+    *
+    * @param        uint8 _record_id
+    * @param        uint8 _new_state
+    * @param        uint256 _duration
+    *
+    * @return       bool
+    */
+&nbsp;
+<span class="fstat-no" title="function not covered" >    modifier FundingStageUpdateAllowed(uint8 _FundingStageId, uint8 _new_state</span>) {
+<span class="cstat-no" title="statement not covered" >        require( isFundingStageUpdateAllowed( _FundingStageId, _new_state )  )</span>;
+        _;
+    }
+&nbsp;
+    /*
+     * Method: Validate if record can be updated to requested state
+     *
+     * @access       public
+     * @type         method
+     *
+     * @param        uint8 _record_id
+     * @param        uint8 _new_state
+     *
+     * @return       bool
+     */
+<span class="fstat-no" title="function not covered" >    function isFundingStageUpdateAllowed(uint8 _FundingStageId, uint8 _new_state ) public view returns (bool</span>) {
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        var (CurrentFundingStageState, RequiredFundingStageState, RequiredEntityState) = getRequiredStateChanges(_FundingStageId);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        CurrentFundingStageState = 0</span>;
+<span class="cstat-no" title="statement not covered" >        RequiredEntityState = 0</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if(_new_state == uint8(RequiredFundingStageState)) {</span>
+<span class="cstat-no" title="statement not covered" >            return true;</span>
+        }
+<span class="cstat-no" title="statement not covered" >        return false;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getFundingStage(uint8 _FundingStageId) view internal returns (FundingStage</span>) {
+<span class="cstat-no" title="statement not covered" >        return Collection[_FundingStageId];</span>
+    }
+&nbsp;
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function canAcceptPayment(uint256 _amount) view internal returns (bool</span>) {
+<span class="cstat-no" title="statement not covered" >        FundingStage memory record = getFundingStage(currentFundingStage)</span>;
+&nbsp;
+        // check if _amount is higher than entry minimum
+        // check if _amount is lower than global maixmum - amount raised
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint256 remaining = AmountCapHard - AmountRaised</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if(</span>
+            _amount &gt;= record.minimum_entry
+            &amp;&amp; _amount &lt;= remaining
+        )
+<span class="cstat-no" title="statement not covered" >            return true;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        return false;</span>
+    }
+&nbsp;
+    /*
+     * Funding Phase changes
+     *
+     * Method: Get FundingStage Required State Changes
+     *
+     * @access       public
+     * @type         method
+     * @modifiers    onlyOwner
+     *
+     * @param        uint8 _FundingStageId
+     *
+     * @return       uint8 RequiredFundingStageState
+     */
+<span class="fstat-no" title="function not covered" >    function getRequiredFundingStageStateChanges(uint8 _FundingStageId) public view returns (uint8</span>) {
+&nbsp;
+        // get FundingStage current state
+<span class="cstat-no" title="statement not covered" >        FundingStage memory record = getFundingStage(_FundingStageId)</span>;
+<span class="cstat-no" title="statement not covered" >        uint8 CurrentFundingStageState = record.state</span>;
+<span class="cstat-no" title="statement not covered" >        uint8 RequiredFundingStageState = uint8(FundingStageStates.__IGNORED__)</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if(CurrentFundingStageState == uint8(FundingStageStates.NEW)) {</span>
+&nbsp;
+            /*
+                If funding stage is not started and timestamp is after start time:
+                - we need to change state to IN_PROGRESS so we can start receiving funds
+            */
+<span class="cstat-no" title="statement not covered" >            if( getTimestamp() &gt; record.time_start ) {</span>
+<span class="cstat-no" title="statement not covered" >                return uint8(FundingStageStates.IN_PROGRESS);</span>
+            }
+            /*
+                - else we need to wait for funding stage to start..
+            */
+&nbsp;
+        } else <span class="cstat-no" title="statement not covered" >if (CurrentFundingStageState == uint8(FundingStageStates.IN_PROGRESS)) {</span>
+&nbsp;
+            /*
+                This is where we're accepting payments unless we can change state to FINAL
+&nbsp;
+                1. Check if timestamp is after record time_end
+                2. Check if AmountRaised equals AmountCapHard
+                3. Has (optional) Funding Phase HardCap
+                    - Check if AmountRaised equals Funding Phase HardCap
+&nbsp;
+                All lead to state change =&gt; FINAL
+            */
+&nbsp;
+&nbsp;
+            // Time check
+<span class="cstat-no" title="statement not covered" >            if(getTimestamp() &gt; record.time_end) {</span>
+                // Funding Phase ended passed
+<span class="cstat-no" title="statement not covered" >                return uint8(FundingStageStates.FINAL);</span>
+            }
+&nbsp;
+            // Global Hard Cap Check
+<span class="cstat-no" title="statement not covered" >            if(AmountRaised == AmountCapHard) {</span>
+                // hard cap reached
+<span class="cstat-no" title="statement not covered" >                return uint8(FundingStageStates.FINAL);</span>
+            }
+&nbsp;
+            // Has (optional) Funding Phase HardCap
+<span class="cstat-no" title="statement not covered" >            if(record.amount_cap_hard &gt; 0) {</span>
+                // amount raised is Funding Phase HardCap
+<span class="cstat-no" title="statement not covered" >                if(AmountRaised == record.amount_cap_hard) {</span>
+<span class="cstat-no" title="statement not covered" >                    return uint8(FundingStageStates.FINAL);</span>
+                }
+            }
+&nbsp;
+        } else <span class="cstat-no" title="statement not covered" >if (CurrentFundingStageState == uint8(FundingStageStates.FINAL)) {</span>
+&nbsp;
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        return RequiredFundingStageState;</span>
+&nbsp;
+    }
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+    /*
+     * Method: Get FundingStage and Asset Required State Changes
+     *
+     * @access       public
+     * @type         method
+     * @modifiers    onlyOwner
+     *
+     * @param        uint8 _record_id
+     *
+     * @return       ( uint8 CurrentFundingStageState, uint8 RequiredFundingStageState, uint8 RequiredEntityState)
+     */
+<span class="fstat-no" title="function not covered" >    function getRequiredStateChanges( uint8 _FundingStageId ) public view returns (uint8, uint8, uint8</span>) {
+&nbsp;
+        // get FundingStage current state
+<span class="cstat-no" title="statement not covered" >        FundingStage memory record = getFundingStage(_FundingStageId)</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint8 CurrentFundingStageState = record.state</span>;
+<span class="cstat-no" title="statement not covered" >        uint8 RequiredFundingStageState = uint8(FundingStageStates.__IGNORED__)</span>;
+<span class="cstat-no" title="statement not covered" >        uint8 RequiredEntityState = uint8(FundingEntityStates.__IGNORED__)</span>;
+&nbsp;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        RequiredFundingStageState = getRequiredFundingStageStateChanges(_FundingStageId)</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if(RequiredFundingStageState == uint8(FundingStageStates.__IGNORED__))</span>
+        {
+&nbsp;
+        }
+        /*
+&nbsp;
+            enum FundingEntityStates {
+                __IGNORED__,
+                NEW,
+                WAITING,
+                IN_PROGRESS,
+                COOLDOWN,
+                SUCCESSFUL,
+                FAILED
+            }
+&nbsp;
+            // so this is where we need to retrieve funding from Direct Wallet
+            // then generate tokens
+            // once that is complete we change to FINAL
+        if (RequiredFundingStageState == uint8(FundingStageStates.__IGNORED__)) {
+            // after cashback stage.. move to donate
+        } else if (record.state == uint8(FundingEntityStates.FAILED)) {
+            // If records exist, allow them to be started
+            // else tell project to change state to development
+        }
+&nbsp;
+&nbsp;
+        */
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        return (CurrentFundingStageState, RequiredFundingStageState, RequiredEntityState);</span>
+    }
+&nbsp;
+&nbsp;
+    
+&nbsp;
+    /*
+    function getHash(int8 actionType, bytes32 args) public returns ( bytes32 ) {
+        return sha3(actionType, args);
+    }
+&nbsp;
+    function add() public onlyOwner {
+        // find out AppEntity delivery state and based on that decide if initiator has access to call this or not
+&nbsp;
+    }
+    */
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getTimestamp() view internal returns (uint256</span>) {
+<span class="cstat-no" title="statement not covered" >        return now;</span>
+    }
+&nbsp;
+}</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Oct 13 2017 19:47:51 GMT+0300 (EEST)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 *  - Natspec and auth role per function
 */
 
+
 const fs = require('fs')
 const path = require('path')
 const { signatures } = require('../test/helpers/web3')

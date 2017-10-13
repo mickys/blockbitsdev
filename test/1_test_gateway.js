@@ -37,6 +37,7 @@ contract('Gateway Interface', accounts => {
     });
 
     it('initializes with empty properties', async () => {
+        gateway = await GatewayInterface.new();
         assert.equal( await gateway.getApplicationAddress() , 0x0, 'address should be empty');
     });
 
