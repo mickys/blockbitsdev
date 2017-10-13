@@ -67,7 +67,7 @@ contract Proposals is ApplicationAsset {
     mapping (uint256 => codeUpgradeRecord) public codeUpgradeRegistry;
 
 
-    event EventCodeUpgradeProposal ( bytes32 indexed _hash, uint256 indexed _requestId );
+    event EventProposalsCodeUpgradeNew ( bytes32 indexed _hash, uint256 indexed _requestId );
 
     function getHash(uint8 actionType, bytes32 arg1, bytes32 arg2) public pure returns ( bytes32 ) {
         return keccak256(actionType, arg1, arg2);
@@ -102,7 +102,7 @@ contract Proposals is ApplicationAsset {
             revert();
         }
 
-        EventCodeUpgradeProposal ( thisHash, RecordNum );
+        EventProposalsCodeUpgradeNew ( thisHash, RecordNum );
         return RecordNum;
     }
 

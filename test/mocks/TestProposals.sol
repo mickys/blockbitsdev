@@ -12,7 +12,7 @@ import "./TestApplicationAsset.sol";
 
 contract TestProposals is Proposals, TestApplicationAsset {
 
-    function testAcceptCodeUpgrade(uint256 recordId) internal {
+    function tAcceptCodeUpgrade(uint256 recordId) external {
         acceptCodeUpgrade(recordId);
     }
 }

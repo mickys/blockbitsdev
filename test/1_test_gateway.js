@@ -72,7 +72,6 @@ contract('Gateway Interface', accounts => {
 
         it('creates Upgrade Proposal if a previous ApplicationEntity is already linked', async () => {
 
-            // create proposals object, add app as it's parent and link it to the app
             let proposals = await Proposals.new();
             await proposals.setTestOwner(testapp.address);
             await testapp.addAssetProposals(proposals.address);
@@ -83,9 +82,9 @@ contract('Gateway Interface', accounts => {
 
             const eventFilter = utils.hasEvent(
                 await gateway.requestCodeUpgrade(testapp2.address, sourceCodeUrl),
-                'EventAppEntityCodeUpgradeProposal(address,bytes32)'
+                'EventProposalsCodeUpgradeNew(bytes32,uint256)'
             );
-            assert.equal(eventFilter.length, 1, 'EventAppEntityCodeUpgradeProposal event not received.')
+            assert.equal(eventFilter.length, 1, 'EventProposalsCodeUpgradeNew event not received.')
         })
 
     });
@@ -154,32 +153,11 @@ contract('Application Entity', accounts => {
         });
 
     });
-    //     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
 
 
     context('Application - Initial Deployment - Linking', async () => {
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
-
-
-            // proposals = await Proposals.new();
-
-            // console.log("testing1 _json: ",proposals._json);
-            // console.log("testing1 contract: ",proposals.contract_name);
-
-            // let name = ProposalsEntity.at(proposals.address).contract_name;
-            // console.log("testing2 contract: ",name);
-
-            // console.log("testing4: ",proposals.contract.contract_name);
-            // console.log("testing3: ",proposals.contract._json.contract_name);
-
-
-            /*
-            deployedEntities = {
-                addresses: [ProposalsEntity.address],
-                names: [ProposalsEntity.contract_name]
-            }
-            */
         });
 
         it('linking one asset will emit EventAppEntityInitAsset event', async () => {
@@ -187,10 +165,7 @@ contract('Application Entity', accounts => {
             let asset = assetContractNames[0];
             let contract = await getContract("Test"+asset).new();
             let assetInsertionTx = await app["addAsset"+asset](contract.address);
-            let eventFilter = utils.hasEvent(
-                assetInsertionTx,
-                'EventAppEntityInitAsset(bytes32,address)'
-            );
+            let eventFilter = utils.hasEvent( assetInsertionTx, 'EventAppEntityInitAsset(bytes32,address)' );
 
             assert.equal(eventFilter.length, 1, 'EventAppEntityInitAsset event not received.')
         });
@@ -200,11 +175,7 @@ contract('Application Entity', accounts => {
             let eventCollection = await Promise.all(assetContractNames.map(async (asset) => {
                 let contract = await getContract("Test"+asset).new();
                 let assetInsertionTx = await app["addAsset"+asset](contract.address);
-                let eventFilter = utils.hasEvent(
-                    assetInsertionTx,
-                    'EventAppEntityInitAsset(bytes32,address)'
-                );
-                return eventFilter;
+                return utils.hasEvent( assetInsertionTx, 'EventAppEntityInitAsset(bytes32,address)' );
             }));
 
             assert.equal(eventCollection.length, assetContractNames.length, 'EventAppEntityInitAsset event not received.')
@@ -231,7 +202,7 @@ contract('Application Entity', accounts => {
 
     });
 
-    /*
+
     context('Application - Initial Deployment - Validation', async () => {
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
@@ -259,14 +230,20 @@ contract('Application Entity', accounts => {
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
             app = await ApplicationEntity.new();
+
+            let proposals = await Proposals.new();
+            await proposals.setTestOwner(app.address);
+            await app.addAssetProposals(proposals.address);
+
             await app.linkToGateway(gateway.address, sourceCodeUrl);
             app2 = await ApplicationEntity.new();
         });
 
         it('app2: linkToGateway will emit EventAppEntityCodeUpgradeProposal', async () => {
-            const eventFilter = hasEvent(
+
+            let eventFilter = utils.hasEvent(
                 await app2.linkToGateway(gateway.address, sourceCodeUrl),
-                'EventAppEntityCodeUpgradeProposal'
+                'EventAppEntityCodeUpgradeProposal(address,bytes32)'
             );
             assert.equal(eventFilter.length, 1, 'EventAppEntityCodeUpgradeProposal event not received.')
         });
@@ -277,6 +254,11 @@ contract('Application Entity', accounts => {
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
             app = await ApplicationEntity.new();
+
+            let proposals = await Proposals.new();
+            await proposals.setTestOwner(app.address);
+            await app.addAssetProposals(proposals.address);
+
             await app.linkToGateway(gateway.address, sourceCodeUrl);
             app2 = await ApplicationEntity.new();
             await app2.linkToGateway(gateway.address, sourceCodeUrl);
@@ -299,11 +281,17 @@ contract('Application Entity', accounts => {
     });
 
     context('Application - Upgrade - Validation', async () => {
+        let proposals = {};
+
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
             app = await ApplicationEntity.new();
-            await app.linkToGateway(gateway.address, sourceCodeUrl);
 
+            proposals = await Proposals.new();
+            await proposals.setTestOwner(app.address);
+            await app.addAssetProposals(proposals.address);
+
+            await app.linkToGateway(gateway.address, sourceCodeUrl);
 
             app2 = await ApplicationEntity.new();
             await app2.linkToGateway(gateway.address, sourceCodeUrl);
@@ -323,6 +311,25 @@ contract('Application Entity', accounts => {
             let value = await app2._initialized();
             assert.isFalse(value, 'app should have returned true for initialized')
         });
+
+        it('app2 links and gets accepted', async () => {
+
+            app2 = await ApplicationEntity.new();
+
+            let eventFilter = await utils.hasEvent(
+                await app2.linkToGateway(gateway.address, sourceCodeUrl),
+                'EventProposalsCodeUpgradeNew(bytes32,uint256)'
+            );
+
+            const requestId = utils.getProposalRequestId( eventFilter );
+
+            eventFilter = utils.hasEvent(
+                await proposals.tAcceptCodeUpgrade(requestId),
+                'EventGatewayNewAddress(address)'
+            );
+            assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.')
+        });
+
     });
 
 
@@ -330,9 +337,12 @@ contract('Application Entity', accounts => {
         beforeEach(async () => {
             gateway = await GatewayInterface.new();
             app = await ApplicationEntity.new();
+
+            let proposals = await Proposals.new();
+            await proposals.setTestOwner(app.address);
+            await app.addAssetProposals(proposals.address);
+
             await app.linkToGateway(gateway.address, sourceCodeUrl);
-
-
 
             app2 = await ApplicationEntity.new();
             await app2.linkToGateway(gateway.address, sourceCodeUrl);
@@ -354,10 +364,11 @@ contract('Application Entity', accounts => {
             let value = await app2._initialized();
             assert.isFalse(value, 'app should have returned true for initialized')
         });
+
     });
 
 
-    */
+
 });
 
 /*
