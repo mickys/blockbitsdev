@@ -15,8 +15,8 @@ testrpc_running() {
 
 start_testrpc() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-#    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
-    node_modules/.bin/testrpc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
+    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
+#    node_modules/.bin/testrpc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
   else
     node_modules/.bin/testrpc -i 15 > /dev/null &
   fi

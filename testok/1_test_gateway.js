@@ -38,7 +38,7 @@ contract('Gateway Interface', accounts => {
 
     it('initializes with empty properties', async () => {
         gateway = await GatewayInterface.new();
-        assert.equal( await gateway.getApplicationAddress.call() , 0x0, 'address should be empty');
+        assert.equal( await gateway.getApplicationAddress() , 0x0, 'address should be empty');
     });
 
     context('requestCodeUpgrade()', async () => {
@@ -131,8 +131,8 @@ contract('Application Entity', accounts => {
     });
 
     it('initializes with empty properties', async () => {
-        assert.equal(await app.getParentAddress.call(), 0x0, 'parent address should be empty');
-        assert.isFalse(await app._initialized.call(), false, '_initialized should be false');
+        assert.equal(await app.getParentAddress(), 0x0, 'parent address should be empty');
+        assert.isFalse(await app._initialized(), false, '_initialized should be false');
     });
 
     context('initialize()', async () => {
@@ -142,7 +142,7 @@ contract('Application Entity', accounts => {
 
         it('throws if called when already initialized', async () => {
             await app.setTestGatewayInterfaceEntity(gateway.address);
-            await app.setTestInitialized.call();
+            await app.setTestInitialized();
             return assertInvalidOpcode(async () => {
                 await app.initialize()
             });
@@ -270,6 +270,17 @@ contract('Application Entity', accounts => {
         });
     });
 
+    /*
+    context('transferAssetsToNewApplication()', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+        });
+
+        // transferAssetsToNewApplication
+
+    });
+    */
+
 });
 
 contract('Application Assets', accounts => {
@@ -291,7 +302,7 @@ contract('Application Assets', accounts => {
                 'EventAppAssetOwnerSet(bytes32,address)'
             );
             assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
-            assert.equal(await assetContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]')
+            assert.equal(await assetContract.owner(), accounts[0], 'Asset Owner is not accounts[0]')
         });
 
         it('throws if already owned', async () => {
@@ -348,16 +359,16 @@ contract('Gateway and Application Integration', accounts => {
     });
 
     it('initial deployment', async () => {
-        assert.equal(await gateway.getApplicationAddress.call(), 0x0, 'gateway should have returned empty address');
-        assert.equal(await app.getParentAddress.call(), 0x0, 'app should have returned empty address');
-        assert.isFalse(await app._initialized.call(), 'app _initialized should be false')
+        assert.equal(await gateway.getApplicationAddress(), 0x0, 'gateway should have returned empty address');
+        assert.equal(await app.getParentAddress(), 0x0, 'app should have returned empty address');
+        assert.isFalse(await app._initialized(), 'app _initialized should be false')
     });
 
     it('first linking', async () => {
         await app.linkToGateway(gateway.address, sourceCodeUrl);
-        assert.equal(await gateway.getApplicationAddress.call(), app.address, 'gateway should have returned correct app address');
-        assert.equal(await app.GatewayInterfaceAddress.call(), gateway.address, 'app should have returned gateway app address');
-        assert.isTrue(await app._initialized.call(), 'app _initialized should be true');
+        assert.equal(await gateway.getApplicationAddress(), app.address, 'gateway should have returned correct app address');
+        assert.equal(await app.GatewayInterfaceAddress(), gateway.address, 'app should have returned gateway app address');
+        assert.isTrue(await app._initialized(), 'app _initialized should be true');
     });
 
     context('Application upgrades', async () => {
@@ -383,10 +394,10 @@ contract('Gateway and Application Integration', accounts => {
                 'EventGatewayNewAddress(address)'
             );
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
-            assert.equal(await gateway.getApplicationAddress.call(), app2.address, 'gateway should have returned correct app address');
-            assert.equal(await app2.getParentAddress.call(), gateway.address, 'app2 should have returned gateway app address');
-            assert.isTrue(await app2._initialized.call(), 'app2 _initialized should be true');
-            assert.isTrue(await app._locked.call(), 'app1 _lock should be true');
+            assert.equal(await gateway.getApplicationAddress(), app2.address, 'gateway should have returned correct app address');
+            assert.equal(await app2.getParentAddress(), gateway.address, 'app2 should have returned gateway app address');
+            assert.isTrue(await app2._initialized(), 'app2 _initialized should be true');
+            assert.isTrue(await app._locked(), 'app1 _lock should be true');
 
         });
 
@@ -403,10 +414,10 @@ contract('Gateway and Application Integration', accounts => {
                 'EventGatewayNewAddress(address)'
             );
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
-            assert.equal(await gateway.getApplicationAddress.call(), app2.address, 'gateway should have returned correct app address');
-            assert.equal(await app2.getParentAddress.call(), gateway.address, 'app2 should have returned gateway app address');
-            assert.isTrue(await app2._initialized.call(), 'app2 _initialized should be true');
-            assert.isTrue(await app._locked.call(), 'app1 _lock should be true');
+            assert.equal(await gateway.getApplicationAddress(), app2.address, 'gateway should have returned correct app address');
+            assert.equal(await app2.getParentAddress(), gateway.address, 'app2 should have returned gateway app address');
+            assert.isTrue(await app2._initialized(), 'app2 _initialized should be true');
+            assert.isTrue(await app._locked(), 'app1 _lock should be true');
 
             // do deployment of second upgrade
             let app3 = await ApplicationEntity.new();
@@ -424,11 +435,11 @@ contract('Gateway and Application Integration', accounts => {
             );
 
             assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
-            assert.equal(await gateway.getApplicationAddress.call(), app3.address, 'gateway should have returned correct app address');
-            assert.equal(await app3.getParentAddress.call(), gateway.address, 'app3 should have returned gateway app address');
-            assert.isTrue(await app3._initialized.call(), 'app3 _initialized should be true');
-            assert.isTrue(await app2._locked.call(), 'app2 _lock should be true');
-            assert.equal(await proposals.owner.call(), app3.address, 'proposal asset should have returned correct owner address');
+            assert.equal(await gateway.getApplicationAddress(), app3.address, 'gateway should have returned correct app address');
+            assert.equal(await app3.getParentAddress(), gateway.address, 'app3 should have returned gateway app address');
+            assert.isTrue(await app3._initialized(), 'app3 _initialized should be true');
+            assert.isTrue(await app2._locked(), 'app2 _lock should be true');
+            assert.equal(await proposals.owner(), app3.address, 'proposal asset should have returned correct owner address');
 
         });
 
@@ -438,3 +449,193 @@ contract('Gateway and Application Integration', accounts => {
 
 });
 
+/*
+contract('Gateway with Linked Application Entity', accounts => {
+
+
+
+    it('requestCodeUpgrade emits EventGatewayNewLinkRequest if address is usable', async () => {
+        const eventFilter = hasEvent(
+            await gateway.requestCodeUpgrade(ApplicationEntity.address, "http://test.url"),
+            'EventGatewayNewLinkRequest'
+        );
+
+        console.log( eventFilter );
+
+        assert.equal(1, 1, 'EventGatewayNewLinkRequest event not received.')
+    });
+
+    context('Application - Initial Linking', async () => {
+        beforeEach(async () => {
+            app = await ApplicationEntity.new();
+        });
+
+
+        it('app has correct parent address (gateway)', async () => {
+            // app2 returns the double of the value in storage
+            let parent = await app.ParentAddress();
+            console.log("Parent Address: "+parent);
+
+            assert.equal(parent, gateway.address, 'app should have returned correct parent address')
+        })
+    })
+
+    context('Application - Code Upgrades', async () => {
+        beforeEach(async () => {
+            app = await ApplicationEntity.new();
+        });
+
+
+        it('app has correct parent address (gateway)', async () => {
+            // app2 returns the double of the value in storage
+            let parent = await app.ParentAddress();
+            console.log("Parent Address: "+parent);
+
+            assert.equal(parent, gateway.address, 'app should have returned correct parent address')
+        })
+    })
+});
+*/
+    /*
+    it('throws when called by unauthorized entity', async () => {
+        return assertInvalidOpcode(async () => {
+            await linkdb.add(10, { from: accounts[1] })
+        })
+    })
+    */
+
+    // linkdb.add( address _new, bytes32 _url)
+    /*
+    context('link database deployed', async 0xc4fc67e7ad06d848d89e6c6628e53c0b9871709c() => {
+        beforeEach(async () => {
+            await linkdb.setAppCode(appId, appCode1.address)
+        })
+
+        it('app has correct parent address (gateway)', async () => {
+            // app2 returns the double of the value in storage
+            let parent = await app.ParentAddress();
+            console.log("Parent Address: "+parent);
+
+            assert.equal(parent, gateway.address, 'app should have returned correct parent address')
+        })
+
+    })
+    */
+
+    /*
+
+    it('app has correct parent address (gateway)', async () => {
+        // app2 returns the double of the value in storage
+        let parent = await app.ParentAddress();
+        console.log("Parent Address: "+parent);
+
+        assert.equal(parent, gateway.address, 'app should have returned correct parent address')
+    })
+
+    */
+
+
+
+    /*
+
+    context('setting app code in kernel', async () => {
+
+        beforeEach(async () => {
+            await kernel.setAppCode(appId, appCode1.address)
+        })
+
+        it('app call works if sent from authed entity', async () => {
+            await app.setValue(10)
+            assert.equal(await app.getValue(), 10, 'should have returned correct value')
+        })
+
+        it('throws when called by unauthorized entity', async () => {
+            return assertInvalidOpcode(async () => {
+                await app.setValue(10, { from: accounts[1] })
+            })
+        })
+
+        it('can update app code and storage is preserved', async () => {
+            await app.setValue(10)
+            await kernel.setAppCode(appId, appCode2.address)
+            // app2 returns the double of the value in storage
+            assert.equal(await app.getValue(), 20, 'app 2 should have returned correct value')
+        })
+
+        it('can update app code and removed functions throw', async () => {
+            await app.setValue(10)
+            await kernel.setAppCode(appId, appCode2.address)
+            return assertInvalidOpcode(async () => {
+                await app.setValue(10)
+            })
+        })
+    })
+
+
+
+
+
+const Kernel = artifacts.require('Kernel')
+const AppProxy = artifacts.require('AppProxy')
+const AppStub = artifacts.require('AppStub')
+const AppStub2 = artifacts.require('AppStub2')
+
+
+contract('Kernel apps', accounts => {
+    let kernel, app, appCode1, appCode2 = {}
+    const appId = hash('stub.aragonpm.test')
+
+    beforeEach(async () => {
+        kernel = await Kernel.new()
+        await kernel.initialize(accounts[0])
+        const r = await kernel.APP_UPGRADER_ROLE()
+        await kernel.createPermission(accounts[0], kernel.address, r, accounts[0])
+
+        appCode1 = await AppStub.new()
+        appCode2 = await AppStub2.new()
+
+        const appProxy = await AppProxy.new(kernel.address, appId)
+        const r2 = await appCode1.ROLE()
+        await kernel.createPermission(accounts[0], appProxy.address, r2, accounts[0])
+        app = AppStub.at(appProxy.address)
+    })
+
+    it('throws if using app without reference in kernel', async () => {
+        return assertInvalidOpcode(async () => {
+            await app.setValue(10)
+        })
+    })
+
+    context('setting app code in kernel', async () => {
+        beforeEach(async () => {
+            await kernel.setAppCode(appId, appCode1.address)
+        })
+
+        it('app call works if sent from authed entity', async () => {
+            await app.setValue(10)
+            assert.equal(await app.getValue(), 10, 'should have returned correct value')
+        })
+
+        it('throws when called by unauthorized entity', async () => {
+            return assertInvalidOpcode(async () => {
+                await app.setValue(10, { from: accounts[1] })
+            })
+        })
+
+        it('can update app code and storage is preserved', async () => {
+            await app.setValue(10)
+            await kernel.setAppCode(appId, appCode2.address)
+            // app2 returns the double of the value in storage
+            assert.equal(await app.getValue(), 20, 'app 2 should have returned correct value')
+        })
+
+        it('can update app code and removed functions throw', async () => {
+            await app.setValue(10)
+            await kernel.setAppCode(appId, appCode2.address)
+            return assertInvalidOpcode(async () => {
+                await app.setValue(10)
+            })
+        })
+    })
+})
+*/
