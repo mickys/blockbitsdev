@@ -61,23 +61,42 @@ async function doStage(deployer)  {
     );
 
     toLog("  Deploy GatewayInterface");
-    await deployer.deploy(GatewayInterface, {gas: 1000000});
+    await deployer.deploy(GatewayInterface);
 
     toLog("  Deploy Assets");
     await Promise.all(entities.map(async (entity) => {
         toLog("    Asset: " + entity.contract_name);
-        await deployer.deploy(entity, {gas: 3000000});
+        await deployer.deploy(entity);
     }));
     deployedAssets = assets.map(mapDeployedAssets);
 
     toLog("  Deploy ApplicationEntity");
-    await deployer.deploy(ApplicationEntity, {gas: 3000000});
+    await deployer.deploy(ApplicationEntity);
     let app = await ApplicationEntity.at( ApplicationEntity.address );
 
+    /*
+
+    no longer done one by one .. assets get linked to app when gw links app to itself
+
+    toLog("  Set assets ownership and initialize");
+    await Promise.all(deployedAssets.map(async (entity) => {
+
+        let name = entity.name;
+        let arts = await artifacts.require(name);
+        let contract = await arts.at(arts.address);
+
+        let eventFilter = await hasEvent(
+            await contract.setInitialOwnerAndName( name, app.address ),
+            'EventAppAssetOwnerSet'
+        );
+        toLog("    Successfully initialized: " +CGRN+ web3util.toAscii(eventFilter[0].args._name)+NOC) ;
+    }));
+    */
     toLog("  Link assets to ApplicationEntity");
+
     await Promise.all(deployedAssets.map(async (entity) => {
         // toLog("    Asset: " + entity.name);
-        let receipt = await app[entity.method]( entity.address, {gas: 150000});
+        let receipt = await app[entity.method]( entity.address );
         let eventFilter = await hasEvent(receipt, 'EventAppEntityInitAsset');
 
         toLog("    Successfully linked: " +CGRN+ web3util.toAscii(eventFilter[0].args._name) );
@@ -85,7 +104,7 @@ async function doStage(deployer)  {
 
     toLog("  Link ApplicationEntity to GatewayInterface");
 
-    let receipt = await app.linkToGateway(GatewayInterface.address, "http://dummy.url", {gas: 500000});
+    let receipt = await app.linkToGateway(GatewayInterface.address, "http://dummy.url");
     let eventFilter = hasEvent(receipt, 'EventAppEntityReady');
     toLog("    "+CGRN+"EventAppEntityReady => " + eventFilter.length+NOC);
 
