@@ -270,6 +270,54 @@ contract('Application Entity', accounts => {
         });
     });
 
+
+
+    context('initializeAssetsToThisApplication()', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+        });
+
+        it('throws if not an asset', async () => {
+            // gateway is accounts[0].. deployment account
+            await app.setTestGatewayInterfaceEntity(accounts[0]);
+
+            let emptystub = await EmptyStub.new();
+            await app.setTestAsset("Test", emptystub.address );
+
+            // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
+            return assertInvalidOpcode(async () => {
+                await app.initializeAssetsToThisApplication();
+            });
+        });
+
+        it('throws if caller is not gateway', async () => {
+            await app.setTestGatewayInterfaceEntity(gateway.address);
+
+            // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
+            return assertInvalidOpcode(async () => {
+                await app.initializeAssetsToThisApplication();
+            });
+        });
+
+    });
+/*
+    context('transferAssetsToNewApplication()', async () => {
+        beforeEach(async () => {
+            gateway = await GatewayInterface.new();
+        });
+
+        it('throws if not an asset', async () => {
+            await app.setTestGatewayInterfaceEntity(gateway.address);
+            let emptystub = await EmptyStub.new();
+            await app.setTestAsset("Test", emptystub.address );
+
+            // should revert @ call setInitialOwnerAndName as it is missing in the empty stub
+            return assertInvalidOpcode(async () => {
+                await app.initializeAssetsToThisApplication();
+            });
+        });
+    });
+*/
 });
 
 contract('Application Assets', accounts => {

@@ -39,7 +39,7 @@ contract ApplicationAsset {
         return true;
     }
 
-    function transferToNewOwner(address _newOwner) public onlyOwner returns (bool) {
+    function transferToNewOwner(address _newOwner) public requireInitialised onlyOwner returns (bool) {
         require(owner != address(0x0) && _newOwner != address(0x0));
         owner = _newOwner;
         EventAppAssetOwnerSet(assetName, owner);

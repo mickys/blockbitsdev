@@ -226,11 +226,6 @@ contract ApplicationEntity {
         _;
     }
 
-    modifier requireParent() {
-        require(GatewayInterfaceAddress != address(0x0));
-        _;
-    }
-
     modifier requireNoParent() {
         require(GatewayInterfaceAddress == address(0x0));
         _;

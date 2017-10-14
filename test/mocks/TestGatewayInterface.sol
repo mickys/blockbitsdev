@@ -22,4 +22,5 @@ contract TestGatewayInterface is GatewayInterface {
     function callTestLockCurrentApp() external {
         ApplicationEntity(currentApplicationEntityAddress).lock();
     }
+
 }

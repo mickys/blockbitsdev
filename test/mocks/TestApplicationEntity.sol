@@ -27,4 +27,11 @@ contract TestApplicationEntity is ApplicationEntity {
     function callTestAssetTransferToNewOwner(address _address, address _newOwner) external returns (bool) {
         return _address.call(bytes4(keccak256("transferToNewOwner(address)")), _newOwner);
     }
+
+    function setTestAsset(bytes32 name, address _assetAddresses) external {
+        AssetCollectionIdToName[AssetCollectionNum] = name;
+        AssetCollection[name] = _assetAddresses;
+        AssetCollectionNum++;
+    }
+
 }
