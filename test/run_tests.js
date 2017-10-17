@@ -41,10 +41,10 @@ const setup = {
 };
 
 const tests = [
-    // "1_GatewayInterface",
-    // "2_ApplicationAsset",
-    // "3_ApplicationEntity",
-    // "integration_Gateway_and_ApplicationEntity",
+    "1_GatewayInterface",
+    "2_ApplicationAsset",
+    "3_ApplicationEntity",
+    "integration_Gateway_and_ApplicationEntity",
     "4_Asset_Funding",
 ];
 
