@@ -52,8 +52,6 @@ contract Proposals is ApplicationAsset {
         uint256 index;
     }
 
-    bytes32 hash;
-
     mapping (address => record) public registry;
     mapping (uint256 => address) public reqById;
     mapping (bytes32 => address) public reqByHash;
