@@ -26,6 +26,7 @@
     "babel-preset-stage-3": "^6.17.0",
     "babel-register": "^6.26.0",
     "coveralls": "^2.13.1",
+    "dateformat": "3.0.2",
     "eth-ens-namehash": "^2.0.0",
     "ethereumjs-abi": "^0.6.4",
     "ethereumjs-testrpc": "^4.1.3",
@@ -35,14 +36,14 @@
     "solidity-inspector": "^0.2.3",
     "solidity-sha3": "^0.4.1",
     "solium": "^0.5.5",
-    "truffle": "^3.4.9",
+    "truffle": "git://github.com/mickys/truffle.git#87e4d2024ede94fc56ed8ac14e838d9302a61dbd",
     "truffle-config": "^1.0.2",
     "truffle-expect": "0.0.3",
     "truffle-hdwallet-provider": "0.0.3",
     "zeppelin-solidity": "^1.2.0"
   },
   "dependencies": {
-    "solc": "^0.4.17",
+    "solc": "git://github.com/mickys/solc-js.git#edabdf1b85818a323c42af61b60c908e7a34009a",
     "web3-utils": "^1.0.0-beta.23"
   }
 }

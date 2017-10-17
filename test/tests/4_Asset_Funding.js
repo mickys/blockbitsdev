@@ -195,7 +195,7 @@ async function showDebug(helpers, assetContract) {
 
     helpers.utils.toLog(
         logPre+"CashBack END DATE:   " +
-        helpers.dateFormat.toDate(
+        helpers.dateFormat(
             parseInt(Funding_Setting_funding_time_start) +
             parseInt(Funding_Setting_pre_ico_duration) +
             parseInt(Funding_Setting_pre_ico_cooldown_duration)+

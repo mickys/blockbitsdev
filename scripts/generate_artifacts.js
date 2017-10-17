@@ -76,9 +76,11 @@ const generateArtifacts = name => {
 }
 
 module.exports = (done) => {
+    /*
     fs.readdir(metadataDir, (err, files) => {
       files.forEach(file => {
           generateArtifacts(file)
       })
     })
+    */
 }
