@@ -20,28 +20,28 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">92.86% </span>
+        <span class="strong">57.14% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>13/14</span>
+        <span class='fraction'>8/14</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">60% </span>
+        <span class="strong">30% </span>
         <span class="quiet">Branches</span>
-        <span class='fraction'>6/10</span>
+        <span class='fraction'>3/10</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">83.33% </span>
+        <span class="strong">50% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>5/6</span>
+        <span class='fraction'>3/6</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">88.24% </span>
+        <span class="strong">52.94% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>15/17</span>
+        <span class='fraction'>9/17</span>
       </div>
     </div>
   </div>
-  <div class='status-line high'></div>
+  <div class='status-line medium'></div>
 <pre><table class="coverage">
 <tr><td class="line-count quiet">1
 2
@@ -138,25 +138,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15×</span>
-<span class="cline-any cline-yes">15×</span>
-<span class="cline-any cline-yes">15×</span>
-<span class="cline-any cline-yes">15×</span>
-<span class="cline-any cline-yes">15×</span>
-<span class="cline-any cline-yes">15×</span>
-<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5×</span>
-<span class="cline-any cline-yes">5×</span>
-<span class="cline-any cline-yes">5×</span>
-<span class="cline-any cline-yes">5×</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">12×</span>
-<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -165,8 +160,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16×</span>
-<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">8×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/*
@@ -210,15 +210,15 @@ contract ApplicationAsset {
         return true;
     }
 &nbsp;
-    function transferToNewOwner(address _newOwner) public onlyOwner returns (bool) {
-        <span class="missing-if-branch" title="else path not taken" >E</span>require(owner != address(0x0) &amp;&amp; _newOwner != address(0x0));
-        owner = _newOwner;
-        EventAppAssetOwnerSet(assetName, owner);
-        return true;
+<span class="fstat-no" title="function not covered" >    function transferToNewOwner(address _newOwner) public requireInitialised onlyOwner returns (bool</span>) {
+<span class="cstat-no" title="statement not covered" >        require(owner != address(0x0) &amp;&amp; _newOwner != address(0x0))</span>;
+<span class="cstat-no" title="statement not covered" >        owner = _newOwner</span>;
+<span class="cstat-no" title="statement not covered" >        EventAppAssetOwnerSet(assetName, owner)</span>;
+<span class="cstat-no" title="statement not covered" >        return true;</span>
     }
 &nbsp;
-    modifier onlyOwner() {
-        require(msg.sender == owner);
+<span class="fstat-no" title="function not covered" >    modifier onlyOwner(</span>) {
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == owner)</span>;
         _;
     }
 &nbsp;
@@ -238,7 +238,7 @@ contract ApplicationAsset {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Oct 13 2017 23:01:18 GMT+0300 (EEST)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Oct 17 2017 01:38:55 GMT+0300 (EEST)
 </div>
 </div>
 <script src="../prettify.js"></script>

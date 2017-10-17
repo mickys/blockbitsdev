@@ -26,7 +26,6 @@ contract FundingDirect {
         VaultFactory = PurchaseVaultFactory(_vaultFactoryAddress);
     }
     
-
     function () public payable {
         buy();
     }
