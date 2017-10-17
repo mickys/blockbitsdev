@@ -1,0 +1,134 @@
+Workstation:dev micky$ time npm run test
+
+> blockbits-core@0.1.0 test /Volumes/Dev/ico/dev
+> truffle test
+
+Using network 'development'.
+
+Compiling ./contracts/ApplicationAsset.sol...
+Compiling ./contracts/ApplicationEntity.sol...
+Compiling ./contracts/Entity/Funding.sol...
+Compiling ./contracts/Entity/GeneralVault.sol...
+Compiling ./contracts/Entity/ListingContract.sol...
+Compiling ./contracts/Entity/Meetings.sol...
+Compiling ./contracts/Entity/Milestones.sol...
+Compiling ./contracts/Entity/Proposals.sol...
+Compiling ./contracts/Entity/PurchaseVaultDirect.sol...
+Compiling ./contracts/Entity/PurchaseVaultGeneral.sol...
+Compiling ./contracts/Entity/PurchaseVaultMilestone.sol...
+Compiling ./contracts/GatewayInterface.sol...
+Compiling ./test/helpers/ExecutionTarget.sol...
+Compiling ./test/mocks/EmptyStub.sol...
+Compiling ./test/mocks/GenericCaller.sol...
+Compiling ./test/mocks/TestApplicationAsset.sol...
+Compiling ./test/mocks/TestApplicationEntity.sol...
+Compiling ./test/mocks/TestFunding.sol...
+Compiling ./test/mocks/TestGatewayInterface.sol...
+Compiling ./test/mocks/TestGeneralVault.sol...
+Compiling ./test/mocks/TestListingContract.sol...
+Compiling ./test/mocks/TestMeetings.sol...
+Compiling ./test/mocks/TestMilestones.sol...
+Compiling ./test/mocks/TestProposals.sol...
+Compiling ./test/mocks/TestPurchaseDirect.sol...
+Compiling ./test/mocks/TestPurchaseMilestone.sol...
+
+  ----------------------------------------------------------------
+  Stage 1 - Initial Gateway and Application Deployment
+  ----------------------------------------------------------------
+
+   Deploy GatewayInterface
+   Deploy Assets
+     Asset: Proposals
+     Asset: Funding
+     Asset: Milestones
+     Asset: Meetings
+     Asset: GeneralVault
+     Asset: ListingContract
+   Deploy ApplicationEntity
+   Link assets to ApplicationEntity
+     Successfully linked: Proposals
+     Successfully linked: Funding
+     Successfully linked: Milestones
+     Successfully linked: Meetings
+     Successfully linked: GeneralVault
+     Successfully linked: ListingContract
+   Link ApplicationEntity to GatewayInterface
+     EventAppEntityReady => 1
+
+  ----------------------------------------------------------------
+  Stage 1 - DONE
+  ----------------------------------------------------------------
+
+  Entities:
+  ----------------------------------------------------------------
+
+     GatewayInterface: 0xac92f20235211b84fe349500644d251e719042f6
+     ApplicationEntity: 0x39a14d4c2cdb1c029b98bcd0be3ab6a0ea1c6a8e
+       Proposals: 0xde3f39facb7deea212f685807e4ba24b50a8f875
+       Funding: 0x8f25f7a5cae8d1a9bebf330adc6843546305bf10
+       Milestones: 0xc2a0e88741aa2b513707052dfe819e4968214963
+       Meetings: 0xa9b4909912bbe67dda1d72807a463c350d0c893e
+       GeneralVault: 0xe32f8cae0fa9fe8914c1cf5f9150c0e5e84d434f
+       ListingContract: 0x09d90ad2ec94332d7d9ebc5c80f24656b8a22304
+
+  ----------------------------------------------------------------
+   Running test collections [4].
+  ----------------------------------------------------------------
+
+
+  Contract: Gateway Interface
+    ✓ initializes with empty properties (62ms)
+    requestCodeUpgrade()
+      ✓ throws if address is empty ( 0x0 ) (65ms)
+      ✓ throws if calling object misses the initialize() method
+      ✓ links Application if valid (53ms)
+      ✓ creates "Upgrade Proposal" if a previous Application is already linked (193ms)
+    approveCodeUpgrade()
+      ✓ throws if sender is not current Application
+      ✓ works if sender is current Application (186ms)
+
+  Contract: Application Assets
+    setInitialOwnerAndName()
+      ✓ works if linking an asset for the first time (51ms)
+      ✓ throws if already owned (39ms)
+    transferToNewOwner()
+      ✓ throws if called when internal owner address is invalid
+      ✓ throws if owned and called by other address
+      ✓ works if current caller is owner and requested address is not 0x0 (69ms)
+
+  Contract: Application Entity
+    ✓ initializes with empty properties (57ms)
+    initialize()
+      ✓ throws if called when already initialized (72ms)
+      ✓ throws if called with owner missing ( gateway )
+      ✓ works if owner is set, and it's the one calling (43ms)
+    lock()
+      ✓ throws if sender is not gateway
+      ✓ works if sender is gateway (52ms)
+    linkToGateway()
+      ✓ throws if called when owner already exists (75ms)
+      ✓ throws if called when already initialized
+      ✓ will emit EventAppEntityReady on initial linking
+      ✓ will emit EventProposalsCodeUpgradeNew if a previous ApplicationEntity is already linked (146ms)
+    addAsset[AssetName]()
+      ✓ throws if called when already initialized (62ms)
+      ✓ linking an asset will emit EventAppEntityInitAsset event (51ms)
+      ✓ linking all assets will emit the same number of EventAppEntityInitAsset events (201ms)
+    initializeAssetsToThisApplication()
+      ✓ throws if not an asset (77ms)
+      ✓ throws if caller is not gateway
+
+  Contract: Gateway and Application Integration
+    ✓ initial deployment (83ms)
+    ✓ first linking (142ms)
+    Application upgrades
+      ✓ first upgrade (211ms)
+      ✓ second upgrade (465ms)
+
+
+  31 passing (5s)
+
+
+real	0m9.418s
+user	0m7.956s
+sys	0m0.917s

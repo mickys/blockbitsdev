@@ -20,28 +20,28 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">94.74% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>0/19</span>
+        <span class='fraction'>18/19</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">50% </span>
         <span class="quiet">Branches</span>
-        <span class='fraction'>0/2</span>
+        <span class='fraction'>1/2</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">20% </span>
+        <span class="strong">80% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>1/5</span>
+        <span class='fraction'>4/5</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">95% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>0/20</span>
+        <span class='fraction'>19/20</span>
       </div>
     </div>
   </div>
-  <div class='status-line low'></div>
+  <div class='status-line high'></div>
 <pre><table class="coverage">
 <tr><td class="line-count quiet">1
 2
@@ -237,7 +237,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -247,38 +247,38 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/*
@@ -355,8 +355,8 @@ contract Proposals is ApplicationAsset {
 &nbsp;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function getHash(uint8 actionType, bytes32 arg1, bytes32 arg2) public pure returns ( bytes32 </span>) {
-<span class="cstat-no" title="statement not covered" >        return keccak256(actionType, arg1, arg2);</span>
+    function getHash(uint8 actionType, bytes32 arg1, bytes32 arg2) public pure returns ( bytes32 ) {
+        return keccak256(actionType, arg1, arg2);
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    function add() internal view onlyOwne</span>r {
@@ -364,39 +364,39 @@ contract Proposals is ApplicationAsset {
 &nbsp;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function addCodeUpgradeProposal(address _addr, bytes32 _sourceCodeUrl) external onlyOwner returns (uint256</span>) {
+    function addCodeUpgradeProposal(address _addr, bytes32 _sourceCodeUrl) external onlyOwner returns (uint256) {
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        bytes32 thisHash = getHash( uint8(ProposalActionTypes.CODE_UPGRADE), bytes32(_addr), _sourceCodeUrl )</span>;
+        bytes32 thisHash = getHash( uint8(ProposalActionTypes.CODE_UPGRADE), bytes32(_addr), _sourceCodeUrl );
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        if(reqByHash[thisHash] == 0x0) {</span>
+        <span class="missing-if-branch" title="else path not taken" >E</span>if(reqByHash[thisHash] == 0x0) {
 &nbsp;
-<span class="cstat-no" title="statement not covered" >            record storage proposal = registry[++RecordNum]</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.creator = owner</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.name = "Code Upgrade"</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.description = _sourceCodeUrl</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.actionType = ProposalActionTypes.CODE_UPGRADE</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.state = States.NEW</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.hash = thisHash</span>;
-<span class="cstat-no" title="statement not covered" >                proposal.index = RecordNum</span>;
+            record storage proposal = registry[++RecordNum];
+                proposal.creator = owner;
+                proposal.name = "Code Upgrade";
+                proposal.description = _sourceCodeUrl;
+                proposal.actionType = ProposalActionTypes.CODE_UPGRADE;
+                proposal.state = States.NEW;
+                proposal.hash = thisHash;
+                proposal.index = RecordNum;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >            codeUpgradeRecord storage cur = codeUpgradeRegistry[RecordNum]</span>;
-<span class="cstat-no" title="statement not covered" >                cur._address = _addr</span>;
-<span class="cstat-no" title="statement not covered" >                cur._sourceCodeUrl = _sourceCodeUrl</span>;
+            codeUpgradeRecord storage cur = codeUpgradeRegistry[RecordNum];
+                cur._address = _addr;
+                cur._sourceCodeUrl = _sourceCodeUrl;
 &nbsp;
         } else {
             // already exists!
 <span class="cstat-no" title="statement not covered" >            revert()</span>;
         }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        EventProposalsCodeUpgradeNew ( thisHash, RecordNum )</span>;
-<span class="cstat-no" title="statement not covered" >        return RecordNum;</span>
+        EventProposalsCodeUpgradeNew ( thisHash, RecordNum );
+        return RecordNum;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function acceptCodeUpgrade(uint256 recordId) interna</span>l {
+    function acceptCodeUpgrade(uint256 recordId) internal {
         // reinitialize this each time, because we reply on "owner" as the address, and it could change
-<span class="cstat-no" title="statement not covered" >        Application = ApplicationEntity(owner)</span>;
+        Application = ApplicationEntity(owner);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >        codeUpgradeRecord storage cur = codeUpgradeRegistry[recordId]</span>;
+        codeUpgradeRecord storage cur = codeUpgradeRegistry[recordId];
         Application.acceptCodeUpgradeProposal(cur._address);
     }
 &nbsp;
@@ -406,7 +406,7 @@ contract Proposals is ApplicationAsset {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Oct 17 2017 01:38:55 GMT+0300 (EEST)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Oct 17 2017 03:28:04 GMT+0300 (EEST)
 </div>
 </div>
 <script src="../../prettify.js"></script>

@@ -39,14 +39,14 @@ const setup = {
 };
 
 const tests = [
-    "1_GatewayInterface",
-    "2_ApplicationAsset",
-    "3_ApplicationEntity",
-    "integration_Gateway_and_ApplicationEntity",
+//    "1_GatewayInterface",
+//    "2_ApplicationAsset",
+//    "3_ApplicationEntity",
+//    "integration_Gateway_and_ApplicationEntity",
 ];
 
-utils.toLog(' ----------------------------------------------------------------\n');
-utils.toLog("\n  Running "+tests.length+" test collections." );
+utils.toLog('\n  ----------------------------------------------------------------');
+utils.toLog("  Running test collections ["+utils.colors.orange+tests.length+utils.colors.none+"]." );
 utils.toLog(' ----------------------------------------------------------------');
 
 tests.map( (name) => {
