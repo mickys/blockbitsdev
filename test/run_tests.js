@@ -1,3 +1,4 @@
+const dateFormat                = require('dateformat');
 const web3                      = require('web3');
 const web3util                  = require('web3-utils');
 const utils                     = require('./helpers/utils');
@@ -17,7 +18,8 @@ const setup = {
         utils:utils,
         web3util:web3util,
         web3:web3,
-        getContract:getContract
+        getContract:getContract,
+        dateFormat:dateFormat
     },
     contracts:{
         EmptyStub:EmptyStub,
@@ -39,10 +41,11 @@ const setup = {
 };
 
 const tests = [
-    "1_GatewayInterface",
-    "2_ApplicationAsset",
-    "3_ApplicationEntity",
-    "integration_Gateway_and_ApplicationEntity",
+    // "1_GatewayInterface",
+    // "2_ApplicationAsset",
+    // "3_ApplicationEntity",
+    // "integration_Gateway_and_ApplicationEntity",
+    "4_Asset_Funding",
 ];
 
 utils.toLog('\n  ----------------------------------------------------------------');

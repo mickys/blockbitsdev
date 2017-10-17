@@ -17,8 +17,6 @@ import "./../ApplicationAsset.sol";
 
 contract Funding is ApplicationAsset {
 
-
-
     enum FundingEntityStates {
         __IGNORED__,
         NEW,
@@ -67,14 +65,14 @@ contract Funding is ApplicationAsset {
 
     // funding settings
     uint256 public AmountRaised = 0;
-    uint256 public AmountCapSoft = 1000 ether;
-    uint256 public AmountCapHard = 3000 ether;
+    uint256 public AmountCapSoft;
+    uint256 public AmountCapHard;
  
-    uint256 Funding_Setting_funding_time_start = now + 6 days;
-    uint256 Funding_Setting_pre_ico_duration = 7 days;
-    uint256 Funding_Setting_pre_ico_cooldown_duration = 14 days;
-    uint256 Funding_Setting_ico_duration = 30 days;
-    uint256 Funding_Setting_cashback_duration = 90 days;
+    uint256 public Funding_Setting_funding_time_start;
+    uint256 public Funding_Setting_pre_ico_duration;
+    uint256 public Funding_Setting_pre_ico_cooldown_duration;
+    uint256 public Funding_Setting_ico_duration;
+    uint256 public Funding_Setting_cashback_duration;
 
     // tests
     uint256 public timeNow = 0;
@@ -84,7 +82,41 @@ contract Funding is ApplicationAsset {
     uint8 public currentFundingStage = 0;
 
     function Funding() ApplicationAsset public {
+        /*
+        addSettings(
+            1000 ether,     // _AmountCapSoft
+            3000 ether,     // _AmountCapHard
+            now + 6 days,   // _Funding_Setting_funding_time_start
+            7 days,         // _Funding_Setting_pre_ico_duration
+            14 days,        // _Funding_Setting_pre_ico_cooldown_duration
+            30 days,        // _Funding_Setting_ico_duration
+            90 days         // _Funding_Setting_cashback_duration
+        );
+        */
+        // setup();
+    }
 
+    function addSettings(
+        uint256 _AmountCapSoft,
+        uint256 _AmountCapHard,
+        uint256 _Funding_Setting_funding_time_start,
+        uint256 _Funding_Setting_pre_ico_duration,
+        uint256 _Funding_Setting_pre_ico_cooldown_duration,
+        uint256 _Funding_Setting_ico_duration,
+        uint256 _Funding_Setting_cashback_duration
+    )
+    public
+    requireNotInitialised {
+        AmountCapSoft = _AmountCapSoft;
+        AmountCapHard = _AmountCapHard;
+        Funding_Setting_funding_time_start = _Funding_Setting_funding_time_start;
+        Funding_Setting_pre_ico_duration = _Funding_Setting_pre_ico_duration;
+        Funding_Setting_pre_ico_cooldown_duration = _Funding_Setting_pre_ico_cooldown_duration;
+        Funding_Setting_ico_duration = _Funding_Setting_ico_duration;
+        Funding_Setting_cashback_duration = _Funding_Setting_cashback_duration;
+    }
+
+    function setup() public requireNotInitialised {
         // add pre-ico stage
         FundingStage storage record = Collection[++FundingStageNum];
         record.name = "PRE ICO";
@@ -231,7 +263,10 @@ contract Funding is ApplicationAsset {
         uint8 _record_id,
         uint8 _new_state
     )
-    public requireInitialised FundingStageUpdateAllowed(_record_id, _new_state) returns (bool) {
+    public
+        requireInitialised
+        FundingStageUpdateAllowed(_record_id, _new_state)
+    returns (bool) {
 
         FundingStage storage rec = Collection[_record_id];
         rec.state       = uint8(FundingStageStates(_new_state)) ;
