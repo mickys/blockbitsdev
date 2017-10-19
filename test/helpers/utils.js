@@ -1,4 +1,5 @@
 const web3util  = require('web3-utils');
+const dateFormat                = require('dateformat');
 
 /*
  ascii escape codes
@@ -34,6 +35,8 @@ let colors = {
     white:        '\x1B[1;37m'
 };
 
+
+
 module.exports = {
     hasEvent(tx, eventNamePlusReturn) {
         let eventSig = web3util.sha3(eventNamePlusReturn);
@@ -48,5 +51,11 @@ module.exports = {
     colors,
     toLog( what ) {
         console.log(colors.white, what, colors.none);
+    },
+    toDate(seconds) {
+        return dateFormat(parseInt(seconds) * 1000, "yyyy-mm-dd, HH:MM:ss TT");
+    },
+    toDateFromHex(hex) {
+        return this.toDate( web3util.toDecimal(hex) );
     }
 };

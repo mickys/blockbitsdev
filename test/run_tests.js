@@ -1,4 +1,3 @@
-const dateFormat                = require('dateformat');
 const web3                      = require('web3');
 const web3util                  = require('web3-utils');
 const utils                     = require('./helpers/utils');
@@ -18,8 +17,7 @@ const setup = {
         utils:utils,
         web3util:web3util,
         web3:web3,
-        getContract:getContract,
-        dateFormat:dateFormat
+        getContract:getContract
     },
     contracts:{
         EmptyStub:EmptyStub,

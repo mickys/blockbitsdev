@@ -15,7 +15,7 @@ pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
 
-contract Funding is ApplicationAsset {
+contract FundingOld is ApplicationAsset {
 
     enum FundingEntityStates {
         __IGNORED__,
@@ -43,7 +43,6 @@ contract Funding is ApplicationAsset {
         DIRECT_AND_MILESTONE		//
     }
 
-    event FundingStageCreated( uint8 indexed index, bytes32 indexed name );
 
     struct FundingStage {
         bytes32 name;
@@ -51,7 +50,6 @@ contract Funding is ApplicationAsset {
         uint8   state;
         uint256 time_start;
         uint256 time_end;
-        uint256 amount_cap_soft;            // 0 = not enforced
         uint256 amount_cap_hard;            // 0 = not enforced
         // funding method settings
         uint256 minimum_entry;
@@ -67,135 +65,94 @@ contract Funding is ApplicationAsset {
 
     // funding settings
     uint256 public AmountRaised = 0;
-    uint256 public AmountCapSoft = 0;
-    uint256 public AmountCapHard = 0;
-    uint8 public TokenSellPercentage = 0;
-
-    uint256 public Funding_Setting_funding_time_start = 0;
-    uint256 public Funding_Setting_funding_time_end = 0;
-
-    uint256 public Funding_Setting_cashback_duration = 90 days;
-    uint256 public Funding_Setting_cashback_time_start;
-    uint256 public Funding_Setting_cashback_time_end;
+    uint256 public AmountCapSoft;
+    uint256 public AmountCapHard;
+ 
+    uint256 public Funding_Setting_funding_time_start;
+    uint256 public Funding_Setting_pre_ico_duration;
+    uint256 public Funding_Setting_pre_ico_cooldown_duration;
+    uint256 public Funding_Setting_ico_duration;
+    uint256 public Funding_Setting_cashback_duration;
 
     // tests
     uint256 public timeNow = 0;
 
-    uint8 public FundingStageNum = 0;
+    uint8 FundingStageNum = 0;
     //
     uint8 public currentFundingStage = 0;
 
-    function Funding() ApplicationAsset public {
-
+    function FundingOld() ApplicationAsset public {
+        /*
+        addSettings(
+            1000 ether,     // _AmountCapSoft
+            3000 ether,     // _AmountCapHard
+            now + 6 days,   // _Funding_Setting_funding_time_start
+            7 days,         // _Funding_Setting_pre_ico_duration
+            14 days,        // _Funding_Setting_pre_ico_cooldown_duration
+            30 days,        // _Funding_Setting_ico_duration
+            90 days         // _Funding_Setting_cashback_duration
+        );
+        */
+        // setup();
     }
 
-    function addFundingStage(
-        bytes32 _name,
-        bytes32 _description,
-        uint256 _time_start,
-        uint256 _time_end,
-        uint256 _amount_cap_soft,
-        uint256 _amount_cap_hard,
-        uint8   _methods,
-        uint256 _minimum_entry,
-        uint256 _start_parity,
-        bool    _use_parity_from_previous,
-        uint8   _token_share_percentage
+    function addSettings(
+        uint256 _AmountCapSoft,
+        uint256 _AmountCapHard,
+        uint256 _Funding_Setting_funding_time_start,
+        uint256 _Funding_Setting_pre_ico_duration,
+        uint256 _Funding_Setting_pre_ico_cooldown_duration,
+        uint256 _Funding_Setting_ico_duration,
+        uint256 _Funding_Setting_cashback_duration
     )
-        public
-        requireNotInitialised
-    {
+    public
+    requireNotInitialised {
+        AmountCapSoft = _AmountCapSoft;
+        AmountCapHard = _AmountCapHard;
+        Funding_Setting_funding_time_start = _Funding_Setting_funding_time_start;
+        Funding_Setting_pre_ico_duration = _Funding_Setting_pre_ico_duration;
+        Funding_Setting_pre_ico_cooldown_duration = _Funding_Setting_pre_ico_cooldown_duration;
+        Funding_Setting_ico_duration = _Funding_Setting_ico_duration;
+        Funding_Setting_cashback_duration = _Funding_Setting_cashback_duration;
+    }
 
-        // make sure end time is later than start time
-        if(_time_end <= _time_start) {
-            revert();
-        }
-
-        // make sure soft cap is not higher than hard cap
-        if(_amount_cap_soft >= _amount_cap_hard) {
-            revert();
-        }
-
-        // make sure we're not selling more than 100% of token share... as that's not possible
-        if(_token_share_percentage > 100) {
-            revert();
-        }
-
-        if(FundingStageNum > 0) {
-            FundingStage storage prevRecord = Collection[FundingStageNum];
-
-            // if other funding stages exist we need to make sure that the following things don't happen:
-
-            // 1 - new stage does not start before the previous one ends
-            if( _time_start <= prevRecord.time_end ) {
-                revert();
-            }
-
-            // 2 - make sure previous stage + new stage token percentage does not amount to over 100%
-            if( _token_share_percentage + prevRecord.token_share_percentage > 100 ) {
-                revert();
-            }
-        }
-
+    function setup() public requireNotInitialised {
+        // add pre-ico stage
         FundingStage storage record = Collection[++FundingStageNum];
-        record.name             = _name;
-        record.description      = _description;
-        record.time_start       = _time_start;
-        record.time_end         = _time_end;
-        record.amount_cap_soft  = _amount_cap_soft;
-        record.amount_cap_hard  = _amount_cap_hard;
-
-        // funding method settings
-        record.methods          = _methods;
-        record.minimum_entry    = _minimum_entry;
-
-        // token settings
-        record.start_parity             = _start_parity;
-        record.use_parity_from_previous = _use_parity_from_previous;
-        record.token_share_percentage   = _token_share_percentage;
-
-        // state new
+        record.name = "PRE ICO";
+        record.description = "PRE ICO Funding Phase";
         record.state = uint8(FundingStageStates.NEW);
+        record.time_start = Funding_Setting_funding_time_start;
+        record.time_end = Funding_Setting_funding_time_start + Funding_Setting_pre_ico_duration;
+        record.amount_cap_hard = 100 ether;
+        // funding method settings
+        record.methods = uint8(FundingMethodIds.DIRECT_AND_MILESTONE);
+        record.minimum_entry = 10 ether;
+        // token settings
+        record.start_parity = 0;
+        record.use_parity_from_previous = false;
+        record.token_share_percentage = 10;
         record.index = FundingStageNum;
 
-        FundingStageCreated( FundingStageNum, _name );
+        // add ico stage
+        uint256 ico_start = Funding_Setting_funding_time_start + Funding_Setting_pre_ico_duration + Funding_Setting_pre_ico_cooldown_duration;
+        uint256 ico_end = ico_start + Funding_Setting_ico_duration;
 
-        adjustFundingSettingsBasedOnNewFundingStage();
-    }
-
-    function adjustFundingSettingsBasedOnNewFundingStage() internal {
-
-        uint256 local_AmountCapSoft;
-        uint256 local_AmountCapHard;
-        uint8 local_TokenSellPercentage;
-
-        for(uint8 i = 1; i <= FundingStageNum; i++) {
-            FundingStage storage rec = Collection[i];
-
-            // cumulate soft and hard cap
-            local_AmountCapSoft+=rec.amount_cap_soft;
-            local_AmountCapHard+=rec.amount_cap_hard;
-            local_TokenSellPercentage+= rec.token_share_percentage;
-
-            // first stage determines when we start receiving funds
-            if( i == 1 ) {
-                Funding_Setting_funding_time_start = rec.time_start;
-            }
-            // last stage determines when we stop receiving funds
-            if( i == FundingStageNum ) {
-                Funding_Setting_funding_time_end = rec.time_end;
-            }
-        }
-
-        // set globals
-        AmountCapSoft = local_AmountCapSoft;
-        AmountCapHard = local_AmountCapHard;
-        TokenSellPercentage = local_TokenSellPercentage;
-
-        // set cashback just in case
-        Funding_Setting_cashback_time_start = Funding_Setting_funding_time_end;
-        Funding_Setting_cashback_time_end = Funding_Setting_cashback_time_start + Funding_Setting_cashback_duration;
-
+        record = Collection[++FundingStageNum];
+        record.name = "ICO";
+        record.description = "ICO Funding Phase";
+        record.state = uint8(FundingStageStates.NEW);
+        record.time_start = ico_start;
+        record.time_end = ico_end;
+        record.amount_cap_hard = 0;
+        // funding method settings
+        record.methods = uint8(FundingMethodIds.DIRECT_AND_MILESTONE);
+        record.minimum_entry = 1 ether;
+        // token settings
+        record.start_parity = 0;
+        record.use_parity_from_previous = true;
+        record.token_share_percentage = 40;
+        record.index = FundingStageNum;
     }
 
     function saveRequiredStateChanges() public returns (bool) {
