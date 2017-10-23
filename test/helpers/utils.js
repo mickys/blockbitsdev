@@ -1,6 +1,5 @@
 const web3util  = require('web3-utils');
 const dateFormat                = require('dateformat');
-
 /*
  ascii escape codes
 
@@ -57,5 +56,13 @@ module.exports = {
     },
     toDateFromHex(hex) {
         return this.toDate( web3util.toDecimal(hex) );
-    }
+    },
+    getBalance(artifacts, address) {
+        let solAccUtils = artifacts.require('SolidityAccountUtils');
+        return solAccUtils.new().then(function(instance){ return instance.getBalance.call(address) });
+    },
+    transferTo(artifacts, _val, _from, _to) {
+        let solAccUtils = artifacts.require('SolidityAccountUtils');
+        return solAccUtils.new().then(function(instance){ return instance.transferTo(_to, {value: _val, from: _from}) });
+    },
 };

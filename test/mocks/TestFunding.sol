@@ -12,20 +12,34 @@ import "../../contracts/Entity/Funding.sol";
 import "./TestApplicationAsset.sol";
 
 contract TestFunding is Funding, TestApplicationAsset {
-    uint _mockTime = now;
+    uint256 _mockTime = now;
 
-    function getTimestamp() view internal returns (uint256) {
-        return _mockTime;
+    function getTimestamp() view public returns (uint256) {
+        if(_mockTime > 0) {
+            return _mockTime;
+        } else {
+            return now;
+        }
     }
 
-    function mock_setTimestamp(uint256 i) external { _mockTime = i; }
+    function setTestTimestamp(uint256 i) external { _mockTime = i; }
 
-    function insertPayment() public {
-        AmountRaised+= 50 ether;
+    function insertPayment(uint256 amount) public {
+        AmountRaised+= amount;
     }
 
     function moveTimestampBy7Days() public {
-        timeNow+= 7 days;
+        _mockTime+= 7 days;
+    }
+
+
+    function setTestCurrentEntityState(uint8 _state) public {
+        CurrentEntityState = _state;
+    }
+
+    function setTestCurrentFundingStageState(uint8 _state) public {
+        FundingStage storage record = Collection[currentFundingStage];
+        record.state = _state;
     }
 
 }

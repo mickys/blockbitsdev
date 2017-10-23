@@ -23,7 +23,8 @@ module.exports = function(setup) {
                     'EventAppAssetOwnerSet(bytes32,address)'
                 );
                 assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
-                assert.equal(await assetContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]')
+                assert.equal(await assetContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]');
+                assert.isTrue(await assetContract._initialized.call(), 'Asset not initialized');
             });
 
             it('throws if already owned', async () => {

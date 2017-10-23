@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "truffle test",
+    "testToHtml": "scripts/testOutputToHtml.sh",
     "lint": "solium --dir ./contracts",
     "coverage": "scripts/coverage.sh",
+    "coverageToHtml": "scripts/coverageOutputToHtml.sh",
     "console": "node_modules/.bin/truffle console",
     "prepublish": "npm run generate:artifacts-dev",
     "generate:artifacts-dev": "scripts/testrpc.sh; truffle migrate --all --network rpc; truffle exec --network rpc scripts/generate_artifacts.js"

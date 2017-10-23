@@ -97,6 +97,7 @@ async function doStage(deployer)  {
     entities.map((entity) => {
         utils.toLog("      "+entity.contract_name+": "+ entity.address);
     });
+
 }
 
 module.exports = (deployer, network) => {

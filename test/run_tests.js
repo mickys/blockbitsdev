@@ -1,15 +1,25 @@
 const web3                      = require('web3');
 const web3util                  = require('web3-utils');
+
 const utils                     = require('./helpers/utils');
 const { assertInvalidOpcode }   = require('./helpers/assertThrow');
 const getContract               = (name) => artifacts.require(name);
 
 const EmptyStub                 = artifacts.require('EmptyStub');
+
 const GatewayInterface          = artifacts.require('TestGatewayInterface');
 const ApplicationEntity         = artifacts.require('TestApplicationEntity');
 const Proposals                 = artifacts.require('TestProposals');
 
 const sourceCodeUrl             = "http://test.com/SourceCodeValidator";
+
+const solidity = {
+    // solidity calc helpers
+    ether:1000000000000000000,
+    days:3600 * 24,
+    now: parseInt(( Date.now() / 1000 ).toFixed())
+};
+
 
 const setup = {
     helpers:{
@@ -17,7 +27,9 @@ const setup = {
         utils:utils,
         web3util:web3util,
         web3:web3,
-        getContract:getContract
+        getContract:getContract,
+        solidity:solidity,
+        artifacts:artifacts
     },
     contracts:{
         EmptyStub:EmptyStub,
@@ -38,13 +50,22 @@ const setup = {
     ]
 };
 
-const tests = [
+let tests = [
     "1_GatewayInterface",
     "2_ApplicationAsset",
     "3_ApplicationEntity",
-    "integration_Gateway_and_ApplicationEntity",
-    "4_Asset_Funding",
+    "integration_Gateway_and_ApplicationEntity"
 ];
+
+if(! process.env.SOLIDITY_COVERAGE ) {
+
+}
+
+// tests.push("4_Asset_Funding");
+
+tests = [];
+tests.push("4_FundingVault");
+
 
 utils.toLog('\n  ----------------------------------------------------------------');
 utils.toLog("  Running test collections ["+utils.colors.orange+tests.length+utils.colors.none+"]." );

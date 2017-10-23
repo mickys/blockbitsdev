@@ -17,12 +17,29 @@ import "./../ApplicationAsset.sol";
 
 contract Funding is ApplicationAsset {
 
-    mapping (bytes32 => uint8) public EntityStates;
-    mapping (bytes32 => uint8) public RecordStates;
+    enum FundingEntityStates {
+        __IGNORED__,
+        NEW,
+        WAITING,
+        IN_PROGRESS,
+        COOLDOWN,
+        ALL_FUNDING_PERIODS_PROCESSED,
+        SUCCESSFUL,
+        FAILED,
+        CASHBACK_IN_PROGRESS,
+        CASHBACK_COMPLETE,
+        FINAL
+    }
+ 
+    uint8 public CurrentEntityState = uint8(FundingEntityStates.NEW);
 
-    uint8 public CurrentEntityState;
+    enum FundingStageStates {
+        __IGNORED__,
+        NEW, 				// not started
+        IN_PROGRESS, 		// accepts payments
+        FINAL				// ended
+    }
 
-    // mapping (bytes32 => uint8) public FundingMethods;
     enum FundingMethodIds {
         __IGNORED__,
         DIRECT_ONLY, 				//
@@ -41,7 +58,6 @@ contract Funding is ApplicationAsset {
         uint256 time_end;
         uint256 amount_cap_soft;            // 0 = not enforced
         uint256 amount_cap_hard;            // 0 = not enforced
-        uint256 amount_raised;              // 0 = not enforced
         // funding method settings
         uint256 minimum_entry;
         uint8   methods;                    // FundingMethodIds
@@ -69,7 +85,6 @@ contract Funding is ApplicationAsset {
     uint256 public Funding_Setting_cashback_time_end = 0;
 
     // to be taken from application bylaws
-    uint256 public Funding_Setting_cashback_before_start_wait_duration = 1 days;
     uint256 public Funding_Setting_cashback_duration = 90 days;
 
 
@@ -82,46 +97,7 @@ contract Funding is ApplicationAsset {
     event DebugAction(bytes32 indexed _name, bool indexed _allowed);
 
     function Funding() ApplicationAsset public {
-        setApplicationStates();
-        CurrentEntityState = getEntityState("NEW");
-    }
 
-    function setApplicationStates() internal {
-
-        // Contract States
-        EntityStates["__IGNORED__"]     = 0;
-        EntityStates["NEW"]             = 1;
-        EntityStates["WAITING"]         = 2;
-        EntityStates["IN_PROGRESS"]     = 3;
-        EntityStates["COOLDOWN"]        = 4;
-        EntityStates["FUNDING_ENDED"]   = 5;
-        EntityStates["FAILED"]          = 6;
-        EntityStates["SUCCESSFUL"]      = 7;
-
-        // Funding Stage States
-        RecordStates["__IGNORED__"]     = 0;
-        RecordStates["NEW"]             = 1;
-        RecordStates["IN_PROGRESS"]     = 2;
-        RecordStates["FINAL"]           = 3;
-    }
-
-    function getRecordState(bytes32 name) public view returns (uint8) {
-        return RecordStates[name];
-    }
-
-    function getEntityState(bytes32 name) public view returns (uint8) {
-        return EntityStates[name];
-    }
-
-    function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
-        if(
-            _payment_method == uint8(FundingMethodIds.DIRECT_ONLY) ||
-            _payment_method == uint8(FundingMethodIds.MILESTONE_ONLY)
-        ){
-            return true;
-        } else {
-            return false;
-        }
     }
 
     function addFundingStage(
@@ -130,7 +106,7 @@ contract Funding is ApplicationAsset {
         uint256 _time_start,
         uint256 _time_end,
         uint256 _amount_cap_soft,
-        uint256 _amount_cap_hard,   // required > 0
+        uint256 _amount_cap_hard,
         uint8   _methods,
         uint256 _minimum_entry,
         uint256 _start_parity,
@@ -143,11 +119,6 @@ contract Funding is ApplicationAsset {
 
         // make sure end time is later than start time
         if(_time_end <= _time_start) {
-            revert();
-        }
-
-        // make sure hard cap exists!
-        if(_amount_cap_hard == 0) {
             revert();
         }
 
@@ -196,7 +167,7 @@ contract Funding is ApplicationAsset {
         record.token_share_percentage   = _token_share_percentage;
 
         // state new
-        record.state = getRecordState("NEW");
+        record.state = uint8(FundingStageStates.NEW);
         record.index = FundingStageNum;
 
         FundingStageCreated( FundingStageNum, _name );
@@ -234,12 +205,10 @@ contract Funding is ApplicationAsset {
         TokenSellPercentage = local_TokenSellPercentage;
 
         // set cashback just in case
-        // cashback starts 1 day after funding status is failed
-        Funding_Setting_cashback_time_start = Funding_Setting_funding_time_end + Funding_Setting_cashback_before_start_wait_duration;
+        Funding_Setting_cashback_time_start = Funding_Setting_funding_time_end;
         Funding_Setting_cashback_time_end = Funding_Setting_cashback_time_start + Funding_Setting_cashback_duration;
+
     }
-
-
 
     /*
         Hook into Project State
@@ -255,94 +224,110 @@ contract Funding is ApplicationAsset {
     }
 
 
-    function canAcceptPayment(uint256 _amount) public view returns (bool) {
+    function initFSM() public returns (bool) {
 
-        // funding state should be IN_PROGRESS
-        if( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
+        addMappedAction("stateToWaiting");
 
-            // get current record
-            FundingStage memory record = Collection[currentFundingStage];
+    }
 
-            /*
-            soft cap is used to determine if funding is successful
-            hard cap is used to determine if payment can be accepted,
-                 each funding stage has it's own hard cap!
-                 so.. globals do nothing here
-            */
+    function process() public {
 
-            // check if _amount is higher than entry minimum
+        for(uint16 i = 0; i < MappedActionNum; i++) {
+            bytes32 current = MapActionIdToName[i];
+            if( isAllowedAction(current) ) {
+                DebugAction(current, true);
+            } else {
+                DebugAction(current, false);
+            }
+        }
 
-            // check if _amount is lower than remaining ( global maixmum - amount raised )
-            // check if _amount is also lower than record.amount_cap_hard if amount_cap_hard > 0
+    }
 
-            // uint256 remainingGlobal = AmountCapHard - AmountRaised;
-            uint256 remaining = record.amount_cap_hard - record.amount_raised;
+    function stateToWaiting() internal {
+        EventEntityProcessor( 100 );
+    }
 
-            if( _amount >= record.minimum_entry  && _amount <= remaining ) {
 
-                // we have a stage hard cap.
-                if(record.amount_cap_hard > 0) {
+    mapping (uint16 => bytes32 ) MapActionIdToName;
+    mapping (bytes32 => uint16) MapActionNameToId;
+    uint16 MappedActionNum = 0;
 
-                }
-                // && _amount <= remaining
-
+    function isAllowedAction(bytes32 _actionName) internal view returns (bool) {
+        uint16 _current = getActionIdByName(_actionName);
+        uint16[] memory actions = AllowedActionsForCurrentState();
+        for(uint16 i = 0; i < MappedActionNum; i++) {
+            if(_current == actions[i]) {
                 return true;
             }
         }
         return false;
     }
 
-
-    function getHardCapsSoFar() internal view returns (uint256) {
-        uint256 hard_cap = 0;
-
-        for(int i = 1; i <= currentFundingStage; i++ ) {
-            FundingStage memory record = Collection[currentFundingStage];
-            hard_cap+=record.amount_cap_hard;
+    function addMappedAction(bytes32 _name) internal {
+        if(getActionIdByName(_name) == 0x0) {
+            MapActionIdToName[++MappedActionNum] = _name;
+            MapActionNameToId[_name] = MappedActionNum;
         }
-        return hard_cap;
     }
 
-    function checkStateAcceptsPayment() public view returns (bool) {
-
-        if( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-            return true;
-        }
-        return false;
+    function getActionNameById(uint16 _id) internal view returns(bytes32) {
+        return MapActionIdToName[_id];
     }
 
-    function checkStateStartCashBack() public pure returns (bool) {
-        /*
-            Method should be able to override any internal state that failed for some reason.        
-        */
-        
+    function getActionIdByName(bytes32 _name) internal view returns(uint16) {
+        return MapActionNameToId[_name];
     }
-    
-    function checkStateAcceptsCashBack() public view returns (bool) {
 
-        /*
-        enum ThisEntityStates {
-            __IGNORED__,
-            NEW,
-            WAITING,
-            IN_PROGRESS,
-            COOLDOWN,
-            FUNDING_ENDED,
-            SUCCESSFUL,
-            FAILED,
-            CASHBACK_IN_PROGRESS,
-            CASHBACK_COMPLETE,
-            FINAL
+    function AllowedActionsForCurrentState() public view returns ( uint16[] ) {
+
+        uint16[] memory allowedActions;
+        uint8 count = 0;
+
+        if( CurrentEntityState == uint8(FundingEntityStates.NEW) ) {
+            // nothing to do here
+            allowedActions[count++] = getActionIdByName("stateToWaiting");
+
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.WAITING) ) {
+            // nothing to do here
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.IN_PROGRESS) ) {
+            // nothing to do here
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.COOLDOWN) ) {
+            // nothing to do here
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.ALL_FUNDING_PERIODS_PROCESSED) ) {
+
+            /*
+                process internals and determine if successful or failed
+            */
+            /*
+            // Global Hard Cap Check
+            if(AmountRaised == AmountCapHard) {
+                // hard cap reached
+                CurrentEntityState = uint8(FundingEntityStates.FINAL);
+            } else {
+                CurrentEntityState = uint8(FundingEntityStates.FAILED);
+            }
+            */
+
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.SUCCESSFUL) ) {
+
+            /*
+                retrieve funds from vaults, allocate tokens
+            */
+
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.FAILED) ) {
+            // nothing to do here, app needs to change state to CashBack!
+
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.CASHBACK_IN_PROGRESS) ) {
+            // nothing to do here, app needs to change state
+
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.CASHBACK_COMPLETE) ) {
+            // nothing to do here, app needs to change state
+
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.FINAL) ) {
+
         }
-        */
-        
-        
-        // Funding_Setting_cashback_time_start
-    
-        if( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-            return true;
-        }
-        return false;
+
+        return allowedActions;
     }
 
 
@@ -371,7 +356,7 @@ contract Funding is ApplicationAsset {
         if (getProjectCurrentState() == getProjectDevelopmentState()) {
 
             saveRequiredStateChanges();
-            if( getRecordStateRequiredChanges() != getRecordState("__IGNORED__") ) {
+            if( getRecordStateRequiredChanges() != uint8(FundingStageStates.__IGNORED__) ) {
                 nextStepCycle();
             }
 
@@ -408,13 +393,10 @@ contract Funding is ApplicationAsset {
         // getRequiredStateChanges();
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
 
-        CurrentRecordState = 0;
-        EntityStateRequired = 0;
-
-        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+        if( RecordStateRequired != uint8(FundingStageStates.__IGNORED__) ) {
 
             updateFundingStage( RecordStateRequired );
-            if( RecordStateRequired == getRecordState("FINAL") ) {
+            if( RecordStateRequired == uint8(FundingStageStates.FINAL) ) {
                 if(currentFundingStage == FundingStageNum) {
                     // set funding complete by time!
                 } else {
@@ -441,7 +423,7 @@ contract Funding is ApplicationAsset {
     function getFirstUsableFundingStageId() public view requireInitialised returns ( uint8 ) {
         for(uint8 i = 1; i <= FundingStageNum; i++) {
             FundingStage storage rec = Collection[i];
-            if(rec.state != getRecordState("FINAL")) {
+            if(rec.state != uint8(FundingStageStates.FINAL)) {
                 return rec.index;
             }
         }
@@ -471,7 +453,7 @@ contract Funding is ApplicationAsset {
     returns (bool) {
 
         FundingStage storage rec = Collection[currentFundingStage];
-        rec.state       = _new_state;
+        rec.state       = uint8(FundingStageStates(_new_state));
 
         return true;
     }
@@ -518,6 +500,22 @@ contract Funding is ApplicationAsset {
         return false;
     }
 
+    function canAcceptPayment(uint256 _amount) view internal returns (bool) {
+        FundingStage memory record = Collection[currentFundingStage];
+
+        // check if _amount is higher than entry minimum
+        // check if _amount is lower than global maixmum - amount raised
+
+        uint256 remaining = AmountCapHard - AmountRaised;
+
+        if(
+            _amount >= record.minimum_entry
+            && _amount <= remaining
+        )
+            return true;
+
+        return false;
+    }
 
     /*
      * Funding Phase changes
@@ -535,8 +533,8 @@ contract Funding is ApplicationAsset {
         // get FundingStage current state
 
         FundingStage memory record = Collection[currentFundingStage];
-        // uint8 CurrentRecordState = record.state;
-        uint8 RecordStateRequired = getRecordState("__IGNORED__");
+        uint8 CurrentRecordState = record.state;
+        uint8 RecordStateRequired = uint8(FundingStageStates.__IGNORED__);
 
 
         /*
@@ -544,7 +542,7 @@ contract Funding is ApplicationAsset {
             - we need to change state to IN_PROGRESS so we can start receiving funds
         */
         if( getTimestamp() >= record.time_start ) {
-            RecordStateRequired = getRecordState("IN_PROGRESS");
+            RecordStateRequired = uint8(FundingStageStates.IN_PROGRESS);
         }
 
         /*
@@ -561,20 +559,20 @@ contract Funding is ApplicationAsset {
         // Time check
         if(getTimestamp() >= record.time_end) {
             // Funding Phase ended passed
-            return getRecordState("FINAL");
+            return uint8(FundingStageStates.FINAL);
         }
 
         // Global Hard Cap Check
         if(AmountRaised == AmountCapHard) {
             // hard cap reached
-            return getRecordState("FINAL");
+            return uint8(FundingStageStates.FINAL);
         }
 
         // Has (optional) Funding Phase HardCap
         if(record.amount_cap_hard > 0) {
             // amount raised is Funding Phase HardCap
             if(AmountRaised == record.amount_cap_hard) {
-                return getRecordState("FINAL");
+                return uint8(FundingStageStates.FINAL);
             }
         }
 
@@ -591,14 +589,11 @@ contract Funding is ApplicationAsset {
         bool hasChanges = false;
 
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
-
-        CurrentRecordState = 0;
-
-        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+        if( RecordStateRequired != uint8(FundingStageStates.__IGNORED__) ) {
             hasChanges = true;
         }
 
-        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+        if(EntityStateRequired != uint8(FundingEntityStates.__IGNORED__) ) {
             hasChanges = true;
         }
 
@@ -612,9 +607,9 @@ contract Funding is ApplicationAsset {
         DebugRecordRequiredChanges( CurrentRecordState, RecordStateRequired );
         DebugEntityRequiredChanges( CurrentEntityState, EntityStateRequired );
 
-        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+        if( RecordStateRequired != uint8(FundingStageStates.__IGNORED__) ) {
             updateFundingStage( RecordStateRequired );
-            if( RecordStateRequired == getRecordState("FINAL") ) {
+            if( RecordStateRequired == uint8(FundingStageStates.FINAL) ) {
                 if(currentFundingStage < FundingStageNum) {
                     // jump to next stage
                     currentFundingStage++;
@@ -624,7 +619,7 @@ contract Funding is ApplicationAsset {
             callAgain = true;
         }
 
-        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+        if(EntityStateRequired != uint8(FundingEntityStates.__IGNORED__) ) {
             if(CurrentEntityState != EntityStateRequired) {
                 CurrentEntityState = EntityStateRequired;
                 DebugCallAgain(1);
@@ -644,15 +639,15 @@ contract Funding is ApplicationAsset {
 
         EventEntityProcessor( CurrentEntityState );
 
-        if( CurrentEntityState == getEntityState("NEW") ) {
+        if( CurrentEntityState == uint8(FundingEntityStates.NEW) ) {
             // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.WAITING) ) {
             // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.IN_PROGRESS) ) {
             // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("COOLDOWN") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.COOLDOWN) ) {
             // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.ALL_FUNDING_PERIODS_PROCESSED) ) {
 
             /*
                 process internals and determine if successful or failed
@@ -661,27 +656,27 @@ contract Funding is ApplicationAsset {
             // Global Hard Cap Check
             if(AmountRaised == AmountCapHard) {
                 // hard cap reached
-                CurrentEntityState = getEntityState("FINAL");
+                CurrentEntityState = uint8(FundingEntityStates.FINAL);
             } else {
-                CurrentEntityState = getEntityState("FAILED");
+                CurrentEntityState = uint8(FundingEntityStates.FAILED);
             }
 
-        } else if ( CurrentEntityState == getEntityState("SUCCESSFUL") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.SUCCESSFUL) ) {
 
             /*
                 retrieve funds from vaults, allocate tokens
             */
 
-        } else if ( CurrentEntityState == getEntityState("FAILED") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.FAILED) ) {
             // nothing to do here, app needs to change state to CashBack!
 
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_IN_PROGRESS") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.CASHBACK_IN_PROGRESS) ) {
             // nothing to do here, app needs to change state
 
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_COMPLETE") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.CASHBACK_COMPLETE) ) {
             // nothing to do here, app needs to change state
 
-        } else if ( CurrentEntityState == getEntityState("FINAL") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.FINAL) ) {
 
         }
 
@@ -704,47 +699,47 @@ contract Funding is ApplicationAsset {
 
         uint8 CurrentRecordState = record.state;
         uint8 RecordStateRequired = getRecordStateRequiredChanges();
-        uint8 EntityStateRequired = getEntityState("__IGNORED__");
+        uint8 EntityStateRequired = uint8(FundingEntityStates.__IGNORED__);
 
         // just deployed
-        if( CurrentEntityState == getEntityState("NEW") ) {
+        if( CurrentEntityState == uint8(FundingEntityStates.NEW) ) {
             /*
                 Entity processed, we move to waiting for funding start
             */
-            EntityStateRequired = getEntityState("WAITING");
+            EntityStateRequired = uint8(FundingEntityStates.WAITING);
 
-        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.WAITING) ) {
             /*
                 Waiting for funding start
             */
 
-        } else if ( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.IN_PROGRESS) ) {
             /*
                 We're accepting funding here
             */
 
-        } else if ( CurrentEntityState == getEntityState("COOLDOWN") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.COOLDOWN) ) {
 
             // doStateChanges action
 
-        } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.ALL_FUNDING_PERIODS_PROCESSED) ) {
 
             // Processor action
 
-        } else if ( CurrentEntityState == getEntityState("SUCCESSFUL") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.SUCCESSFUL) ) {
             // Processor action
 
-        } else if ( CurrentEntityState == getEntityState("FAILED") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.FAILED) ) {
 
-            EntityStateRequired = getEntityState("CASHBACK_IN_PROGRESS");
+            EntityStateRequired = uint8(FundingEntityStates.CASHBACK_IN_PROGRESS);
 
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_IN_PROGRESS") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.CASHBACK_IN_PROGRESS) ) {
             // nothing to do here, app needs to change state
 
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_COMPLETE") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.CASHBACK_COMPLETE) ) {
             // nothing to do here, app needs to change state
 
-        } else if ( CurrentEntityState == getEntityState("FINAL") ) {
+        } else if ( CurrentEntityState == uint8(FundingEntityStates.FINAL) ) {
 
         }
 
@@ -754,9 +749,9 @@ contract Funding is ApplicationAsset {
             // so this is where we need to retrieve funding from Direct Wallet
             // then generate tokens
             // once that is complete we change to FINAL
-        if (NewRecordStateRequired == getRecordState("__IGNORED__)) {
+        if (NewRecordStateRequired == uint8(FundingStageStates.__IGNORED__)) {
             // after cashback stage.. move to donate
-        } else if (record.state == getEntityState("FAILED)) {
+        } else if (record.state == uint8(FundingEntityStates.FAILED)) {
             // If records exist, allow them to be started
             // else tell project to change state to development
         }
@@ -768,24 +763,24 @@ contract Funding is ApplicationAsset {
         if(CurrentRecordState != RecordStateRequired) {
 
             // direct state overrides by funding stage
-            if(RecordStateRequired == getRecordState("IN_PROGRESS") ) {
+            if(RecordStateRequired == uint8(FundingStageStates.IN_PROGRESS) ) {
                 // both funding stage and entity states need to move to IN_PROGRESS
-                EntityStateRequired = getEntityState("IN_PROGRESS");
+                EntityStateRequired = uint8(FundingEntityStates.IN_PROGRESS);
 
-            } else if (RecordStateRequired == getRecordState("FINAL")) {
+            } else if (RecordStateRequired == uint8(FundingStageStates.FINAL)) {
                 // funding stage moves to FINAL
 
                 if (currentFundingStage == FundingStageNum) {
                     // if current funding is last
-                    EntityStateRequired = getEntityState("FUNDING_ENDED");
+                    EntityStateRequired = uint8(FundingEntityStates.ALL_FUNDING_PERIODS_PROCESSED);
                 }
                 else {
                     // start cooldown between funding stages
-                    EntityStateRequired = getEntityState("COOLDOWN");
+                    EntityStateRequired = uint8(FundingEntityStates.COOLDOWN);
                 }
             }
         } else {
-            RecordStateRequired = getRecordState("__IGNORED__");
+            RecordStateRequired = uint8(FundingStageStates.__IGNORED__);
         }
 
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
