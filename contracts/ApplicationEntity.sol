@@ -17,6 +17,7 @@ import "./Entity/Funding.sol";
 import "./Entity/Meetings.sol";
 import "./Entity/Milestones.sol";
 import "./Entity/GeneralVault.sol";
+import "./Entity/TokenManager.sol";
 import "./Entity/ListingContract.sol";
 
 
@@ -44,6 +45,7 @@ contract ApplicationEntity {
     Milestones MilestonesEntity;
     Meetings MeetingsEntity;
     GeneralVault GeneralVaultEntity;
+    TokenManager TokenManagerEntity;
     ListingContract ListingContractEntity;
 
     /* Asset Collection */
@@ -118,6 +120,11 @@ contract ApplicationEntity {
     function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised {
         GeneralVaultEntity = GeneralVault(_assetAddresses);
         assetInitialized("GeneralVault", _assetAddresses);
+    }
+
+    function addAssetTokenManager(address _assetAddresses) external requireNotInitialised {
+        TokenManagerEntity = TokenManager(_assetAddresses);
+        assetInitialized("TokenManager", _assetAddresses);
     }
 
     function addAssetListingContract(address _assetAddresses) external requireNotInitialised {

@@ -1,17 +1,21 @@
-function assertError(error, s, message) {
+function assertError(block, error, s, message) {
+
     /*
-    console.log(error)
-    console.log(s)
-    console.log(message)
+    let code = error.message.search(s);
+    if(code == -1) {
+        console.log(block.toString());
+        console.log(message);
+        console.log(error);
+    }
     */
-    assert.isAbove(error.message.search(s), -1, message);
+    assert.isAbove(error.message.search(s), -1, message)
 }
 
 async function assertThrows(block, message, errorCode) {
     try {
         await block()
     } catch (e) {
-        return assertError(e, errorCode, message)
+        return assertError(block, e, errorCode, message)
     }
 
     console.log();
@@ -26,8 +30,10 @@ module.exports = {
     async assertJump(block, message = 'should have failed with invalid JUMP') {
         return assertThrows(block, message, 'invalid JUMP')
     },
-
     async assertInvalidOpcode(block, message = 'should have failed with invalid opcode') {
         return assertThrows(block, message, 'invalid opcode')
+    },
+    async assertJump(block, message = 'should have failed with invalid opcode') {
+        return assertThrows(block, message, 'invalid opcode')
     }
-}
+};

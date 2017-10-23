@@ -54,6 +54,9 @@ module.exports = {
     toDate(seconds) {
         return dateFormat(parseInt(seconds) * 1000, "yyyy-mm-dd, HH:MM:ss TT");
     },
+    topicToAddress(hexString) {
+        return hexString.replace("0x000000000000000000000000", "0x");
+    },
     toDateFromHex(hex) {
         return this.toDate( web3util.toDecimal(hex) );
     },

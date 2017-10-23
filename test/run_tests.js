@@ -10,7 +10,8 @@ const EmptyStub                 = artifacts.require('EmptyStub');
 const GatewayInterface          = artifacts.require('TestGatewayInterface');
 const ApplicationEntity         = artifacts.require('TestApplicationEntity');
 const Proposals                 = artifacts.require('TestProposals');
-
+const Token                     = artifacts.require('TestToken');
+const TokenManager              = artifacts.require('TestTokenManager');
 const sourceCodeUrl             = "http://test.com/SourceCodeValidator";
 
 const solidity = {
@@ -35,7 +36,9 @@ const setup = {
         EmptyStub:EmptyStub,
         GatewayInterface:GatewayInterface,
         ApplicationEntity:ApplicationEntity,
-        Proposals:Proposals
+        Proposals:Proposals,
+        Token:Token,
+        TokenManager:TokenManager
     },
     settings:{
         sourceCodeUrl
@@ -47,24 +50,25 @@ const setup = {
         'Meetings',
         'GeneralVault',
         'ListingContract'
+
     ]
 };
 
-let tests = [
-    "1_GatewayInterface",
-    "2_ApplicationAsset",
-    "3_ApplicationEntity",
-    "integration_Gateway_and_ApplicationEntity"
-];
+let tests = [];
+
+tests.push("external/SafeMath");
+tests.push("ERC20Token");
+tests.push("1_GatewayInterface");
+tests.push("2_ApplicationAsset");
+tests.push("3_ApplicationEntity");
+tests.push("integration_Gateway_and_ApplicationEntity");
+tests.push("4_Asset_Funding");
+tests.push("4_FundingVault");
 
 if(! process.env.SOLIDITY_COVERAGE ) {
 
 }
 
-// tests.push("4_Asset_Funding");
-
-tests = [];
-tests.push("4_FundingVault");
 
 
 utils.toLog('\n  ----------------------------------------------------------------');

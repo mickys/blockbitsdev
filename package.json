@@ -11,7 +11,8 @@
     "coverageToHtml": "scripts/coverageOutputToHtml.sh",
     "console": "node_modules/.bin/truffle console",
     "prepublish": "npm run generate:artifacts-dev",
-    "generate:artifacts-dev": "scripts/testrpc.sh; truffle migrate --all --network rpc; truffle exec --network rpc scripts/generate_artifacts.js"
+    "generate:artifacts-dev": "scripts/testrpc.sh; truffle migrate --all --network rpc; truffle exec --network rpc scripts/generate_artifacts.js",
+    "html": "npm run testToHtml && npm run coverageToHtml"
   },
   "files": [
     "index.js",
@@ -33,6 +34,7 @@
     "ethereumjs-abi": "^0.6.4",
     "ethereumjs-testrpc": "^4.1.3",
     "ethereumjs-util": "^5.1.1",
+    "left-pad": "^1.1.3",
     "mocha-lcov-reporter": "^1.3.0",
     "solidity-coverage": "^0.2.7",
     "solidity-inspector": "^0.2.3",

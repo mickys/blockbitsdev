@@ -1,5 +1,6 @@
 const utils                 = require('../test/helpers/utils');
 const web3util              = require('web3-utils');
+const Token                 = artifacts.require('Token');
 const GatewayInterface      = artifacts.require('GatewayInterface');
 const ApplicationEntity     = artifacts.require('ApplicationEntity');
 const getContract = (obj)   => artifacts.require(obj.name);
@@ -10,7 +11,8 @@ const assets = [
     {'name' : 'Milestones'},
     {'name' : 'Meetings'},
     {'name' : 'GeneralVault'},
-    {'name' : 'ListingContract'}
+    {'name' : 'TokenManager'},
+    {'name' : 'ListingContract'},
 ];
 const entities = assets.map(getContract);
 let deployedAssets = [];
@@ -33,6 +35,9 @@ async function doStage(deployer)  {
         '  Stage 1 - Initial Gateway and Application Deployment\n'+
         '  ----------------------------------------------------------------\n'
     );
+
+    utils.toLog("  Deploy Token");
+    await deployer.deploy(Token, );
 
     utils.toLog("  Deploy GatewayInterface");
     await deployer.deploy(GatewayInterface);

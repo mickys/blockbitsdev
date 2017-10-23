@@ -163,7 +163,7 @@ module.exports = function(setup) {
                 );
                 assert.equal(eventFilter.length, 1, 'Milestone Payment: EventPaymentReceived event not received.');
 
-                await showContractDebug(helpers, assetContract);
+                // await showContractDebug(helpers, assetContract);
             });
 
         });

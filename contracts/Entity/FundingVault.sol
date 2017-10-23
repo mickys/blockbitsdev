@@ -118,6 +118,7 @@ contract FundingVault {
 
     function ReleaseFundsToOutputAddress()
         public
+        view // remove this shit
         requireInitialised
         onlyManager
     {
@@ -139,6 +140,7 @@ contract FundingVault {
 
     function ReleaseFundsToInvestor()
         public
+        view // remove this shit
         requireInitialised
     {
         if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("NEW") ) {
