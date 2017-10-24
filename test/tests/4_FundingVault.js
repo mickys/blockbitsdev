@@ -142,9 +142,10 @@ module.exports = function(setup) {
             });
 
             it('throws if called by other address than manager (funding contract)', async () => {
+                await showAccountBalances(helpers, accounts);
                 let sendAmount = 1 * helpers.solidity.ether;
                 return helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: sendAmount, from: accounts[3]})
+                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: sendAmount, from: accounts[1]})
                 });
             });
 

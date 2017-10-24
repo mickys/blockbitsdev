@@ -94,9 +94,21 @@ module.exports = function(setup) {
             assert(await HST.transfer.call(accounts[1], 0, {from: accounts[0]}), 'zero-transfer has failed')
         });
 
+        it('transfers: should throw if receiver address is 0x0', async () => {
+            return helpers.assertInvalidOpcode(async () => {
+                await HST.transfer.sendTransaction(0, 0, {from: accounts[0]})
+            });
+        });
+
+        it('transferFrom: should throw if receiver address is 0x0', async () => {
+            const TestERC20Caller = await artifacts.require('TestERC20Caller').new();
+            return helpers.assertInvalidOpcode(async () => {
+                await TestERC20Caller.callTestTransfer.sendTransaction(HST.address);
+            });
+        });
+
         // NOTE: testing uint256 wrapping is impossible in this standard token since you can't supply > 2^256 -1
         // todo: transfer max amounts
-
 
         it('transfer: msg.sender should transfer 100 to SampleRecipient and then NOTIFY SampleRecipient. It should succeed.', async () => {
             let SRS = await SampleRecipientSuccess.new({from: accounts[0]});
@@ -242,6 +254,27 @@ module.exports = function(setup) {
             assert.strictEqual(balance02.toNumber(), 9980);
         });
 
+        it('allowance: should start with zero', async function() {
+            let preApproved = await HST.allowance.call(accounts[0], accounts[1]);
+            assert.equal(preApproved, 0);
+        });
+
+        it('allowance: should increase by 50 then decrease by 10', async function() {
+            await HST.increaseApproval(accounts[1], 50);
+            let postIncrease = await HST.allowance.call(accounts[0], accounts[1]);
+            assert.equal(postIncrease, 50, 'Approval after increase should be 50');
+            await HST.decreaseApproval(accounts[1], 10);
+            let postDecrease = await HST.allowance.call(accounts[0], accounts[1]);
+            assert.equal(postDecrease, 40, 'Approval after decrease should be 40');
+        });
+
+        it('allowance: should be set to zero if decrease value is higher than existing', async function() {
+            await HST.increaseApproval(accounts[1], 50);
+            await HST.decreaseApproval(accounts[1], 70);
+            let postDecrease = await HST.allowance.call(accounts[0], accounts[1]);
+            assert.equal(postDecrease, 0, 'Approval after decrease should be 0');
+        });
+
         it('events: should fire Transfer event properly', async () => {
             let eventFilter = helpers.utils.hasEvent(
                 await HST.transfer(accounts[1], '2666', {from: accounts[0]}),
@@ -257,7 +290,6 @@ module.exports = function(setup) {
             assert.strictEqual(_to, accounts[1]);
             assert.strictEqual(_value.toString(), '2666');
         });
-
 
         it('events: should fire Transfer event normally on a zero transfer', async () => {
             let eventFilter = helpers.utils.hasEvent(
@@ -290,9 +322,5 @@ module.exports = function(setup) {
             assert.strictEqual(_to, accounts[1]);
             assert.strictEqual(_value.toString(), '2666');
         })
-
     })
-
-
-
 };

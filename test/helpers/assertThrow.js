@@ -1,13 +1,12 @@
 function assertError(block, error, s, message) {
 
-    /*
     let code = error.message.search(s);
     if(code == -1) {
         console.log(block.toString());
         console.log(message);
         console.log(error);
     }
-    */
+
     assert.isAbove(error.message.search(s), -1, message)
 }
 

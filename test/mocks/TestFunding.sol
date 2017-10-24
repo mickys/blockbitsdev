@@ -42,4 +42,8 @@ contract TestFunding is Funding, TestApplicationAsset {
         record.state = _state;
     }
 
+    function setTestFundingInputDirect(address _addr) public {
+        DirectInput = FundingInputDirect(_addr);
+    }
+
 }

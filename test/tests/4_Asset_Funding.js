@@ -14,7 +14,16 @@ module.exports = function (setup) {
         let days = 3600 * 24;
         let now = parseInt(( Date.now() / 1000 ).toFixed());
 
+        // tests
+        let investorWallet1 = accounts[3];
+        let investorWallet2 = accounts[4];
+        let investorWallet3 = accounts[5];
+        let investorWallet4 = accounts[6];
+        let investorWallet5 = accounts[7];
+
         // settings
+        let platformWalletAddress = accounts[8];
+
         let pre_ico_duration = 7 * days;
         let pre_ico_start = now + 10 * days;
         let pre_ico_end = pre_ico_start + pre_ico_duration;
@@ -59,6 +68,31 @@ module.exports = function (setup) {
         it('deploys with no Funding Stages', async () => {
             assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum should be 0!');
         });
+
+        it('deploys with no multiSigOutputAddress', async () => {
+            assert.equal(await assetContract.multiSigOutputAddress.call(), 0, 'multiSigOutputAddress should be 0!');
+        });
+
+        it('deploys with no Funding Inputs', async () => {
+            assert.equal(await assetContract.DirectInput.call(), 0, 'DirectInput should be 0!');
+            assert.equal(await assetContract.MilestoneInput.call(), 0, 'MilestoneInput should be 0!');
+        });
+
+        context("addSettings()", async () => {
+            it('throws if called when already initialized', async () => {
+                await assetContract.setTestInitialized();
+                helpers.assertInvalidOpcode(async () => {
+                    await assetContract.addSettings(platformWalletAddress);
+                });
+            });
+
+            it('properly sets up the multiSigOutputAddress', async () => {
+                let tx = await assetContract.addSettings(platformWalletAddress);
+                assert.equal(await assetContract.multiSigOutputAddress.call(), platformWalletAddress, 'multiSigOutputAddress should be 0!');
+            });
+        });
+
+
 
         context("first funding stage", async () => {
 
@@ -107,6 +141,25 @@ module.exports = function (setup) {
                         pre_ico_settings.end_time,
                         101,   // << this
                         100,
+                        pre_ico_settings.methods,
+                        pre_ico_settings.minimum_entry,
+                        pre_ico_settings.start_parity,
+                        pre_ico_settings.use_parity_from_previous,
+                        pre_ico_settings.token_share_percentage
+                    );
+                });
+                assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
+            });
+
+            it('throws if hard cap is 0', async () => {
+                helpers.assertInvalidOpcode(async () => {
+                    await assetContract.addFundingStage(
+                        pre_ico_settings.name,
+                        pre_ico_settings.description,
+                        pre_ico_settings.start_time,
+                        pre_ico_settings.end_time,
+                        pre_ico_settings.amount_cap_soft,
+                        0,
                         pre_ico_settings.methods,
                         pre_ico_settings.minimum_entry,
                         pre_ico_settings.start_parity,
@@ -214,7 +267,8 @@ module.exports = function (setup) {
 
 
         context("funding stages added, asset initialized", async () => {
-            let tx;
+            let tx, FundingInputDirect, FundingInputMilestone;
+
             beforeEach(async () => {
                 // app = await contracts.ApplicationEntity.new();
 
@@ -256,10 +310,234 @@ module.exports = function (setup) {
                 assert.equal(await assetContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]');
                 assert.isTrue(await assetContract._initialized.call(), 'Asset not initialized');
 
+                let FundingInputDirectAddress = await assetContract.DirectInput.call();
+                let FundingInputMilestoneAddress = await assetContract.MilestoneInput.call();
+
+                let FundingInputDirectContract = await helpers.getContract('FundingInputDirect');
+                let FundingInputMilestoneContract = await helpers.getContract('FundingInputMilestone');
+
+                FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
+                FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
             });
 
+            context("receivePayment()", async () => {
+
+                it('throws if called directly in the Funding contract', async () => {
+                    let PaymentValue = 0.1 * ether;
+                    return helpers.assertInvalidOpcode(async () => {
+                        await assetContract.receivePayment(investorWallet1, 1, {from: investorWallet1, value: PaymentValue})
+                    });
+                });
+
+                it('throws if _payment_method is not allowed', async () => {
+                    let PaymentValue = 0.1 * ether;
+                    let FundingInputMock = await helpers.getContract('TestFundingInputMock').new();
+                    await assetContract.setTestFundingInputDirect(FundingInputMock.address.toString());
+                    await FundingInputMock.setTestFundingAssetAddress(assetContract.address.toString());
+                    return helpers.assertInvalidOpcode(async () => {
+                        await FundingInputMock.sendTransaction({value: PaymentValue, from: investorWallet5});
+                    });
+                });
+
+            });
+
+            it('has correct Funding Inputs after ApplicationEntity grabs asset ownership and initializes it', async () => {
+                assert.isAddress(await assetContract.DirectInput.call(), 'DirectInput should be a valid address');
+                assert.isAddress(await assetContract.MilestoneInput.call(), 'MilestoneInput should be a valid address');
+            });
+
+            context("Funding Input: All", async () => {
+
+                it('has correct FundingAssetAddress', async () => {
+                    let FundingAssetAddress = await FundingInputDirect.FundingAssetAddress.call();
+                    assert.isAddress(FundingAssetAddress, 'FundingAssetAddress should be a valid address');
+                    assert.equal(FundingAssetAddress, assetContract.address, 'FundingAssetAddress should be a '+assetContract.address+' address');
+                });
+
+                it('throws if msg.value is missing', async () => {
+                    return helpers.assertInvalidOpcode(async () => {
+                        await FundingInputDirect.sendTransaction({from: investorWallet1})
+                    });
+                });
+
+                it('throws if FundingAssetAddress is not set', async () => {
+                    let PaymentValue = 0.1 * ether;
+                    let FundingInputMock = await helpers.getContract('TestFundingInputMock').new();
+                    await FundingInputMock.setTestFundingAssetAddressToZero();
+                    // await assetContract.setTestFundingInputDirect(FundingInputMock.address.toString());
+                    return helpers.assertInvalidOpcode(async () => {
+                        await FundingInputMock.sendTransaction({value: PaymentValue, from: investorWallet1});
+                    });
+                });
+
+                it('throws if FundingAsset is not pointing to a Contract', async () => {
+                    let PaymentValue = 0.1 * ether;
+                    let FundingInput = await helpers.getContract('FundingInputDirect').new();
+                    return helpers.assertInvalidOpcode(async () => {
+                        await FundingInput.sendTransaction({value: PaymentValue, from: investorWallet1})
+                    });
+                });
+
+                context("Funding Input: Direct", async () => {
+                    it('has correct type id = 1', async () => {
+                        let typeId = await FundingInputDirect.typeId.call();
+                        assert.equal(typeId, 1, 'typeId should be 1');
+                    });
+
+                    it('accepts payments using fallback () method and stores in valut\'s direct pool', async () => {
+                        let PaymentValue = 1 * ether;
+                        let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
+                        let paymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
+
+                        let eventFilter = helpers.utils.hasEvent(
+                            paymentTx,
+                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                        );
+
+                        let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
+                        let _method = helpers.web3util.toDecimal( eventFilter[0].topics[2] );
+                        let _value = helpers.web3util.fromWei( eventFilter[0].topics[3], "ether" );
+
+                        assert.equal(_method, 1, '_payment_method should be 1');
+                        assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
+
+                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        assert.equal(VaultBalance, PaymentValueInEther, 'Vault Contract balance should be '+PaymentValueInEther);
+
+                        let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
+
+                        let amountDirect = await vaultContract.amount_direct.call();
+                        let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
+                        assert.equal(amountDirectInEther, PaymentValueInEther, 'amount_direct is invalid.');
+
+                        await showGasUsage(helpers, paymentTx, "     ↓ Direct Payment:");
+                    });
+
+                    it('accepts second payment from same investor', async () => {
+                        let PaymentValue = 1 * ether;
+                        let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
+
+                        let paymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
+
+                        let eventFilter = helpers.utils.hasEvent(
+                            paymentTx,
+                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                        );
+                        let secondPaymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
+
+                        eventFilter = helpers.utils.hasEvent(
+                            secondPaymentTx,
+                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                        );
+
+                        let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
+                        let _method = helpers.web3util.toDecimal( eventFilter[0].topics[2] );
+                        let _value = helpers.web3util.fromWei( eventFilter[0].topics[3], "ether" );
+
+                        let TotalPaymentValues = PaymentValueInEther * 2;
+
+                        assert.equal(_method, 1, '_payment_method should be 1');
+                        assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
+
+                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        assert.equal(VaultBalance, TotalPaymentValues, 'Vault Contract balance should be '+TotalPaymentValues);
+
+                        let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
+
+                        let amountDirect = await vaultContract.amount_direct.call();
+                        let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
+                        assert.equal(amountDirectInEther, TotalPaymentValues, 'amount_direct is invalid.');
 
 
+                        await showGasUsage(helpers, paymentTx,       "     ↓ First Direct Payment:");
+                        await showGasUsage(helpers, secondPaymentTx, "     ↓ Second Direct Payment:");
+
+                    });
+
+                    it('accepts second payment from same investor using both payment methods ( Direct & Milestone )', async () => {
+                        let DirectPaymentValue = 1 * ether;
+                        let DirectPaymentValueInEther = helpers.web3util.fromWei(DirectPaymentValue, 'ether');
+
+                        let MilestonePaymentValue = 2 * ether;
+                        let MilestonePaymentValueInEther = helpers.web3util.fromWei(MilestonePaymentValue, 'ether');
+
+                        // direct payment
+                        let eventFilter = helpers.utils.hasEvent(
+                            await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1}),
+                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                        );
+
+                        // milestone payment
+                        eventFilter = helpers.utils.hasEvent(
+                            await FundingInputMilestone.sendTransaction({value: MilestonePaymentValue, from: investorWallet1}),
+                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                        );
+
+                        let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
+                        let _method = helpers.web3util.toDecimal( eventFilter[0].topics[2] );
+                        let _value = helpers.web3util.fromWei( eventFilter[0].topics[3], "ether" );
+
+                        let TotalPaymentValues = parseInt(DirectPaymentValueInEther) + parseInt(MilestonePaymentValueInEther);
+
+                        assert.equal(_method, 2, '_payment_method should be 2');
+                        assert.equal(_value, MilestonePaymentValueInEther, '_value should be '+MilestonePaymentValueInEther);
+
+                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        assert.equal(VaultBalance, TotalPaymentValues, 'Vault Contract balance should be '+TotalPaymentValues);
+
+                        let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
+
+                        let amountDirect = await vaultContract.amount_direct.call();
+                        let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
+                        assert.equal(amountDirectInEther, DirectPaymentValueInEther, 'amount_direct is invalid.');
+
+                        let amountMilestone = await vaultContract.amount_milestone.call();
+                        let amountMilestoneInEther = helpers.web3util.fromWei(amountMilestone, "ether");
+                        assert.equal(amountMilestoneInEther, MilestonePaymentValueInEther, 'amount_milestone is invalid.');
+                    });
+
+
+                });
+
+                context("Funding Input: Milestone", async () => {
+                    it('has correct type id = 2', async () => {
+                        let typeId = await FundingInputMilestone.typeId.call();
+                        assert.equal(typeId, 2, 'typeId should be 2');
+                    });
+
+                    it('accepts payments using fallback () method and stores in valut\'s milestone pool', async () => {
+                        let PaymentValue = 1 * ether;
+                        let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
+                        let paymentTx = await FundingInputMilestone.sendTransaction({value: PaymentValue, from: investorWallet1});
+                        let eventFilter = helpers.utils.hasEvent(
+                            paymentTx,
+                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                        );
+
+                        let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
+                        let _method = helpers.web3util.toDecimal( eventFilter[0].topics[2] );
+                        let _value = helpers.web3util.fromWei( eventFilter[0].topics[3], "ether" );
+
+                        assert.equal(_method, 2, '_payment_method should be 2');
+                        assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
+
+                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        assert.equal(VaultBalance, PaymentValueInEther, 'Vault Contract balance should be '+PaymentValueInEther);
+
+                        let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
+
+                        let amountMilestone = await vaultContract.amount_milestone.call();
+                        let amountMilestoneInEther = helpers.web3util.fromWei(amountMilestone, "ether");
+                        assert.equal(amountMilestoneInEther, PaymentValueInEther, 'amount_milestone is invalid.');
+
+                        await showGasUsage(helpers, paymentTx, "     ↓ Milestone Payment:");
+
+                        // showContractDebug(helpers, assetContract)
+
+                    });
+                });
+
+            });
 
 
 
@@ -630,6 +908,12 @@ module.exports = function (setup) {
     });
 };
 
+
+async function getContractBalance(helpers, address) {
+    return await helpers.utils.getBalance(helpers.artifacts, address);
+}
+
+
 let FundingStageStates = [
     { key: 0,  name: "NONE"},
     { key: 1,  name: "NEW"}, 				// not started
@@ -678,8 +962,8 @@ let FundingMethodIds = [
 
 let logPre = "      ";
 
-function showGasUsage(helpers, tx) {
-    helpers.utils.toLog("\n" + logPre + " GAS USAGE: " +
+function showGasUsage(helpers, tx, name) {
+    helpers.utils.toLog(logPre + name + " GAS USAGE: " +
         helpers.utils.colors.purple +
         tx.receipt.cumulativeGasUsed
     );
@@ -1006,3 +1290,85 @@ function displayFundingStageStruct(helpers, struct) {
     helpers.utils.toLog("");
 }
 
+
+
+
+
+async function showContractDebug(helpers, assetContract) {
+
+    helpers.utils.toLog("\n" + logPre + " Debug: ");
+    helpers.utils.toLog(
+        logPre + "-----------------------------------------------------------"
+    );
+
+    // purchaseRecords
+    let RecordsNum = await assetContract.purchaseRecordsNum.call();
+
+    helpers.utils.toLog(
+        logPre + "Puchase Record Count: "+
+        helpers.utils.colors.orange+
+        RecordsNum
+    );
+
+    if (RecordsNum > 0) {
+
+        for (let i = 1; i <= RecordsNum; i++) {
+            let Record = await assetContract.purchaseRecords.call(i);
+            helpers.utils.toLog(logPre + "Record ID:      " + i);         // uint16
+            helpers.utils.toLog(logPre + "  unix_time:      " + helpers.utils.toDateFromHex(Record[0]));        // uint256
+            helpers.utils.toLog(logPre + "  payment_method: " + helpers.web3util.toDecimal(Record[1]));         // uint8
+            helpers.utils.toLog(logPre + "  amount:         " + helpers.web3util.fromWei(Record[2], "ether"));  // uint256
+            helpers.utils.toLog(logPre + "  index:          " + helpers.web3util.toDecimal(Record[3]));         // uint16
+            helpers.utils.toLog("");
+        }
+    }
+    helpers.utils.toLog(
+        logPre + "-----------------------------------------------------------"
+    );
+
+    let amountDirect = await assetContract.amount_direct.call();
+    let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
+    helpers.utils.toLog(
+        logPre + "Direct balance:      "+amountDirectInEther
+    );
+
+    let amountMilestone = await assetContract.amount_milestone.call();
+    let amountMilestoneInEther = helpers.web3util.fromWei(amountMilestone, "ether");
+    helpers.utils.toLog(
+        logPre + "Milestone balance:   "+amountMilestoneInEther
+    );
+
+    await showContractBalance(helpers, assetContract);
+
+    helpers.utils.toLog(
+        logPre + "-----------------------------------------------------------"
+    );
+    helpers.utils.toLog("");
+}
+
+
+
+async function showAccountBalances(helpers, accounts) {
+
+    helpers.utils.toLog(logPre + " TestRPC Balances: ");
+    for (let i = 0; i < 10; i++) {
+        let balance = await helpers.utils.getBalance(helpers.artifacts, accounts[i]);
+        helpers.utils.toLog(
+            logPre +
+            "["+i+"] "+accounts[i]+ ": "+ helpers.web3util.fromWei(balance, "ether")
+        );
+    }
+
+}
+
+async function showContractBalance(helpers, contract) {
+
+    helpers.utils.toLog("\n" + logPre + " Contract Balances: ");
+    let balance = await helpers.utils.getBalance(helpers.artifacts, contract.address.toString());
+    helpers.utils.toLog(
+        logPre +
+        contract.address.toString()+ ": "+ helpers.web3util.fromWei(balance, "ether")
+    );
+
+
+}

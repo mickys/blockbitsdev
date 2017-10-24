@@ -21,6 +21,8 @@ module.exports = {
             network_id: 15,
             provider: developmentProvider,
             gas: 4.6e6, // 9e6,
+            // gasPrice: 1000000000 // 1 gwei
+            gasPrice: 100000000 // 0.1 gwei
         },
         rpc: {
             network_id: 15,

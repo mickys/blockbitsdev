@@ -14,8 +14,17 @@
 pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
+import "./../Entity/FundingVault.sol";
+
+import "./../Inputs/FundingInputDirect.sol";
+import "./../Inputs/FundingInputMilestone.sol";
+
 
 contract Funding is ApplicationAsset {
+
+    address public multiSigOutputAddress;
+    FundingInputDirect public DirectInput;
+    FundingInputMilestone public MilestoneInput;
 
     mapping (bytes32 => uint8) public EntityStates;
     mapping (bytes32 => uint8) public RecordStates;
@@ -29,7 +38,6 @@ contract Funding is ApplicationAsset {
         MILESTONE_ONLY, 		    //
         DIRECT_AND_MILESTONE		//
     }
-
 
     event FundingStageCreated( uint8 indexed index, bytes32 indexed name );
 
@@ -113,15 +121,8 @@ contract Funding is ApplicationAsset {
         return EntityStates[name];
     }
 
-    function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
-        if(
-            _payment_method == uint8(FundingMethodIds.DIRECT_ONLY) ||
-            _payment_method == uint8(FundingMethodIds.MILESTONE_ONLY)
-        ){
-            return true;
-        } else {
-            return false;
-        }
+    function addSettings(address _outputAddress) public requireNotInitialised {
+        multiSigOutputAddress = _outputAddress;
     }
 
     function addFundingStage(
@@ -239,7 +240,85 @@ contract Funding is ApplicationAsset {
         Funding_Setting_cashback_time_end = Funding_Setting_cashback_time_start + Funding_Setting_cashback_duration;
     }
 
+    function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
+        if(
+        _payment_method == uint8(FundingMethodIds.DIRECT_ONLY) ||
+        _payment_method == uint8(FundingMethodIds.MILESTONE_ONLY)
+        ){
+            return true;
+        } else {
+            return false;
+        }
+    }
 
+    function runBeforeInitialization() internal requireNotInitialised returns(bool) {
+        DirectInput = new FundingInputDirect();
+        MilestoneInput = new FundingInputMilestone();
+        EventRunBeforeInit(assetName);
+        return true;
+    }
+
+    event EventVaultReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
+
+    function receivePayment(address _sender, uint8 _payment_method)
+        payable
+        public
+        requireInitialised
+        onlyInputPaymentMethod
+        returns(bool)
+    {
+        if(allowedPaymentMethod(_payment_method)) {
+            FundingVault vault;
+
+            // no vault present
+            if(!hasVault(_sender)) {
+                // create and initialize a new one
+                vault = new FundingVault();
+
+                if(vault.initialize(_sender, multiSigOutputAddress, address(this), getMilestoneAssetAddressFromApp())) {
+                    // store new vault address.
+                    vaultList[_sender] = vault;
+                } else {
+                    revert();
+                }
+            } else {
+                // use existing vault
+                vault = FundingVault(vaultList[_sender]);
+            }
+
+            // save in local mapping, emit event, send value to vault, return success or revert.
+            EventVaultReceivedPayment(vault, _payment_method, msg.value);
+
+            if( vault.addPayment.value(msg.value)( _payment_method ) ) {
+                return true;
+            } else {
+                revert();
+            }
+        } else {
+            revert();
+        }
+    }
+
+    // TODO: change to milestone asset
+    function getMilestoneAssetAddressFromApp() returns(address) {
+        //
+        return address(this);
+    }
+
+    modifier onlyInputPaymentMethod() {
+        require(msg.sender != 0x0 && ( msg.sender == address(DirectInput) || msg.sender == address(MilestoneInput) ));
+        _;
+    }
+
+    mapping  (address => address) public vaultList;
+
+    function hasVault(address _sender) internal view returns(bool) {
+        if(vaultList[_sender] != address(0x0)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     /*
         Hook into Project State

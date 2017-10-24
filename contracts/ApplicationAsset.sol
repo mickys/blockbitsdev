@@ -13,6 +13,7 @@ pragma solidity ^0.4.17;
 contract ApplicationAsset {
 
     event EventAppAssetOwnerSet(bytes32 indexed _name, address indexed _owner);
+    event EventRunBeforeInit(bytes32 indexed _name);
 
     bytes32 assetName;
 
@@ -34,8 +35,17 @@ contract ApplicationAsset {
         require(owner == address(0x0) && _newOwner != address(0x0));
         owner = _newOwner;
         assetName = _name;
-        _initialized = true;
-        EventAppAssetOwnerSet(_name, owner);
+        if(runBeforeInitialization()) {
+            _initialized = true;
+            EventAppAssetOwnerSet(_name, owner);
+            return true;
+        } else {
+            revert();
+        }
+    }
+
+    function runBeforeInitialization() internal requireNotInitialised returns(bool) {
+        EventRunBeforeInit(assetName);
         return true;
     }
 

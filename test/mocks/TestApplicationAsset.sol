@@ -12,6 +12,10 @@ import "../../contracts/ApplicationAsset.sol";
 
 contract TestApplicationAsset is ApplicationAsset {
 
+    function setTestInitialized() external {
+        _initialized = true;
+    }
+
     function setTestOwner(address _address) external {
         owner = _address;
     }

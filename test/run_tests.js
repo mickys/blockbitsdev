@@ -1,4 +1,4 @@
-const web3                      = require('web3');
+// const web3                      = require('web3');
 const web3util                  = require('web3-utils');
 
 const utils                     = require('./helpers/utils');
@@ -54,18 +54,30 @@ const setup = {
     ]
 };
 
-let tests = [];
+web3.eth.gasPrice(function(error, result){
+    console.log("using eth_gasPrice:", result);
+});
 
+
+
+
+let tests = [];
 tests.push("external/SafeMath");
 tests.push("ERC20Token");
 tests.push("1_GatewayInterface");
 tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
-tests.push("4_Asset_Funding");
-tests.push("4_FundingVault");
+
+
+tests = [];
+tests.push("ERC20Token");
+// tests.push("4_FundingVault");
+// tests.push("4_Asset_Funding");
+// tests.push("ERC20Token");
 
 if(! process.env.SOLIDITY_COVERAGE ) {
+
 
 }
 
@@ -75,10 +87,10 @@ utils.toLog('\n  ---------------------------------------------------------------
 utils.toLog("  Running test collections ["+utils.colors.orange+tests.length+utils.colors.none+"]." );
 utils.toLog(' ----------------------------------------------------------------');
 
-tests.map( (name) => {
+tests.map( async (name) => {
     if(name.length > 0) {
         let filename = './tests/' + name + '.js';
         let runTest = require(filename);
-        runTest(setup);
+        await runTest(setup);
     }
 });

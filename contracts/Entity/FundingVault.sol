@@ -56,6 +56,7 @@ contract FundingVault {
 
     mapping(uint16 => bool) public processedRecords;
 
+    event VaultInitialized(address indexed _owner);
 
     function initialize(
         address _owner,
@@ -65,7 +66,10 @@ contract FundingVault {
     )
         public
         requireNotInitialised
+        returns(bool)
     {
+        VaultInitialized(_owner);
+
         outputAddress = _output;
         vaultOwner = _owner;
 
@@ -78,6 +82,7 @@ contract FundingVault {
 
         // init
         _initialized = true;
+        return true;
     }
 
     function addPayment(
