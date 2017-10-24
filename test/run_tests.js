@@ -54,13 +54,6 @@ const setup = {
     ]
 };
 
-web3.eth.gasPrice(function(error, result){
-    console.log("using eth_gasPrice:", result);
-});
-
-
-
-
 let tests = [];
 tests.push("external/SafeMath");
 tests.push("ERC20Token");
@@ -69,12 +62,8 @@ tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
 
-
-tests = [];
-tests.push("ERC20Token");
-// tests.push("4_FundingVault");
-// tests.push("4_Asset_Funding");
-// tests.push("ERC20Token");
+tests.push("4_FundingVault");
+tests.push("4_Asset_Funding");
 
 if(! process.env.SOLIDITY_COVERAGE ) {
 
