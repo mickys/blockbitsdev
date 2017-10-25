@@ -42,7 +42,7 @@ contract FundingInputGeneral {
     }
 
     // this call adds 704 gas, good enough to keep
-    function isContract(address addr) internal returns (bool) {
+    function isContract(address addr) internal view returns (bool) {
         uint size;
         assembly { size := extcodesize(addr) }
         return size > 0;

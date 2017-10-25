@@ -68,6 +68,10 @@ contract Funding is ApplicationAsset {
     uint256 public AmountRaised = 0;
     uint256 public AmountCapSoft = 0;
     uint256 public AmountCapHard = 0;
+
+    uint256 public GlobalAmountCapSoft = 0;
+    uint256 public GlobalAmountCapHard = 0;
+
     uint8 public TokenSellPercentage = 0;
 
     uint256 public Funding_Setting_funding_time_start = 0;
@@ -123,6 +127,20 @@ contract Funding is ApplicationAsset {
 
     function addSettings(address _outputAddress) public requireNotInitialised {
         multiSigOutputAddress = _outputAddress;
+    }
+
+    /*
+        When using a funding model that can sell tokens at the market decided value, then a global hard cap is required.
+        If global hard cap is defined:
+            - funding stage caps are ignored.
+            - token distribution is done based on calculated parity in each funding stage
+            - tokens left unsold in funding stages get redistributed to all participants
+    */
+
+
+    function addGlobalHardCap(uint256 hard_cap ) public requireNotInitialised {
+        require(hard_cap > 0);
+        GlobalAmountCapHard = hard_cap;
     }
 
     function addFundingStage(
@@ -300,7 +318,7 @@ contract Funding is ApplicationAsset {
     }
 
     // TODO: change to milestone asset
-    function getMilestoneAssetAddressFromApp() returns(address) {
+    function getMilestoneAssetAddressFromApp() public view returns(address) {
         //
         return address(this);
     }
@@ -367,25 +385,6 @@ contract Funding is ApplicationAsset {
 
                 return true;
             }
-        }
-        return false;
-    }
-
-
-    function getHardCapsSoFar() internal view returns (uint256) {
-        uint256 hard_cap = 0;
-
-        for(int i = 1; i <= currentFundingStage; i++ ) {
-            FundingStage memory record = Collection[currentFundingStage];
-            hard_cap+=record.amount_cap_hard;
-        }
-        return hard_cap;
-    }
-
-    function checkStateAcceptsPayment() public view returns (bool) {
-
-        if( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-            return true;
         }
         return false;
     }

@@ -61,9 +61,11 @@ tests.push("1_GatewayInterface");
 tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
-
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
+tests = [];
+
+tests.push("Algorithms/TokenSCADA1Market");
 
 if(! process.env.SOLIDITY_COVERAGE ) {
 

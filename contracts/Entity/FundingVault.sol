@@ -4,8 +4,16 @@
  * @package     BlockBitsIO
  * @author      Micky Socaci <micky@nowlive.ro>
 
-    each purchase creates a separate funding vault.
+    each purchase creates a separate funding vault contract
 */
+
+// add Token / Ether Black Hole prevention
+
+// add Milestones
+// add Emergency Fund
+
+// think about team's locked tokens
+
 
 pragma solidity ^0.4.17;
 
@@ -85,6 +93,11 @@ contract FundingVault {
         return true;
     }
 
+    /*
+        The funding contract decides if a vault should receive payments or not, since it's the one that creates them,
+        no point in creating one if you can't accept payments.
+
+    */
     function addPayment(
         uint8 _payment_method
     )
@@ -110,7 +123,8 @@ contract FundingVault {
             if(_payment_method == 1) {
                 amount_direct+= purchase.amount;
             }
-            else if(_payment_method == 2) {
+
+            if(_payment_method == 2) {
                 amount_milestone+= purchase.amount;
             }
 
@@ -120,6 +134,7 @@ contract FundingVault {
             revert();
         }
     }
+
 
     function ReleaseFundsToOutputAddress()
         public
@@ -147,6 +162,7 @@ contract FundingVault {
         public
         view // remove this shit
         requireInitialised
+        isOwner
     {
         if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("NEW") ) {
 
@@ -156,7 +172,7 @@ contract FundingVault {
         // send all ether to wallet owner
     }
 
-
+    /*
     function getStats() public view returns (uint256, uint256) {
         uint256 amoutByDirect = 0;
         uint256 amoutByMilestone = 0;
@@ -173,7 +189,7 @@ contract FundingVault {
         }
         return (amoutByDirect, amoutByMilestone);
     }
-
+    */
 
     modifier isOwner() {
         require(msg.sender == vaultOwner);

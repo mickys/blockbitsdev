@@ -29,6 +29,12 @@ module.exports = function(setup) {
             assert.isFalse(await assetContract._initialized.call(), false, '_initialized should be false');
         });
 
+        it('addPayment throws if not initialized', async () => {
+            return helpers.assertInvalidOpcode(async () => {
+                await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: 1, from: deploymentAddress})
+            });
+        });
+
         context('initialize()', async () => {
             beforeEach(async () => {
 
@@ -128,7 +134,6 @@ module.exports = function(setup) {
                 assert.equal(amountMilestoneInEther, SentAmountInEther, 'amount_milestone is invalid.');
             });
 
-
             it('throws if msg.value is missing', async () => {
                 return helpers.assertInvalidOpcode(async () => {
                     await assetContract.addPayment(FUNDING_DIRECT_METHOD);
@@ -142,7 +147,6 @@ module.exports = function(setup) {
             });
 
             it('throws if called by other address than manager (funding contract)', async () => {
-                await showAccountBalances(helpers, accounts);
                 let sendAmount = 1 * helpers.solidity.ether;
                 return helpers.assertInvalidOpcode(async () => {
                     await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: sendAmount, from: accounts[1]})
