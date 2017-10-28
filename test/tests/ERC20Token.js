@@ -16,7 +16,8 @@ module.exports = function(setup) {
             amount:10000,
             name:"BlockBitsIO Token",
             decimal_units:18,
-            symbol:"BBX"
+            symbol:"BBX",
+            version: "v1"
         };
 
         beforeEach(async () => {
@@ -25,8 +26,18 @@ module.exports = function(setup) {
                 TokenSettings.name,
                 TokenSettings.decimal_units,
                 TokenSettings.symbol,
+                TokenSettings.version,
                 {from: accounts[0]}
             );
+        });
+
+        it('creation: in contract settings should match constructor parameters', async () => {
+            let decimals = await HST.decimals.call();
+            assert.equal(TokenSettings.name, await HST.name.call(), 'name invalid');
+            assert.equal(TokenSettings.symbol, await HST.symbol.call(), 'symbol invalid');
+            assert.equal(TokenSettings.amount, await HST.totalSupply.call(), 'totalSupply invalid');
+            assert.equal(TokenSettings.decimal_units, decimals.toString(), 'decimals invalid');
+            assert.equal(TokenSettings.version, await HST.version.call(), 'version invalid');
         });
 
         it('creation: should create an initial balance of 10000 for the creator', async () => {
@@ -37,10 +48,8 @@ module.exports = function(setup) {
         it('creation: test correct setting of vanity information', async () => {
             const name = await HST.name.call();
             assert.strictEqual(name, TokenSettings.name);
-
             const decimals = await HST.decimals.call();
             assert.strictEqual(decimals.toNumber(), TokenSettings.decimal_units);
-
             const symbol = await HST.symbol.call();
             assert.strictEqual(symbol, TokenSettings.symbol)
         });
@@ -52,6 +61,7 @@ module.exports = function(setup) {
                 TokenSettings.name,
                 TokenSettings.decimal_units,
                 TokenSettings.symbol,
+                TokenSettings.version,
                 {from: accounts[0]}
             );
             const totalSupply = await HST2.totalSupply();

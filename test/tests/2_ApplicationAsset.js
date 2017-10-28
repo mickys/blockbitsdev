@@ -35,6 +35,101 @@ module.exports = function(setup) {
             });
         });
 
+        context("applyAndLockSettings()", async () => {
+            let assetContract, assetName = {};
+
+            beforeEach(async () => {
+                app = await contracts.ApplicationEntity.new();
+                assetName = assetContractNames[0];
+                assetContract = await helpers.getContract("Test" + assetName).new();
+            });
+
+            it('works if called by deployer account and asset is not locked already', async () => {
+                await assetContract.setInitialOwnerAndName(assetName);
+                let eventFilter = helpers.utils.hasEvent(
+                    await assetContract.applyAndLockSettings(),
+                    'EventRunBeforeApplyingSettings(bytes32)'
+                );
+                assert.equal(eventFilter.length, 1, 'EventRunBeforeApplyingSettings event not received.');
+                assert.isTrue(await assetContract._settingsApplied.call(), '_settingsApplied not true.');
+            });
+
+            it('throws if called before initialization', async () => {
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.applyAndLockSettings()
+                });
+            });
+
+            it('throws if called when settings are already applied', async () => {
+                await assetContract.setInitialOwnerAndName(assetName, {from:accounts[0]});
+                await assetContract.applyAndLockSettings();
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.applyAndLockSettings()
+                });
+            });
+
+            it('throws if not called by deployer\'s account', async () => {
+                await assetContract.setInitialOwnerAndName(assetName);
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.applyAndLockSettings({from:accounts[1]})
+                });
+            });
+
+        });
+
+        context("getApplicationAssetAddressByName()", async () => {
+            let assetContract, assetName = {};
+
+            beforeEach(async () => {
+                assetName = assetContractNames[0];
+
+                app = await contracts.ApplicationEntity.new();
+                assetContract = await helpers.getContract("Test"+assetName).new();
+                await app["addAsset"+assetName](assetContract.address);
+
+                // set gw address so we can initialize
+                await app.setTestGatewayInterfaceEntity(accounts[0]);
+            });
+
+            it('works if asset is initialized and owned by an application', async () => {
+                // grab ownership of the assets so we can do tests
+                await app.initializeAssetsToThisApplication();
+                let address = await assetContract.getApplicationAssetAddressByName.call( assetName );
+                assert.equal(address, assetContract.address, 'Asset address mismatch!');
+            });
+
+            it('works if asset has settings and they are applied', async () => {
+                // grab ownership of the assets so we can do tests
+                await app.initializeAssetsToThisApplication();
+
+                let eventFilter = helpers.utils.hasEvent(
+                    await assetContract.applyAndLockSettings(),
+                    'EventRunBeforeApplyingSettings(bytes32)'
+                );
+                assert.equal(eventFilter.length, 1, 'EventRunBeforeApplyingSettings event not received.');
+                assert.isTrue(await assetContract._settingsApplied.call(), '_settingsApplied not true.');
+
+                let address = await assetContract.getApplicationAssetAddressByName.call( assetName );
+                assert.equal(address, assetContract.address, 'Asset address mismatch!');
+            });
+
+            it('throws if asset is not initialized', async () => {
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.getApplicationAssetAddressByName.call('Milestones');
+                });
+
+            });
+
+            it('throws if asset name does not exist in the app\'s mapping', async () => {
+                // grab ownership of the assets so we can do tests
+                await app.initializeAssetsToThisApplication();
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.getApplicationAssetAddressByName.call('SomeRandomAssetName');
+                });
+            });
+
+        });
+
         context("transferToNewOwner()", async () => {
             let assetContract, assetName = {};
 
@@ -42,6 +137,17 @@ module.exports = function(setup) {
                 app = await contracts.ApplicationEntity.new();
                 assetName = assetContractNames[0];
                 assetContract = await helpers.getContract("Test" + assetName).new();
+            });
+
+            it('works if current caller is owner and requested address is not 0x0', async () => {
+                let app2 = await contracts.ApplicationEntity.new();
+                await assetContract.setInitialOwnerAndName(assetName);
+
+                let eventFilter = helpers.utils.hasEvent(
+                    await assetContract.transferToNewOwner(app2.address),
+                    'EventAppAssetOwnerSet(bytes32,address)'
+                );
+                assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.')
             });
 
             it('throws if called when internal owner address is invalid', async () => {
@@ -55,17 +161,6 @@ module.exports = function(setup) {
                 return helpers.assertInvalidOpcode(async () => {
                     await assetContract.transferToNewOwner(app.address, {from:accounts[1]})
                 });
-            });
-
-            it('works if current caller is owner and requested address is not 0x0', async () => {
-                let app2 = await contracts.ApplicationEntity.new();
-                await assetContract.setInitialOwnerAndName(assetName);
-
-                let eventFilter = helpers.utils.hasEvent(
-                    await assetContract.transferToNewOwner(app2.address),
-                    'EventAppAssetOwnerSet(bytes32,address)'
-                );
-                assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.')
             });
         });
     });

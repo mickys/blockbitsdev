@@ -12,15 +12,12 @@ pragma solidity ^0.4.17;
 
 import "./GatewayInterface.sol";
 import "./Entity/Proposals.sol";
-
 import "./Entity/Funding.sol";
 import "./Entity/Meetings.sol";
 import "./Entity/Milestones.sol";
 import "./Entity/GeneralVault.sol";
 import "./Entity/TokenManager.sol";
 import "./Entity/ListingContract.sol";
-
-
 
 contract ApplicationEntity {
 

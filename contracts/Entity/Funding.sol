@@ -15,9 +15,11 @@ pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
 import "./../Entity/FundingVault.sol";
+import "./../Entity/TokenManager.sol";
 
 import "./../Inputs/FundingInputDirect.sol";
 import "./../Inputs/FundingInputMilestone.sol";
+
 
 
 contract Funding is ApplicationAsset {
@@ -38,6 +40,8 @@ contract Funding is ApplicationAsset {
         MILESTONE_ONLY, 		    //
         DIRECT_AND_MILESTONE		//
     }
+
+    TokenManager public TokenManagerEntity ;
 
     event FundingStageCreated( uint8 indexed index, bytes32 indexed name );
 
@@ -98,6 +102,17 @@ contract Funding is ApplicationAsset {
         CurrentEntityState = getEntityState("NEW");
     }
 
+    function runBeforeInitialization() internal requireNotInitialised {
+        DirectInput = new FundingInputDirect();
+        MilestoneInput = new FundingInputMilestone();
+        EventRunBeforeInit(assetName);
+    }
+
+    function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied {
+        // TokenManagerEntity = TokenManager( getApplicationAssetAddressByName('TokenManager') );
+        EventRunBeforeApplyingSettings(assetName);
+    }
+
     function setApplicationStates() internal {
 
         // Contract States
@@ -125,7 +140,7 @@ contract Funding is ApplicationAsset {
         return EntityStates[name];
     }
 
-    function addSettings(address _outputAddress) public requireNotInitialised {
+    function addSettings(address _outputAddress) public requireInitialised requireSettingsNotApplied {
         multiSigOutputAddress = _outputAddress;
     }
 
@@ -157,7 +172,8 @@ contract Funding is ApplicationAsset {
         uint8   _token_share_percentage
     )
         public
-        requireNotInitialised
+        // requireInitialised
+        // requireSettingsNotApplied
     {
 
         // make sure end time is later than start time
@@ -165,15 +181,28 @@ contract Funding is ApplicationAsset {
             revert();
         }
 
-        // make sure hard cap exists!
-        if(_amount_cap_hard == 0) {
+        /*
+        // if TokenSCADA requires hard cap, then we require it, otherwise we reject it if provided
+        if(TokenManagerEntity.getTokenSCADARequiresHardCap())
+        {
+            // make sure hard cap exists!
+            if(_amount_cap_hard == 0) {
+                revert();
+            }
+        } else {
+            // make sure hard cap is zero!
+            if(_amount_cap_hard != 0) {
+                revert();
+            }
+        }
+
+        */
+
+        // make sure soft cap is not higher than hard cap
+        if(_amount_cap_soft > _amount_cap_hard) {
             revert();
         }
 
-        // make sure soft cap is not higher than hard cap
-        if(_amount_cap_soft >= _amount_cap_hard) {
-            revert();
-        }
 
         // make sure we're not selling more than 100% of token share... as that's not possible
         if(_token_share_percentage > 100) {
@@ -223,7 +252,7 @@ contract Funding is ApplicationAsset {
         adjustFundingSettingsBasedOnNewFundingStage();
     }
 
-    function adjustFundingSettingsBasedOnNewFundingStage() internal requireNotInitialised {
+    function adjustFundingSettingsBasedOnNewFundingStage() internal {
 
         uint256 local_AmountCapSoft;
         uint256 local_AmountCapHard;
@@ -269,11 +298,19 @@ contract Funding is ApplicationAsset {
         }
     }
 
-    function runBeforeInitialization() internal requireNotInitialised returns(bool) {
-        DirectInput = new FundingInputDirect();
-        MilestoneInput = new FundingInputMilestone();
-        EventRunBeforeInit(assetName);
-        return true;
+
+    function getFundingStageVariablesRequiredBySCADA(uint8 _id)
+        public
+        view
+        returns (
+            uint8,   // token_share_percentage
+            uint256  // amount_raised
+        )
+    {
+        return (
+        Collection[_id].token_share_percentage,
+        Collection[_id].amount_raised
+        );
     }
 
     event EventVaultReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );

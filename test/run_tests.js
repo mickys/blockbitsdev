@@ -55,19 +55,25 @@ const setup = {
 };
 
 let tests = [];
-tests.push("external/SafeMath");
 tests.push("ERC20Token");
+tests.push("external/SafeMath");
 tests.push("1_GatewayInterface");
 tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
+tests.push("4_Asset_TokenManager");
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
-tests = [];
+// tests = [];
 
-tests.push("Algorithms/TokenSCADA1Market");
+// tests.push("ERC20Token");
+// tests.push("2_ApplicationAsset");
+// tests.push("Algorithms/TokenSCADA1Market");
+
 
 if(! process.env.SOLIDITY_COVERAGE ) {
+
+
 
 
 }

@@ -28,13 +28,24 @@ module.exports = function (setup) {
         let pre_ico_start = now + 10 * days;
         let pre_ico_end = pre_ico_start + pre_ico_duration;
 
+        // the SCADA - Market argo works with no soft / hard caps per funding period.
+        // assign algorithm to the funding asset before adding funding phases, in order to be able to do proper checks
+
+        let token_settings = {
+            supply: 5 * ( 10 ** 6 ) * 10 ** 18,
+            decimals: 18,
+            name: "Block Bits IO Tokens",
+            symbol: "BBX",
+            version: "v1"
+        };
+
         let pre_ico_settings = {
             name: "PRE ICO",                        //  bytes32 _name,
             description: "PRE ICO Funding Phase",   //  bytes32 _description,
             start_time: pre_ico_start,              //  uint256 _time_start,
             end_time: pre_ico_end,                  //  uint256 _time_end,
-            amount_cap_soft: 10 * ether,            //  uint256 _amount_cap_soft,
-            amount_cap_hard: 30 * ether,            //  uint256 _amount_cap_hard,
+            amount_cap_soft: 0,                     //  uint256 _amount_cap_soft,
+            amount_cap_hard: 0,                     //  uint256 _amount_cap_hard,
             methods: 3,                             //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
             minimum_entry: 1,                       //  uint256 _minimum_entry,
             start_parity: 0,                        //  uint256 _start_parity,
@@ -51,8 +62,8 @@ module.exports = function (setup) {
             description: "ICO Funding Phase",
             start_time: ico_start,
             end_time: ico_end,
-            amount_cap_soft: 190 * ether,
-            amount_cap_hard: 570 * ether,
+            amount_cap_soft: 0,
+            amount_cap_hard: 0,
             methods: 3,
             minimum_entry: 0,
             start_parity: 0,
@@ -63,6 +74,33 @@ module.exports = function (setup) {
         beforeEach(async () => {
             now = Date.now() / 1000;
             assetContract = await helpers.getContract("Test" + assetName).new();
+            app = await contracts.ApplicationEntity.new();
+            let tokenManager = await helpers.getContract("TestTokenManager").new();
+
+            let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
+
+            // add funding asset to app
+            await app.addAssetFunding(assetContract.address);
+
+            // set gw address so we can initialize
+            await app.setTestGatewayInterfaceEntity(accounts[0]);
+
+            // grab ownership of the assets so we can do tests
+            await app.initializeAssetsToThisApplication();
+
+            // only after initialization add settings!
+            await tokenManager.addTokenSettingsAndInit(
+                token_settings.supply,
+                token_settings.decimals,
+                token_settings.name,
+                token_settings.symbol,
+                token_settings.version
+            );
+
+            // only after initialization lock settings!
+            await tokenManager.applyAndLockSettings();
+
+
         });
 
         it('deploys with no Funding Stages', async () => {
@@ -73,14 +111,17 @@ module.exports = function (setup) {
             assert.equal(await assetContract.multiSigOutputAddress.call(), 0, 'multiSigOutputAddress should be 0!');
         });
 
+        /*
         it('deploys with no Funding Inputs', async () => {
             assert.equal(await assetContract.DirectInput.call(), 0, 'DirectInput should be 0!');
             assert.equal(await assetContract.MilestoneInput.call(), 0, 'MilestoneInput should be 0!');
         });
+        */
 
         context("addSettings()", async () => {
-            it('throws if called when already initialized', async () => {
-                await assetContract.setTestInitialized();
+
+            it('throws if called when settings are locked', async () => {
+                await assetContract.applyAndLockSettings();
                 helpers.assertInvalidOpcode(async () => {
                     await assetContract.addSettings(platformWalletAddress);
                 });
@@ -110,7 +151,8 @@ module.exports = function (setup) {
                     pre_ico_settings.use_parity_from_previous,
                     pre_ico_settings.token_share_percentage
                 );
-                assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 0!');
+
+                assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 1!');
             });
 
             it('throws if end time is before or equal to start time', async () => {
@@ -151,6 +193,7 @@ module.exports = function (setup) {
                 assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
             });
 
+            /*
             it('throws if hard cap is 0', async () => {
                 helpers.assertInvalidOpcode(async () => {
                     await assetContract.addFundingStage(
@@ -169,6 +212,7 @@ module.exports = function (setup) {
                 });
                 assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
             });
+            */
 
             it('throws if token selling percentage is higher than 100%', async () => {
                 helpers.assertInvalidOpcode(async () => {
@@ -267,11 +311,60 @@ module.exports = function (setup) {
 
 
         context("funding stages added, asset initialized", async () => {
-            let tx, FundingInputDirect, FundingInputMilestone;
+            let tokenManager, tx, FundingInputDirect, FundingInputMilestone;
 
             beforeEach(async () => {
-                // app = await contracts.ApplicationEntity.new();
 
+
+                assetContract = await helpers.getContract("Test" + assetName).new();
+                app = await contracts.ApplicationEntity.new();
+                let tokenManager = await helpers.getContract("TestTokenManager").new();
+
+                let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
+
+                // add funding asset to app
+                await app.addAssetFunding(assetContract.address);
+
+                // set gw address so we can initialize
+                await app.setTestGatewayInterfaceEntity(accounts[0]);
+
+                // grab ownership of the assets so we can do tests
+                await app.initializeAssetsToThisApplication();
+
+                // only after initialization add settings!
+                await tokenManager.addTokenSettingsAndInit(
+                    token_settings.supply,
+                    token_settings.decimals,
+                    token_settings.name,
+                    token_settings.symbol,
+                    token_settings.version
+                );
+
+                // only after initialization lock settings!
+                await tokenManager.applyAndLockSettings();
+
+
+                /*
+                app = await contracts.ApplicationEntity.new();
+                tokenManager = await helpers.getContract("TestTokenManager").new();
+                await tokenManager.applyAndLockSettings();
+
+                let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
+
+                // add funding asset to app
+                await app.addAssetFunding(assetContract.address);
+
+                // set gw address so we can initialize
+                await app.setTestGatewayInterfaceEntity(accounts[0]);
+
+                // grab ownership of the assets so we can do tests
+                let eventFilter = helpers.utils.hasEvent(
+                    await app.initializeAssetsToThisApplication(),
+                    'EventAppAssetOwnerSet(bytes32,address)'
+                );
+                */
+
+                // now add asset settings
                 let stage_pre = await assetContract.addFundingStage(
                     pre_ico_settings.name,
                     pre_ico_settings.description,
@@ -300,14 +393,12 @@ module.exports = function (setup) {
                     ico_settings.token_share_percentage
                 );
 
-                // grab ownership of the asset so we can do tests
-                let eventFilter = helpers.utils.hasEvent(
-                    await assetContract.setInitialOwnerAndName(assetName),
-                    'EventAppAssetOwnerSet(bytes32,address)'
-                );
+                // apply settings
+                await assetContract.applyAndLockSettings();
 
-                assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
-                assert.equal(await assetContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]');
+                // since we have both funding and token manager assets added, we expect to have the event fired twice.
+                // assert.equal(eventFilter.length, 2, 'EventAppAssetOwnerSet event not received.');
+                assert.equal(await assetContract.owner.call(), app.address, 'Asset Owner is not app entity');
                 assert.isTrue(await assetContract._initialized.call(), 'Asset not initialized');
 
                 let FundingInputDirectAddress = await assetContract.DirectInput.call();
@@ -319,6 +410,25 @@ module.exports = function (setup) {
                 FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
                 FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
             });
+
+            it('has correct Funding Inputs after ApplicationEntity grabs asset ownership and initializes it', async () => {
+                assert.isAddress(await assetContract.DirectInput.call(), 'DirectInput should be a valid address');
+                assert.isAddress(await assetContract.MilestoneInput.call(), 'MilestoneInput should be a valid address');
+            });
+
+            /*
+            it('has correct TokenManagerAddress', async () => {
+                let TokenManagerAddress = await assetContract.TokenManagerEntity.call();
+                assert.equal(TokenManagerAddress, tokenManager.address, 'TokenManager should have a valid address');
+            });
+            */
+
+
+            /*
+            context("receivePayment()", async () => {
+
+            });
+            */
 
             context("receivePayment()", async () => {
 
@@ -341,10 +451,6 @@ module.exports = function (setup) {
 
             });
 
-            it('has correct Funding Inputs after ApplicationEntity grabs asset ownership and initializes it', async () => {
-                assert.isAddress(await assetContract.DirectInput.call(), 'DirectInput should be a valid address');
-                assert.isAddress(await assetContract.MilestoneInput.call(), 'MilestoneInput should be a valid address');
-            });
 
             context("Funding Input: All", async () => {
 

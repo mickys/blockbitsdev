@@ -20,7 +20,7 @@ pragma solidity ^0.4.17;
 import "./Funding.sol";
 import "./Milestones.sol";
 
-// import "../library/FundingVaultLib.sol";
+import "./../ApplicationEntityABI.sol";
 
 contract FundingVault {
 

@@ -5,16 +5,26 @@ const GatewayInterface      = artifacts.require('GatewayInterface');
 const ApplicationEntity     = artifacts.require('ApplicationEntity');
 const getContract = (obj)   => artifacts.require(obj.name);
 
+let token_settings = {
+    supply: 5 * ( 10 ** 6 ) * 10 ** 18,
+    decimals: 18,
+    name: "Block Bits IO Tokens",
+    symbol: "BBX",
+    version: "v1"
+};
+
 const assets = [
+    {'name' : 'TokenManager'},
     {'name' : 'Proposals'},
-    {'name' : 'Funding'},
     {'name' : 'Milestones'},
     {'name' : 'Meetings'},
     {'name' : 'GeneralVault'},
-    {'name' : 'TokenManager'},
     {'name' : 'ListingContract'},
+    {'name' : 'Funding'},
 ];
+
 const entities = assets.map(getContract);
+
 let deployedAssets = [];
 
 const mapDeployedAssets = (asset) => {
@@ -35,9 +45,6 @@ async function doStage(deployer)  {
         '  Stage 1 - Initial Gateway and Application Deployment\n'+
         '  ----------------------------------------------------------------\n'
     );
-
-    utils.toLog("  Deploy Token");
-    await deployer.deploy(Token, );
 
     utils.toLog("  Deploy GatewayInterface");
     await deployer.deploy(GatewayInterface);
@@ -85,6 +92,59 @@ async function doStage(deployer)  {
     let receipt = await app.linkToGateway(GatewayInterface.address, "http://dummy.url");
     let eventFilter = utils.hasEvent(receipt, 'EventAppEntityReady(address)');
     utils.toLog("    "+utils.colors.green+"EventAppEntityReady => " + eventFilter.length+utils.colors.none);
+
+
+    utils.toLog("  Apply initial Settings into Entities:");
+
+    /*
+    await assetContract
+    */
+
+    let TokenManagerAsset = deployedAssets[0];
+    let ProposalsAsset = deployedAssets[1];
+    let MilestonesAsset = deployedAssets[2];
+    let MeetingsAsset = deployedAssets[3];
+    let GeneralVaultAsset = deployedAssets[4];
+    let ListingContractAsset = deployedAssets[5];
+    let FundingAsset = deployedAssets[6];
+
+    // Setup token manager
+
+    let TokenManagerAssetContract = await artifacts.require(TokenManagerAsset.name);
+    TokenManagerAssetContract = await TokenManagerAssetContract.at(TokenManagerAsset.address);
+
+    await TokenManagerAssetContract.addTokenSettingsAndInit(
+        token_settings.supply,
+        token_settings.decimals,
+        token_settings.name,
+        token_settings.symbol,
+        token_settings.version
+    );
+    utils.toLog("  Added TokenManager Settings");
+
+    // await MilestonesAsset.contract.
+    utils.toLog("  Added Milestones Settings");
+
+    // await FundingAsset.contract.
+    utils.toLog("  Added Milestones Settings");
+
+    utils.toLog(
+        '  Lock and initialized Settings into Entities:\n'+
+        '  ----------------------------------------------------------------\n');
+
+    utils.toLog("  Set assets ownership and initialize");
+    await Promise.all(deployedAssets.map(async (entity) => {
+
+        let name = entity.name;
+        let arts = await artifacts.require(name);
+        let contract = await arts.at(arts.address);
+        let eventFilter = await utils.hasEvent(
+            await contract.applyAndLockSettings(),
+            'EventRunBeforeApplyingSettings(bytes32)'
+        );
+
+        utils.toLog("    Successfully locked: " +utils.colors.green+ web3util.toAscii(eventFilter[0].topics[1])+utils.colors.none) ;
+    }));
 
     utils.toLog(
         '\n  ----------------------------------------------------------------\n'+

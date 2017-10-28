@@ -5,7 +5,7 @@ The BlockBits Platform - ICOS 2.0 / Token Sales 2.0 ( more like 3.0 )
 never have a use, in the hope that you'll receive a token that will appreciate
 in value over time, you'll sell it and make a profit.
 	There's a problem with that line of thinking, it assumes that said project
-will be successfull and someone will indeed want to buy your token, in a space
+will be successful and someone will indeed want to buy your token, in a space
 where statistics say that over 90% of startups will fail.
 	
 	!!! Why gamble ? * Keep this question in your head while reading the rest.

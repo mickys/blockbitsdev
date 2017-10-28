@@ -15,13 +15,15 @@ contract TestToken is Token  {
         uint256 _initialAmount,
         string _tokenName,
         uint8 _decimalUnits,
-        string _tokenSymbol
+        string _tokenSymbol,
+        string _version
     )
         Token(
             _initialAmount,
             _tokenName,
             _decimalUnits,
-            _tokenSymbol
+            _tokenSymbol,
+            _version
         )
         public
     {
