@@ -9,11 +9,110 @@ module.exports = function(setup) {
 
         beforeEach(async () => {
             app = await contracts.ApplicationEntity.new();
+            gateway = await contracts.GatewayInterface.new();
         });
 
         it('initializes with empty properties', async () => {
             assert.equal(await app.getParentAddress.call(), 0x0, 'parent address should be empty');
             assert.isFalse(await app._initialized.call(), false, '_initialized should be false');
+        });
+
+        context('setBylawString()', async () => {
+            let bylaw_name = "test_bylaw";
+            let bylaw_value = "value";
+
+            it('sets and returns a bylaw string if not initialized', async () => {
+                await app.setBylawString(bylaw_name, helpers.web3util.toHex(bylaw_value) );
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                await gateway.setTestCurrentApplicationEntityAddress(app.address);
+                let eventFilter = helpers.utils.hasEvent(
+                    await gateway.callTestApplicationEntityInitialize(),
+                    'EventAppEntityReady(address)'
+                );
+                assert.equal(eventFilter.length, 1, 'EventAppEntityReady event not received.');
+                assert.isTrue(await app._initialized.call(), '_initialized should be true');
+
+                let testValue = await app.getBylawString.call(bylaw_name);
+                testValue = helpers.web3util.toAscii(testValue);
+                assert.equal(testValue, bylaw_value, 'Value should match');
+            });
+
+            it('throws if if application is already initialized', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                await app.setTestInitialized();
+                assert.isTrue(await app._initialized.call(), '_initialized should be true');
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.setBylawString(bylaw_name, helpers.web3util.toHex(bylaw_value) );
+                });
+            });
+        });
+
+        context('getBylawString()', async () => {
+            let bylaw_name = "test_bylaw";
+            let bylaw_value = "testValue";
+
+            it('throws if application is not initialized', async () => {
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.getBylawString(bylaw_name);
+                });
+            });
+
+            it('returns correct value set by setBylawString if application is initialized', async () => {
+                await app.setBylawString(bylaw_name, helpers.web3util.toHex(bylaw_value));
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                await app.setTestInitialized();
+                let val = helpers.web3util.toAscii( await app.getBylawString.call(bylaw_name) );
+                assert.equal(val, bylaw_value, "Value should be "+bylaw_value);
+            });
+        });
+
+        context('setBylawUint256()', async () => {
+            let bylaw_name = "test_bylaw";
+            let bylaw_value = 12345;
+
+            it('sets and returns a bylaw uint256 if not initialized', async () => {
+                await app.setBylawUint256(bylaw_name, bylaw_value );
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                await gateway.setTestCurrentApplicationEntityAddress(app.address);
+                let eventFilter = helpers.utils.hasEvent(
+                    await gateway.callTestApplicationEntityInitialize(),
+                    'EventAppEntityReady(address)'
+                );
+                assert.equal(eventFilter.length, 1, 'EventAppEntityReady event not received.');
+                assert.isTrue(await app._initialized.call(), '_initialized should be true');
+
+                let testValue = await app.getBylawUint256.call(bylaw_name);
+                assert.equal(testValue, bylaw_value, 'Value should match');
+            });
+
+            it('throws if if application is already initialized', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                await app.setTestInitialized();
+                assert.isTrue(await app._initialized.call(), '_initialized should be true');
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.setBylawUint256(bylaw_name, helpers.web3util.toHex(bylaw_value) );
+                });
+            });
+        });
+
+        context('getBylawUint256()', async () => {
+            let bylaw_name = "test_bylaw";
+            let bylaw_value = 12345;
+
+            it('throws if application is not initialized', async () => {
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.getBylawUint256(bylaw_name);
+                });
+            });
+
+            it('returns correct value set by setBylaw if application is initialized', async () => {
+                await app.setBylawUint256(bylaw_name, bylaw_value);
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                await app.setTestInitialized();
+                let val = await app.getBylawUint256.call(bylaw_name);
+                assert.equal(val, bylaw_value, "Value should be "+bylaw_value);
+            });
+
         });
 
         context('initialize()', async () => {
@@ -23,7 +122,7 @@ module.exports = function(setup) {
 
             it('throws if called when already initialized', async () => {
                 await app.setTestGatewayInterfaceEntity(gateway.address);
-                await app.setTestInitialized.call();
+                await app.setTestInitialized();
                 return helpers.assertInvalidOpcode(async () => {
                     await app.initialize()
                 });

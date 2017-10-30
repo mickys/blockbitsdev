@@ -50,6 +50,8 @@ contract ApplicationEntity {
     mapping (uint8 => bytes32) public AssetCollectionIdToName;
     uint8 public AssetCollectionNum = 0;
 
+
+
     event EventAppEntityReady ( address indexed _address );
     event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
     event EventAppEntityInitAsset ( bytes32 indexed _name, address indexed _address );
@@ -139,6 +141,27 @@ contract ApplicationEntity {
         EventAppEntityInitAsset(name, _assetAddresses);
     }
 
+    /* Application Bylaws mapping */
+    mapping (bytes32 => uint256) public BylawsUint256;
+    mapping (bytes32 => string) public BylawsString;
+
+
+    function setBylawUint256(bytes32 name, uint256 value) public requireNotInitialised {
+        BylawsUint256[name] = value;
+    }
+
+    function getBylawUint256(bytes32 name) public view requireInitialised returns (uint256) {
+        return BylawsUint256[name];
+    }
+
+    function setBylawString(bytes32 name, string value) public requireNotInitialised {
+        BylawsString[name] = value;
+    }
+
+    function getBylawString(bytes32 name) public view requireInitialised returns (string) {
+        return BylawsString[name];
+    }
+
     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
 
         _initialized = true;
@@ -195,7 +218,7 @@ contract ApplicationEntity {
             
             bytes32 _name = AssetCollectionIdToName[i];
             address current = AssetCollection[_name];
-            if(! current.call(bytes4(keccak256("transferToNewOwner(address)")), _newAddress) ) {
+            if(!current.call(bytes4(keccak256("transferToNewOwner(address)")), _newAddress) ) {
                 revert();
             }
         }

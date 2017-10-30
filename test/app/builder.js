@@ -12,6 +12,8 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     // deploy application
     let app = await this.deploy("ApplicationEntity");
 
+    // add bylaws into app
+
     // deploy asset contract
     let assetContract = await this.deploy(assetName);
 

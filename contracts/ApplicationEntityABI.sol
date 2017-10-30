@@ -17,4 +17,7 @@ contract ApplicationEntityABI {
     mapping (bytes32 => address) public AssetCollection;
     mapping (uint8 => bytes32) public AssetCollectionIdToName;
 
+    function getBylawUint256(bytes32 name) public view returns (uint256);
+    function getBylawString(bytes32 name) public view returns (string);
+
 }
