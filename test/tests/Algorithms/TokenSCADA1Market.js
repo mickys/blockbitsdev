@@ -5,7 +5,7 @@ module.exports = function(setup) {
     let settings = setup.settings;
 
     contract('Token Stake Calculation And Distribution: Type 1 - Market decides token value', accounts => {
-        let assetContract, assetName, fundingContract, FundingInputDirect = {};
+        let assetContract, assetName, fundingContract = {};
 
         // solidity calc helpers
         let ether = 1000000000000000000;
@@ -49,8 +49,8 @@ module.exports = function(setup) {
             description: "ICO Funding Phase",
             start_time: ico_start,
             end_time: ico_end,
-            amount_cap_soft: 190 * ether,
-            amount_cap_hard: 570 * ether,
+            amount_cap_soft: 0,
+            amount_cap_hard: 0,
             methods: 3,
             minimum_entry: 0,
             start_parity: 0,
@@ -58,13 +58,45 @@ module.exports = function(setup) {
             token_share_percentage: 40,
         };
 
+        let token_settings = {
+            supply: 5 * ( 10 ** 6 ) * 10 ** 18,
+            decimals: 18,
+            name: "Block Bits IO Tokens",
+            symbol: "BBX",
+            version: "v1"
+        };
 
         beforeEach(async () => {
             assetName = "TokenSCADA1Market";
-            assetContract = await helpers.getContract("Test" + assetName).new();
 
+            now = Date.now() / 1000;
+
+            let app = await contracts.ApplicationEntity.new();
+            let tokenManager = await helpers.getContract("TestTokenManager").new();
+            let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
             fundingContract = await helpers.getContract("TestFunding").new();
+            // add funding asset to app
+            await app.addAssetFunding(fundingContract.address);
 
+            // set gw address so we can initialize
+            await app.setTestGatewayInterfaceEntity(accounts[0]);
+
+            // grab ownership of the assets so we can do tests
+            await app.initializeAssetsToThisApplication();
+
+            // only after initialization add settings!
+            await tokenManager.addTokenSettingsAndInit(
+                token_settings.supply,
+                token_settings.decimals,
+                token_settings.name,
+                token_settings.symbol,
+                token_settings.version
+            );
+
+            // only after initialization lock settings!
+            await tokenManager.applyAndLockSettings();
+
+            // now add asset settings
             let stage_pre = await fundingContract.addFundingStage(
                 pre_ico_settings.name,
                 pre_ico_settings.description,
@@ -93,19 +125,20 @@ module.exports = function(setup) {
                 ico_settings.token_share_percentage
             );
 
-            // grab ownership of the asset so we can do tests
-            let eventFilter = helpers.utils.hasEvent(
-                await fundingContract.setInitialOwnerAndName(assetName),
-                'EventAppAssetOwnerSet(bytes32,address)'
-            );
+            // apply settings
+            await fundingContract.applyAndLockSettings();
 
-            assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
-            assert.equal(await fundingContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]');
+            // since we have both funding and token manager assets added, we expect to have the event fired twice.
+            // assert.equal(eventFilter.length, 2, 'EventAppAssetOwnerSet event not received.');
+            assert.equal(await fundingContract.owner.call(), app.address, 'Asset Owner is not app entity');
             assert.isTrue(await fundingContract._initialized.call(), 'Asset not initialized');
 
-            let FundingInputDirectAddress = await fundingContract.DirectInput.call();
-            let FundingInputDirectContract = await helpers.getContract('FundingInputDirect');
-            FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
+            assert.equal(await tokenManager.owner.call(), app.address, 'Asset Owner is not app entity');
+            assert.isTrue(await tokenManager._initialized.call(), 'Asset not initialized');
+
+
+            let TokenSCADAEntity = await tokenManager.TokenSCADAEntity.call();
+            assetContract = await helpers.getContract("TestTokenSCADA1Market").at(TokenSCADAEntity);
 
         });
 
@@ -139,7 +172,7 @@ module.exports = function(setup) {
 
 
             */
-
+            /*
             // let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
             // await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
             // await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet2});
@@ -155,23 +188,31 @@ module.exports = function(setup) {
             let totalTokenSupply = new BN('5000000').mul( etherBN );    // 5 mil tokens
 
             let tokensInStage = totalTokenSupply.mul(percentInStage).div(oneHundred);
-            console.log("totalTokenSupply:", totalTokenSupply.toString());
-            console.log("tokensInStage:   ", tokensInStage.toString());
+            // console.log("totalTokenSupply:", totalTokenSupply.toString());
+            // console.log("tokensInStage:   ", tokensInStage.toString());
 
             // my share of 10 ether.. => 0,00016%
             // my share of 10 ether.. => 0,00016%
             // my share of 6  ether.. => 0,0001%
             let PaymentValue = new BN('1').mul(etherBN);
 
-            console.log("pay num:", PaymentValue.toString());
-            console.log("pay len:", PaymentValue.toString().length);
-            console.log("pay wei:", helpers.web3util.fromWei(PaymentValue, 'wei'));
-            console.log("pay eth:", helpers.web3util.fromWei(PaymentValue, 'ether'));
-            console.log();
 
-            let num = await assetContract.getTokenAmountByEtherForFundingStage(1, PaymentValue.toString());
+
+            let fundingSettings = await fundingContract.getFundingStageVariablesRequiredBySCADA.call(1);
+            let token_share_percentage = fundingSettings[0];
+            let amount_raised = fundingSettings[1];
+            // console.log("token_share_percentage:", token_share_percentage.toString());
+            // console.log("amount_raised:", amount_raised.toString());
+
+            let SCADATokens = await assetContract.getTokenAmountByEtherForFundingStage.call(1, PaymentValue.toString());
+            let num = new BN( SCADATokens );
             //       val * numerator / denominator
             let myTokens = tokensInStage.mul(PaymentValue).div(raisedAmount);
+
+            assert.equal(num, myTokens, "Token amount does not match!");
+            */
+            /*
+
             console.log("expected tokens:", myTokens.toString());
             console.log("tokens div:     ", helpers.web3util.fromWei(num, 'wei').toString());
             console.log("tokens div len: ", helpers.web3util.fromWei(num, 'wei').toString().length);
@@ -205,6 +246,8 @@ module.exports = function(setup) {
             let ztoken = zValue *
             console.log("tokens div:     ", helpers.web3util.fromWei(num, 'wei').toString());
 
+
+            */
 
             // let allStakes = myStake *
 

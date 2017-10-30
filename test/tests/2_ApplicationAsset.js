@@ -113,12 +113,17 @@ module.exports = function(setup) {
                 assert.equal(address, assetContract.address, 'Asset address mismatch!');
             });
 
+            /*
+
+            we can't throw here because funding needs to have token manager already internally initialized in order
+            to accept settings.
+
             it('throws if asset is not initialized', async () => {
                 return helpers.assertInvalidOpcode(async () => {
                     await assetContract.getApplicationAssetAddressByName.call('Milestones');
                 });
-
             });
+            */
 
             it('throws if asset name does not exist in the app\'s mapping', async () => {
                 // grab ownership of the assets so we can do tests

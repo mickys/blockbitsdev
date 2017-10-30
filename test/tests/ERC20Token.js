@@ -3,6 +3,7 @@ module.exports = function(setup) {
     let contracts = setup.contracts;
     let settings = setup.settings;
     let assetContractNames = setup.assetContractNames;
+    const TokenSettings = setup.settings.token;
 
     const leftPad = require('left-pad');
 
@@ -12,19 +13,11 @@ module.exports = function(setup) {
         const SampleRecipientThrow = artifacts.require('SampleRecipientThrow');
         let HST;
 
-        const TokenSettings = {
-            amount:10000,
-            name:"BlockBitsIO Token",
-            decimal_units:18,
-            symbol:"BBX",
-            version: "v1"
-        };
-
-        beforeEach(async () => {
+       beforeEach(async () => {
             HST = await TokenContract.new(
-                TokenSettings.amount,
+                TokenSettings.supply,
                 TokenSettings.name,
-                TokenSettings.decimal_units,
+                TokenSettings.decimals,
                 TokenSettings.symbol,
                 TokenSettings.version,
                 {from: accounts[0]}
@@ -35,21 +28,21 @@ module.exports = function(setup) {
             let decimals = await HST.decimals.call();
             assert.equal(TokenSettings.name, await HST.name.call(), 'name invalid');
             assert.equal(TokenSettings.symbol, await HST.symbol.call(), 'symbol invalid');
-            assert.equal(TokenSettings.amount, await HST.totalSupply.call(), 'totalSupply invalid');
-            assert.equal(TokenSettings.decimal_units, decimals.toString(), 'decimals invalid');
+            assert.equal(TokenSettings.supply, await HST.totalSupply.call(), 'totalSupply invalid');
+            assert.equal(TokenSettings.decimals, decimals.toString(), 'decimals invalid');
             assert.equal(TokenSettings.version, await HST.version.call(), 'version invalid');
         });
 
-        it('creation: should create an initial balance of 10000 for the creator', async () => {
+        it('creation: should create a correct initial balance for the creator', async () => {
             const balance = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance.toNumber(), TokenSettings.amount)
+            assert.strictEqual(balance.toNumber(), TokenSettings.supply)
         });
 
         it('creation: test correct setting of vanity information', async () => {
             const name = await HST.name.call();
             assert.strictEqual(name, TokenSettings.name);
             const decimals = await HST.decimals.call();
-            assert.strictEqual(decimals.toNumber(), TokenSettings.decimal_units);
+            assert.strictEqual(decimals.toNumber(), TokenSettings.decimals);
             const symbol = await HST.symbol.call();
             assert.strictEqual(symbol, TokenSettings.symbol)
         });
@@ -59,7 +52,7 @@ module.exports = function(setup) {
             let HST2 = await TokenContract.new(
                 '115792089237316195423570985008687907853269984665640564039457584007913129639935',
                 TokenSettings.name,
-                TokenSettings.decimal_units,
+                TokenSettings.decimals,
                 TokenSettings.symbol,
                 TokenSettings.version,
                 {from: accounts[0]}
@@ -73,7 +66,7 @@ module.exports = function(setup) {
         // normal transfers without approvals
         it('transfers: ether transfer should be reversed.', async () => {
             const balanceBefore = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balanceBefore.toNumber(), 10000);
+            assert.strictEqual(balanceBefore.toNumber(), TokenSettings.supply);
 
             web3.eth.sendTransaction({from: accounts[0], to: HST.address, value: web3.toWei('10', 'Ether')}, async (err, res) => {
                 helpers.assertInvalidOpcode(async () => {
@@ -84,7 +77,7 @@ module.exports = function(setup) {
                 });
 
                 let balanceAfter = await HST.balanceOf.call(accounts[0]);
-                assert.strictEqual(balanceAfter.toNumber(), 10000)
+                assert.strictEqual(balanceAfter.toNumber(), TokenSettings.supply)
             })
         });
 
@@ -94,9 +87,14 @@ module.exports = function(setup) {
             assert.strictEqual(balance.toNumber(), 10000)
         });
 
-        it('transfers: should fail when trying to transfer 10001 to accounts[1] with accounts[0] having 10000', () => {
+        it('transfers: should fail when trying to transfer total amount +1 to accounts[1] with accounts[0] having total amount', async () => {
+            const BN = require('bn.js');
+            let balance  = await HST.balanceOf.call(accounts[0]);
+            let amt = balance.add(new BN('1'));
+            assert.strictEqual(balance.toNumber(), TokenSettings.supply);
+            assert.equal(amt.toNumber(), TokenSettings.supply + 1);
             return helpers.assertInvalidOpcode(async () => {
-                await HST.transfer.call(accounts[1], 10001, {from: accounts[0]})
+                await HST.transfer.call(accounts[1], amt, {from: accounts[0]})
             });
         });
 
@@ -147,7 +145,7 @@ module.exports = function(setup) {
         // bit overkill. But is for testing a bug
         it('approvals: msg.sender approves accounts[1] of 100 & withdraws 20 once.', async () => {
             const balance0 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance0.toNumber(), 10000);
+            assert.strictEqual(balance0.toNumber(), TokenSettings.supply);
 
             await HST.approve(accounts[1], 100, {from: accounts[0]}); // 100
             const balance2 = await HST.balanceOf.call(accounts[2]);
@@ -163,7 +161,7 @@ module.exports = function(setup) {
             assert.strictEqual(balance22.toNumber(), 20);
 
             const balance02 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance02.toNumber(), 9980)
+            assert.strictEqual(balance02.toNumber(), TokenSettings.supply - 20)
         });
 
         // should approve 100 of msg.sender & withdraw 50, twice. (should succeed)
@@ -180,7 +178,7 @@ module.exports = function(setup) {
             assert.strictEqual(balance2.toNumber(), 20);
 
             const balance0 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance0.toNumber(), 9980);
+            assert.strictEqual(balance0.toNumber(), TokenSettings.supply - 20);
 
             // FIRST tx done.
             // onto next.
@@ -192,7 +190,7 @@ module.exports = function(setup) {
             assert.strictEqual(balance22.toNumber(), 40);
 
             const balance02 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance02.toNumber(), 9960);
+            assert.strictEqual(balance02.toNumber(), TokenSettings.supply - 40);
         });
 
         // should approve 100 of msg.sender & withdraw 50 & 60 (should fail).
@@ -209,7 +207,7 @@ module.exports = function(setup) {
             assert.strictEqual(balance2.toNumber(), 50);
 
             const balance0 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance0.toNumber(), 9950);
+            assert.strictEqual(balance0.toNumber(), TokenSettings.supply - 50);
 
             // FIRST tx done.
             // onto next.
@@ -245,7 +243,7 @@ module.exports = function(setup) {
         // should approve max of msg.sender & withdraw 20 without changing allowance (should succeed).
         it('approvals: msg.sender approves accounts[1] of max (2^256 - 1) & withdraws 20', async () => {
             const balance0 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance0.toNumber(), 10000);
+            assert.strictEqual(balance0.toNumber(), TokenSettings.supply);
 
             const max = '1.15792089237316195423570985008687907853269984665640564039457584007913129639935e+77';
             await HST.approve(accounts[1], max, {from: accounts[0]});
@@ -261,7 +259,7 @@ module.exports = function(setup) {
             assert.strictEqual(balance22.toNumber(), 20);
 
             const balance02 = await HST.balanceOf.call(accounts[0]);
-            assert.strictEqual(balance02.toNumber(), 9980);
+            assert.strictEqual(balance02.toNumber(), TokenSettings.supply - 20);
         });
 
         it('allowance: should start with zero', async function() {

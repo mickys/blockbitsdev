@@ -1,6 +1,9 @@
 // const web3                      = require('web3');
 const web3util                  = require('web3-utils');
 
+const TestBuildHelper           = require('./app/builder.js');
+const ProjectSettings           = require('../project-settings.js');
+
 const utils                     = require('./helpers/utils');
 const { assertInvalidOpcode }   = require('./helpers/assertThrow');
 const getContract               = (name) => artifacts.require(name);
@@ -14,13 +17,9 @@ const Token                     = artifacts.require('TestToken');
 const TokenManager              = artifacts.require('TestTokenManager');
 const sourceCodeUrl             = "http://test.com/SourceCodeValidator";
 
-const solidity = {
-    // solidity calc helpers
-    ether:1000000000000000000,
-    days:3600 * 24,
-    now: parseInt(( Date.now() / 1000 ).toFixed())
-};
 
+let settings = ProjectSettings.application_settings;
+settings.sourceCodeUrl = sourceCodeUrl;
 
 const setup = {
     helpers:{
@@ -29,8 +28,9 @@ const setup = {
         web3util:web3util,
         web3:web3,
         getContract:getContract,
-        solidity:solidity,
-        artifacts:artifacts
+        solidity:settings.solidity,
+        artifacts:artifacts,
+        TestBuildHelper:TestBuildHelper
     },
     contracts:{
         EmptyStub:EmptyStub,
@@ -40,9 +40,7 @@ const setup = {
         Token:Token,
         TokenManager:TokenManager
     },
-    settings:{
-        sourceCodeUrl
-    },
+    settings:settings,
     assetContractNames: [
         'Proposals',
         'Funding',
@@ -50,7 +48,6 @@ const setup = {
         'Meetings',
         'GeneralVault',
         'ListingContract'
-
     ]
 };
 
@@ -62,19 +59,18 @@ tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
 tests.push("4_Asset_TokenManager");
+tests.push("Algorithms/TokenSCADA1Market");
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
 // tests = [];
 
-// tests.push("ERC20Token");
-// tests.push("2_ApplicationAsset");
-// tests.push("Algorithms/TokenSCADA1Market");
+// tests = [];
+
+
+
 
 
 if(! process.env.SOLIDITY_COVERAGE ) {
-
-
-
 
 }
 
@@ -91,3 +87,4 @@ tests.map( async (name) => {
         await runTest(setup);
     }
 });
+

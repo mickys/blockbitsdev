@@ -21,16 +21,16 @@ contract TokenSCADAGeneric {
 
     bool public SCADA_requires_hard_cap = true;
 
-    function requiresHardCap() public view returns (bool) {
-        return SCADA_requires_hard_cap;
-    }
-
     function TokenSCADAGeneric(address _tokenContract, address _fundingContract ) public {
         TokenEntity = Token(_tokenContract);
         FundingEntity = Funding(_fundingContract);
 
         // these never change once initialized!
         tokenSupply = TokenEntity.totalSupply();
+    }
+
+    function requiresHardCap() public view returns (bool) {
+        return SCADA_requires_hard_cap;
     }
 
 }

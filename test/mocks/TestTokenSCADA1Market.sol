@@ -14,5 +14,14 @@ import "../../contracts/Algorithms/TokenSCADA1Market.sol";
 
 contract TestTokenSCADA1Market is TokenSCADA1Market {
 
+    function
+        TestTokenSCADA1Market (address _tokenContract, address _fundingContract )
+        TokenSCADA1Market ( _tokenContract,  _fundingContract )
+        TokenSCADAGeneric( _tokenContract,  _fundingContract )
+        public
+    {
+
+    }
+
 
 }

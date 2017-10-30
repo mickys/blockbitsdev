@@ -3,40 +3,16 @@ module.exports = function(setup) {
     let contracts = setup.contracts;
     let settings = setup.settings;
     let assetContractNames = setup.assetContractNames;
-
-
-    let token_settings = {
-        supply: 5 * ( 10 ** 6 ) * 10 ** 18,
-        decimals: 18,
-        name: "Block Bits IO Tokens",
-        symbol: "BBX",
-        version: "v1"
-    };
-
+    let token_settings = setup.settings.token;
 
     contract('TokenManager Asset', accounts => {
-        let app, assetContract, FundingContract, assetInsertionTx, tx = {};
+        let assetContract, FundingContract, tx, TestBuildHelper = {};
         let assetName = "TokenManager";
 
         beforeEach(async () => {
-            assetContract = await helpers.getContract("Test" + assetName).new();
-
-            app = await contracts.ApplicationEntity.new();
-
-            FundingContract = await helpers.getContract("TestFunding").new();
-            assetInsertionTx = await app.addAssetFunding(FundingContract.address);
-
-            // add our asset in there as well
-            assetInsertionTx = await app.addAssetTokenManager(assetContract.address);
-
-            // set gw address so we can initialize
-            await app.setTestGatewayInterfaceEntity(accounts[0]);
-
-            // grab ownership of the assets so we can do tests
-            await app.initializeAssetsToThisApplication();
-
-            // await Funding.applyAndLockSettings();
-
+            TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
+            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["Funding"] );
+            FundingContract = await TestBuildHelper.getDeployedByName("Funding");
         });
 
         context("addTokenSettingsAndInit()", async () => {
@@ -74,24 +50,13 @@ module.exports = function(setup) {
                     'EventRunBeforeApplyingSettings(bytes32)'
                 );
                 assert.equal(eventFilter.length, 1, 'EventRunBeforeApplyingSettings event not received.');
-
             });
-
         });
 
         context("getTokenSCADARequiresHardCap()", async () => {
 
             beforeEach(async () => {
-                await helpers.getContract("TestFunding").new();
-                await assetContract.addTokenSettingsAndInit(
-                    token_settings.supply,
-                    token_settings.decimals,
-                    token_settings.name,
-                    token_settings.symbol,
-                    token_settings.version
-                );
-                await assetContract.getApplicationAssetAddressByName('Funding');
-                await assetContract.applyAndLockSettings();
+                await TestBuildHelper.AddAssetSettingsAndLock(assetName);
             });
 
             it('returns boolean value stored in SCADA Contract', async () => {
@@ -103,10 +68,7 @@ module.exports = function(setup) {
                 let MethodVal = await assetContract.getTokenSCADARequiresHardCap.call();
 
                 assert.equal(ContractVal, MethodVal, 'SCADA_requires_hard_cap mismatch!');
-
             });
-
         });
-
     });
 };

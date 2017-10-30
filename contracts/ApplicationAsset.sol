@@ -78,14 +78,18 @@ contract ApplicationAsset {
         return true;
     }
 
-    function getApplicationAssetAddressByName(bytes32 _name) public view requireInitialised returns(address) {
+    function getApplicationAssetAddressByName(bytes32 _name)
+        public
+        view
+    //    requireInitialised // no longer.. we need this for funding, as token manager needs to be internally instantiated
+        returns(address)
+    {
         address asset = ApplicationEntityABI(owner).AssetCollection(_name);
         if( asset != address(0x0) ) {
             return asset;
         } else {
             revert();
         }
-
     }
 
     modifier onlyOwner() {

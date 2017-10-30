@@ -3,18 +3,17 @@ module.exports = function (setup) {
     let contracts = setup.contracts;
     let settings = setup.settings;
     let assetContractNames = setup.assetContractNames;
+    let token_settings = setup.settings.token;
+
+    let pre_ico_settings = setup.settings.funding_periods[0];
+    let ico_settings = setup.settings.funding_periods[1];
 
 
     contract('Funding Asset', accounts => {
-        let app, assetContract = {};
+        let app, assetContract, TestBuildHelper = {};
         let assetName = "Funding";
 
-        // solidity calc helpers
-        let ether = 1000000000000000000;
-        let days = 3600 * 24;
-        let now = parseInt(( Date.now() / 1000 ).toFixed());
-
-        // tests
+        // test wallets
         let investorWallet1 = accounts[3];
         let investorWallet2 = accounts[4];
         let investorWallet3 = accounts[5];
@@ -24,83 +23,10 @@ module.exports = function (setup) {
         // settings
         let platformWalletAddress = accounts[8];
 
-        let pre_ico_duration = 7 * days;
-        let pre_ico_start = now + 10 * days;
-        let pre_ico_end = pre_ico_start + pre_ico_duration;
-
-        // the SCADA - Market argo works with no soft / hard caps per funding period.
-        // assign algorithm to the funding asset before adding funding phases, in order to be able to do proper checks
-
-        let token_settings = {
-            supply: 5 * ( 10 ** 6 ) * 10 ** 18,
-            decimals: 18,
-            name: "Block Bits IO Tokens",
-            symbol: "BBX",
-            version: "v1"
-        };
-
-        let pre_ico_settings = {
-            name: "PRE ICO",                        //  bytes32 _name,
-            description: "PRE ICO Funding Phase",   //  bytes32 _description,
-            start_time: pre_ico_start,              //  uint256 _time_start,
-            end_time: pre_ico_end,                  //  uint256 _time_end,
-            amount_cap_soft: 0,                     //  uint256 _amount_cap_soft,
-            amount_cap_hard: 0,                     //  uint256 _amount_cap_hard,
-            methods: 3,                             //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
-            minimum_entry: 1,                       //  uint256 _minimum_entry,
-            start_parity: 0,                        //  uint256 _start_parity,
-            use_parity_from_previous: false,        //  bool
-            token_share_percentage: 10,             //  uint8
-        };
-
-        let ico_duration = 30 * days;
-        let ico_start = pre_ico_end + 7 * days;
-        let ico_end = ico_start + ico_duration;
-
-        let ico_settings = {
-            name: "ICO",
-            description: "ICO Funding Phase",
-            start_time: ico_start,
-            end_time: ico_end,
-            amount_cap_soft: 0,
-            amount_cap_hard: 0,
-            methods: 3,
-            minimum_entry: 0,
-            start_parity: 0,
-            use_parity_from_previous: true,
-            token_share_percentage: 40,
-        };
-
         beforeEach(async () => {
-            now = Date.now() / 1000;
-            assetContract = await helpers.getContract("Test" + assetName).new();
-            app = await contracts.ApplicationEntity.new();
-            let tokenManager = await helpers.getContract("TestTokenManager").new();
-
-            let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
-
-            // add funding asset to app
-            await app.addAssetFunding(assetContract.address);
-
-            // set gw address so we can initialize
-            await app.setTestGatewayInterfaceEntity(accounts[0]);
-
-            // grab ownership of the assets so we can do tests
-            await app.initializeAssetsToThisApplication();
-
-            // only after initialization add settings!
-            await tokenManager.addTokenSettingsAndInit(
-                token_settings.supply,
-                token_settings.decimals,
-                token_settings.name,
-                token_settings.symbol,
-                token_settings.version
-            );
-
-            // only after initialization lock settings!
-            await tokenManager.applyAndLockSettings();
-
-
+            TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
+            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager"] );
+            await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
         });
 
         it('deploys with no Funding Stages', async () => {
@@ -111,12 +37,16 @@ module.exports = function (setup) {
             assert.equal(await assetContract.multiSigOutputAddress.call(), 0, 'multiSigOutputAddress should be 0!');
         });
 
-        /*
         it('deploys with no Funding Inputs', async () => {
-            assert.equal(await assetContract.DirectInput.call(), 0, 'DirectInput should be 0!');
-            assert.equal(await assetContract.MilestoneInput.call(), 0, 'MilestoneInput should be 0!');
+            let NewfundingContract = await helpers.getContract("TestFunding").new();
+            assert.equal(await NewfundingContract.DirectInput.call(), 0, 'DirectInput should be 0!');
+            assert.equal(await NewfundingContract.MilestoneInput.call(), 0, 'MilestoneInput should be 0!');
         });
-        */
+
+        it('has Funding Inputs once initialized', async () => {
+            assert.notEqual(await assetContract.DirectInput.call(), 0, 'DirectInput should not be 0!');
+            assert.notEqual(await assetContract.MilestoneInput.call(), 0, 'MilestoneInput should not be 0!');
+        });
 
         context("addSettings()", async () => {
 
@@ -131,104 +61,91 @@ module.exports = function (setup) {
                 let tx = await assetContract.addSettings(platformWalletAddress);
                 assert.equal(await assetContract.multiSigOutputAddress.call(), platformWalletAddress, 'multiSigOutputAddress should be 0!');
             });
+
         });
-
-
 
         context("first funding stage", async () => {
 
             it('successfully creates a funding stage with proper settings', async () => {
-                let tx = await assetContract.addFundingStage(
-                    pre_ico_settings.name,
-                    pre_ico_settings.description,
-                    pre_ico_settings.start_time,
-                    pre_ico_settings.end_time,
-                    pre_ico_settings.amount_cap_soft,
-                    pre_ico_settings.amount_cap_hard,
-                    pre_ico_settings.methods,
-                    pre_ico_settings.minimum_entry,
-                    pre_ico_settings.start_parity,
-                    pre_ico_settings.use_parity_from_previous,
-                    pre_ico_settings.token_share_percentage
-                );
-
+                await TestBuildHelper.addFundingStage(0);
                 assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 1!');
             });
 
             it('throws if end time is before or equal to start time', async () => {
                 helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addFundingStage(
-                        pre_ico_settings.name,
-                        pre_ico_settings.description,
-                        pre_ico_settings.start_time,
-                        pre_ico_settings.start_time - 1,   // << this
-                        pre_ico_settings.amount_cap_soft,
-                        pre_ico_settings.amount_cap_hard,
-                        pre_ico_settings.methods,
-                        pre_ico_settings.minimum_entry,
-                        pre_ico_settings.start_parity,
-                        pre_ico_settings.use_parity_from_previous,
-                        pre_ico_settings.token_share_percentage
-                    );
+                    await TestBuildHelper.addFundingStage(0, {
+                        end_time: setup.settings.funding_periods[0].start_time - 1
+                    });
                 });
                 assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
             });
 
             it('throws if soft cap is higher than hard cap', async () => {
                 helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addFundingStage(
-                        pre_ico_settings.name,
-                        pre_ico_settings.description,
-                        pre_ico_settings.start_time,
-                        pre_ico_settings.end_time,
-                        101,   // << this
-                        100,
-                        pre_ico_settings.methods,
-                        pre_ico_settings.minimum_entry,
-                        pre_ico_settings.start_parity,
-                        pre_ico_settings.use_parity_from_previous,
-                        pre_ico_settings.token_share_percentage
-                    );
+
+                    await TestBuildHelper.addFundingStage(0, {
+                        amount_cap_soft: 101,
+                        amount_cap_hard: 100
+                    });
                 });
                 assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
             });
 
-            /*
-            it('throws if hard cap is 0', async () => {
-                helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addFundingStage(
-                        pre_ico_settings.name,
-                        pre_ico_settings.description,
-                        pre_ico_settings.start_time,
-                        pre_ico_settings.end_time,
-                        pre_ico_settings.amount_cap_soft,
-                        0,
-                        pre_ico_settings.methods,
-                        pre_ico_settings.minimum_entry,
-                        pre_ico_settings.start_parity,
-                        pre_ico_settings.use_parity_from_previous,
-                        pre_ico_settings.token_share_percentage
-                    );
+            if(setup.settings.tokenSCADA.requires_global_hard_cap === true) {
+
+                context("SCADA Requires Hard Cap", async () => {
+
+                    it('throws if hard cap is 0', async () => {
+                        helpers.assertInvalidOpcode(async () => {
+                            await TestBuildHelper.addFundingStage(0, {
+                                amount_cap_hard: 0
+                            });
+                        });
+                        assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
+                    });
+
+                    it('works if hard cap is higher than 0', async () => {
+                        await TestBuildHelper.addFundingStage(0, {
+                            amount_cap_hard: 10000
+                        });
+                        assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 1!');
+                    });
+
                 });
-                assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
-            });
-            */
+
+            }
+
+            if(setup.settings.tokenSCADA.requires_global_hard_cap === false) {
+
+                context("SCADA Disallows Hard Cap", async () => {
+
+                    it('throws if hard cap or soft cap exists', async () => {
+                        helpers.assertInvalidOpcode(async () => {
+                            await TestBuildHelper.addFundingStage(0, {
+                                amount_cap_soft: 101,
+                                amount_cap_hard: 100
+                            });
+                        });
+                        assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
+                    });
+
+                    it('works if hard cap is 0', async () => {
+                        await TestBuildHelper.addFundingStage(0, {
+                            amount_cap_soft: 0,
+                            amount_cap_hard: 0
+                        });
+                        assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 0!');
+                    });
+
+                });
+            }
+
 
             it('throws if token selling percentage is higher than 100%', async () => {
                 helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addFundingStage(
-                        pre_ico_settings.name,
-                        pre_ico_settings.description,
-                        pre_ico_settings.start_time,
-                        pre_ico_settings.end_time,
-                        pre_ico_settings.amount_cap_soft,
-                        pre_ico_settings.amount_cap_hard,
-                        pre_ico_settings.methods,
-                        pre_ico_settings.minimum_entry,
-                        pre_ico_settings.start_parity,
-                        pre_ico_settings.use_parity_from_previous,
-                        101   // << this
-                    );
+                    await TestBuildHelper.addFundingStage(0, {
+                        token_share_percentage: 101
+                    });
                 });
                 assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
             });
@@ -236,53 +153,19 @@ module.exports = function (setup) {
             context("when at least 1 funding stage already exists", async () => {
 
                 beforeEach(async () => {
-                    let stage_pre = await assetContract.addFundingStage(
-                        pre_ico_settings.name,
-                        pre_ico_settings.description,
-                        pre_ico_settings.start_time,
-                        pre_ico_settings.end_time,
-                        pre_ico_settings.amount_cap_soft,
-                        pre_ico_settings.amount_cap_hard,
-                        pre_ico_settings.methods,
-                        pre_ico_settings.minimum_entry,
-                        pre_ico_settings.start_parity,
-                        pre_ico_settings.use_parity_from_previous,
-                        pre_ico_settings.token_share_percentage
-                    );
+                    await TestBuildHelper.addFundingStage(0);
                 });
 
                 it('successfully creates the second funding stage with proper settings', async () => {
-                    let stage_ico = await assetContract.addFundingStage(
-                        ico_settings.name,
-                        ico_settings.description,
-                        ico_settings.start_time,
-                        ico_settings.end_time,
-                        ico_settings.amount_cap_soft,
-                        ico_settings.amount_cap_hard,
-                        ico_settings.methods,
-                        ico_settings.minimum_entry,
-                        ico_settings.start_parity,
-                        ico_settings.use_parity_from_previous,
-                        ico_settings.token_share_percentage
-                    );
+                    await TestBuildHelper.addFundingStage(1);
                     assert.equal(await assetContract.FundingStageNum.call(), 2, 'FundingStageNum is not 0!');
                 });
 
                 it('throws if new funding stage start time overlaps existing stage', async () => {
                     helpers.assertInvalidOpcode(async () => {
-                        await assetContract.addFundingStage(
-                            ico_settings.name,
-                            ico_settings.description,
-                            pre_ico_settings.end_time - 1,
-                            ico_settings.end_time,
-                            ico_settings.amount_cap_soft,
-                            ico_settings.amount_cap_hard,
-                            ico_settings.methods,
-                            ico_settings.minimum_entry,
-                            ico_settings.start_parity,
-                            ico_settings.use_parity_from_previous,
-                            ico_settings.token_share_percentage
-                        );
+                        await TestBuildHelper.addFundingStage(1, {
+                            start_time: setup.settings.funding_periods[0].end_time - 1
+                        });
                     });
                     assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 0!');
                 });
@@ -290,116 +173,30 @@ module.exports = function (setup) {
                 it('throws if new funding stage + existing stage sell more than 100% of tokens', async () => {
 
                     helpers.assertInvalidOpcode(async () => {
-                        await assetContract.addFundingStage(
-                            ico_settings.name,
-                            ico_settings.description,
-                            ico_settings.start_time,
-                            ico_settings.end_time,
-                            ico_settings.amount_cap_soft,
-                            ico_settings.amount_cap_hard,
-                            ico_settings.methods,
-                            ico_settings.minimum_entry,
-                            ico_settings.start_parity,
-                            ico_settings.use_parity_from_previous,
-                            100
-                        );
+                        await TestBuildHelper.addFundingStage(1, {
+                            token_share_percentage: 100
+                        });
                     });
                     assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 0!');
                 });
+
             });
         });
 
 
         context("funding stages added, asset initialized", async () => {
-            let tokenManager, tx, FundingInputDirect, FundingInputMilestone;
+            let FundingInputDirect, FundingInputMilestone;
 
             beforeEach(async () => {
 
-
-                assetContract = await helpers.getContract("Test" + assetName).new();
-                app = await contracts.ApplicationEntity.new();
-                let tokenManager = await helpers.getContract("TestTokenManager").new();
-
-                let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
-
-                // add funding asset to app
-                await app.addAssetFunding(assetContract.address);
-
-                // set gw address so we can initialize
-                await app.setTestGatewayInterfaceEntity(accounts[0]);
-
-                // grab ownership of the assets so we can do tests
-                await app.initializeAssetsToThisApplication();
-
-                // only after initialization add settings!
-                await tokenManager.addTokenSettingsAndInit(
-                    token_settings.supply,
-                    token_settings.decimals,
-                    token_settings.name,
-                    token_settings.symbol,
-                    token_settings.version
-                );
-
-                // only after initialization lock settings!
-                await tokenManager.applyAndLockSettings();
-
-
-                /*
-                app = await contracts.ApplicationEntity.new();
-                tokenManager = await helpers.getContract("TestTokenManager").new();
-                await tokenManager.applyAndLockSettings();
-
-                let assetInsertionTx = await app.addAssetTokenManager(tokenManager.address);
-
-                // add funding asset to app
-                await app.addAssetFunding(assetContract.address);
-
-                // set gw address so we can initialize
-                await app.setTestGatewayInterfaceEntity(accounts[0]);
-
-                // grab ownership of the assets so we can do tests
-                let eventFilter = helpers.utils.hasEvent(
-                    await app.initializeAssetsToThisApplication(),
-                    'EventAppAssetOwnerSet(bytes32,address)'
-                );
-                */
-
-                // now add asset settings
-                let stage_pre = await assetContract.addFundingStage(
-                    pre_ico_settings.name,
-                    pre_ico_settings.description,
-                    pre_ico_settings.start_time,
-                    pre_ico_settings.end_time,
-                    pre_ico_settings.amount_cap_soft,
-                    pre_ico_settings.amount_cap_hard,
-                    pre_ico_settings.methods,
-                    pre_ico_settings.minimum_entry,
-                    pre_ico_settings.start_parity,
-                    pre_ico_settings.use_parity_from_previous,
-                    pre_ico_settings.token_share_percentage
-                );
-
-                let stage_ico = await assetContract.addFundingStage(
-                    ico_settings.name,
-                    ico_settings.description,
-                    ico_settings.start_time,
-                    ico_settings.end_time,
-                    ico_settings.amount_cap_soft,
-                    ico_settings.amount_cap_hard,
-                    ico_settings.methods,
-                    ico_settings.minimum_entry,
-                    ico_settings.start_parity,
-                    ico_settings.use_parity_from_previous,
-                    ico_settings.token_share_percentage
-                );
+                await TestBuildHelper.addFundingStage(0);
+                await TestBuildHelper.addFundingStage(1);
 
                 // apply settings
                 await assetContract.applyAndLockSettings();
 
-                // since we have both funding and token manager assets added, we expect to have the event fired twice.
-                // assert.equal(eventFilter.length, 2, 'EventAppAssetOwnerSet event not received.');
-                assert.equal(await assetContract.owner.call(), app.address, 'Asset Owner is not app entity');
                 assert.isTrue(await assetContract._initialized.call(), 'Asset not initialized');
+                assert.isTrue(await assetContract._settingsApplied.call(), 'Asset settings not applied');
 
                 let FundingInputDirectAddress = await assetContract.DirectInput.call();
                 let FundingInputMilestoneAddress = await assetContract.MilestoneInput.call();
@@ -416,31 +213,18 @@ module.exports = function (setup) {
                 assert.isAddress(await assetContract.MilestoneInput.call(), 'MilestoneInput should be a valid address');
             });
 
-            /*
-            it('has correct TokenManagerAddress', async () => {
-                let TokenManagerAddress = await assetContract.TokenManagerEntity.call();
-                assert.equal(TokenManagerAddress, tokenManager.address, 'TokenManager should have a valid address');
-            });
-            */
-
-
-            /*
-            context("receivePayment()", async () => {
-
-            });
-            */
 
             context("receivePayment()", async () => {
 
                 it('throws if called directly in the Funding contract', async () => {
-                    let PaymentValue = 0.1 * ether;
+                    let PaymentValue = 0.1 * helpers.solidity.ether;
                     return helpers.assertInvalidOpcode(async () => {
                         await assetContract.receivePayment(investorWallet1, 1, {from: investorWallet1, value: PaymentValue})
                     });
                 });
 
                 it('throws if _payment_method is not allowed', async () => {
-                    let PaymentValue = 0.1 * ether;
+                    let PaymentValue = 0.1 * helpers.solidity.ether;
                     let FundingInputMock = await helpers.getContract('TestFundingInputMock').new();
                     await assetContract.setTestFundingInputDirect(FundingInputMock.address.toString());
                     await FundingInputMock.setTestFundingAssetAddress(assetContract.address.toString());
@@ -467,7 +251,7 @@ module.exports = function (setup) {
                 });
 
                 it('throws if FundingAssetAddress is not set', async () => {
-                    let PaymentValue = 0.1 * ether;
+                    let PaymentValue = 0.1 * helpers.solidity.ether;
                     let FundingInputMock = await helpers.getContract('TestFundingInputMock').new();
                     await FundingInputMock.setTestFundingAssetAddressToZero();
                     // await assetContract.setTestFundingInputDirect(FundingInputMock.address.toString());
@@ -477,7 +261,7 @@ module.exports = function (setup) {
                 });
 
                 it('throws if FundingAsset is not pointing to a Contract', async () => {
-                    let PaymentValue = 0.1 * ether;
+                    let PaymentValue = 0.1 * helpers.solidity.ether;
                     let FundingInput = await helpers.getContract('FundingInputDirect').new();
                     return helpers.assertInvalidOpcode(async () => {
                         await FundingInput.sendTransaction({value: PaymentValue, from: investorWallet1})
@@ -491,7 +275,7 @@ module.exports = function (setup) {
                     });
 
                     it('accepts payments using fallback () method and stores in valut\'s direct pool', async () => {
-                        let PaymentValue = 1 * ether;
+                        let PaymentValue = 1 * helpers.solidity.ether;
                         let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
                         let paymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
 
@@ -507,7 +291,7 @@ module.exports = function (setup) {
                         assert.equal(_method, 1, '_payment_method should be 1');
                         assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
 
-                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        let VaultBalance = helpers.web3util.fromWei( await helpers.utils.getContractBalance(helpers, vaultAddress), "ether" );
                         assert.equal(VaultBalance, PaymentValueInEther, 'Vault Contract balance should be '+PaymentValueInEther);
 
                         let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
@@ -516,11 +300,11 @@ module.exports = function (setup) {
                         let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
                         assert.equal(amountDirectInEther, PaymentValueInEther, 'amount_direct is invalid.');
 
-                        await showGasUsage(helpers, paymentTx, "     ↓ Direct Payment:");
+                        await helpers.utils.showGasUsage(helpers, paymentTx, "     ↓ Direct Payment:");
                     });
 
                     it('accepts second payment from same investor', async () => {
-                        let PaymentValue = 1 * ether;
+                        let PaymentValue = 1 * helpers.solidity.ether;
                         let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
 
                         let paymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
@@ -545,7 +329,7 @@ module.exports = function (setup) {
                         assert.equal(_method, 1, '_payment_method should be 1');
                         assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
 
-                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        let VaultBalance = helpers.web3util.fromWei( await helpers.utils.getContractBalance(helpers, vaultAddress), "ether" );
                         assert.equal(VaultBalance, TotalPaymentValues, 'Vault Contract balance should be '+TotalPaymentValues);
 
                         let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
@@ -555,16 +339,16 @@ module.exports = function (setup) {
                         assert.equal(amountDirectInEther, TotalPaymentValues, 'amount_direct is invalid.');
 
 
-                        await showGasUsage(helpers, paymentTx,       "     ↓ First Direct Payment:");
-                        await showGasUsage(helpers, secondPaymentTx, "     ↓ Second Direct Payment:");
+                        await helpers.utils.showGasUsage(helpers, paymentTx,       "     ↓ First Direct Payment:");
+                        await helpers.utils.showGasUsage(helpers, secondPaymentTx, "     ↓ Second Direct Payment:");
 
                     });
 
                     it('accepts second payment from same investor using both payment methods ( Direct & Milestone )', async () => {
-                        let DirectPaymentValue = 1 * ether;
+                        let DirectPaymentValue = 1 * helpers.solidity.ether;
                         let DirectPaymentValueInEther = helpers.web3util.fromWei(DirectPaymentValue, 'ether');
 
-                        let MilestonePaymentValue = 2 * ether;
+                        let MilestonePaymentValue = 2 * helpers.solidity.ether;
                         let MilestonePaymentValueInEther = helpers.web3util.fromWei(MilestonePaymentValue, 'ether');
 
                         // direct payment
@@ -588,7 +372,7 @@ module.exports = function (setup) {
                         assert.equal(_method, 2, '_payment_method should be 2');
                         assert.equal(_value, MilestonePaymentValueInEther, '_value should be '+MilestonePaymentValueInEther);
 
-                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        let VaultBalance = helpers.web3util.fromWei( await helpers.utils.getContractBalance(helpers, vaultAddress), "ether" );
                         assert.equal(VaultBalance, TotalPaymentValues, 'Vault Contract balance should be '+TotalPaymentValues);
 
                         let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
@@ -612,7 +396,7 @@ module.exports = function (setup) {
                     });
 
                     it('accepts payments using fallback () method and stores in valut\'s milestone pool', async () => {
-                        let PaymentValue = 1 * ether;
+                        let PaymentValue = 1 * helpers.solidity.ether;
                         let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
                         let paymentTx = await FundingInputMilestone.sendTransaction({value: PaymentValue, from: investorWallet1});
                         let eventFilter = helpers.utils.hasEvent(
@@ -627,7 +411,7 @@ module.exports = function (setup) {
                         assert.equal(_method, 2, '_payment_method should be 2');
                         assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
 
-                        let VaultBalance = helpers.web3util.fromWei( await getContractBalance(helpers, vaultAddress), "ether" );
+                        let VaultBalance = helpers.web3util.fromWei( await helpers.utils.getContractBalance(helpers, vaultAddress), "ether" );
                         assert.equal(VaultBalance, PaymentValueInEther, 'Vault Contract balance should be '+PaymentValueInEther);
 
                         let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
@@ -636,7 +420,7 @@ module.exports = function (setup) {
                         let amountMilestoneInEther = helpers.web3util.fromWei(amountMilestone, "ether");
                         assert.equal(amountMilestoneInEther, PaymentValueInEther, 'amount_milestone is invalid.');
 
-                        await showGasUsage(helpers, paymentTx, "     ↓ Milestone Payment:");
+                        await helpers.utils.showGasUsage(helpers, paymentTx, "     ↓ Milestone Payment:");
 
                         // showContractDebug(helpers, assetContract)
 
@@ -769,7 +553,7 @@ module.exports = function (setup) {
 
                 helpers.utils.toLog(logPre + helpers.utils.colors.purple + "Running nextStepCycle ..." );
                 tx = await assetContract.nextStepCycle();
-                //await showGasUsage(helpers,tx);
+                //await helpers.utils.showGasUsage(helpers,tx);
 
                 await showDebugFundingStageStateRequiredChanges(helpers, assetContract);
 
@@ -786,7 +570,7 @@ module.exports = function (setup) {
 
                 helpers.utils.toLog(logPre + helpers.utils.colors.purple + "Running nextStepCycle ..." );
                 tx = await assetContract.nextStepCycle();
-                //await showGasUsage(helpers,tx);
+                //await helpers.utils.showGasUsage(helpers,tx);
 
                 await showDebugFundingStageStateRequiredChanges(helpers, assetContract);
 
@@ -796,7 +580,7 @@ module.exports = function (setup) {
 
                 helpers.utils.toLog(logPre + helpers.utils.colors.purple + "Running nextStepCycle ..." );
                 tx = await assetContract.nextStepCycle();
-                //await showGasUsage(helpers,tx);
+                //await helpers.utils.showGasUsage(helpers,tx);
                 await showDebugFundingStageStateRequiredChanges(helpers, assetContract);
 
 
@@ -818,14 +602,14 @@ module.exports = function (setup) {
                 await runStateChanger(helpers, assetContract);
 
                 helpers.utils.toLog(logPre + helpers.utils.colors.purple + "insertPayment( 10 ether ) ..." );
-                tx = await assetContract.insertPayment( 10 * ether );
+                tx = await assetContract.insertPayment( 10 * helpers.solidity.ether );
 
                 await runStateChanger(helpers, assetContract);
                 await showCurrentSettings(helpers, assetContract);
 
 
                 helpers.utils.toLog(logPre + helpers.utils.colors.purple + "insertPayment( 20 ether ) ..." );
-                tx = await assetContract.insertPayment( 19 * ether );
+                tx = await assetContract.insertPayment( 19 * helpers.solidity.ether );
                 await showDebugRequiredStateChanges(helpers, assetContract);
                 await showCurrentSettings(helpers, assetContract);
 
@@ -841,7 +625,7 @@ module.exports = function (setup) {
                 // console.log(tx);
 
                 // await showDebugRequiredStateChanges(helpers, assetContract);
-                // await showGasUsage(helpers,tx);
+                // await helpers.utils.showGasUsage(helpers,tx);
 
 
 
@@ -886,7 +670,7 @@ module.exports = function (setup) {
 
                 helpers.utils.toLog(logPre + helpers.utils.colors.purple + "Running nextStepCycle ..." );
                 tx = await assetContract.nextStepCycle();
-                await showGasUsage(helpers,tx);
+                await helpers.utils.showGasUsage(helpers,tx);
                 await showDebugFundingStageStateRequiredChanges(helpers, assetContract);
                 await showDebugFundingStages(helpers, assetContract);
 
@@ -1014,467 +798,3 @@ module.exports = function (setup) {
     });
 };
 
-
-async function getContractBalance(helpers, address) {
-    return await helpers.utils.getBalance(helpers.artifacts, address);
-}
-
-
-let FundingStageStates = [
-    { key: 0,  name: "NONE"},
-    { key: 1,  name: "NEW"}, 				// not started
-    { key: 2,  name: "IN_PROGRESS"}, 		// accepts payments
-    { key: 3,  name: "FINAL"}				// ended
-];
-
-function getFundingStageStateNameById(_id) {
-    return FundingStageStates.filter(x => x.key === _id)[0].name;
-}
-
-function getFundingStageStateIdByName(_name) {
-    return FundingStageStates.filter(x => x.name === _name)[0].key;
-}
-
-let FundingEntityStates = [
-    { key: 0,  name: "NONE"},
-    { key: 1,  name: "NEW"},
-    { key: 2,  name: "WAITING"},
-    { key: 3,  name: "IN_PROGRESS"},
-    { key: 4,  name: "COOLDOWN"},
-    { key: 5,  name: "ALL_FUNDING_PERIODS_PROCESSED"},
-    { key: 6,  name: "SUCCESSFUL"},
-    { key: 7,  name: "FAILED"},
-    { key: 8,  name: "CASHBACK_IN_PROGRESS"},
-    { key: 9,  name: "CASHBACK_COMPLETE"},
-    { key: 10, name: "FINAL"}
-];
-
-function getFundingEntityStateNameById(_id) {
-    return FundingEntityStates.filter(x => x.key === _id)[0].name;
-}
-
-function getFundingEntityStateIdByName(_name) {
-    return FundingEntityStates.filter(x => x.name === _name)[0].key;
-}
-
-let FundingMethodIds = [
-    "NONE",
-    "DIRECT_ONLY",
-    "MILESTONE_ONLY",
-    "DIRECT_AND_MILESTONE"
-];
-
-
-
-let logPre = "      ";
-
-function showGasUsage(helpers, tx, name) {
-    helpers.utils.toLog(logPre + name + " GAS USAGE: " +
-        helpers.utils.colors.purple +
-        tx.receipt.cumulativeGasUsed
-    );
-}
-
-async function showCurrentState(helpers, assetContract) {
-    await showDebugSettings(helpers, assetContract);
-    await showDebugFundingStages(helpers, assetContract);
-    await showDebugFundingStageStateRequiredChanges(helpers, assetContract);
-}
-
-async function runStateChanger(helpers, assetContract) {
-
-    let hasChanges = await assetContract.hasStateChanges.call();
-    if (hasChanges === true) {
-
-        helpers.utils.toLog(logPre + helpers.utils.colors.purple + "Running doStateChanges ...");
-        tx = await assetContract.doStateChanges(true);
-
-        for (let log of tx.logs) {
-            if (log.event === "DebugRecordRequiredChanges") {
-                console.log(logPre + " Record C: " + getFundingStageStateNameById(helpers.web3util.toDecimal(log.args._current)));
-                console.log(logPre + " Record R: " + getFundingStageStateNameById(helpers.web3util.toDecimal(log.args._required)));
-            } else if (log.event === "DebugEntityRequiredChanges") {
-                console.log(logPre + " Entity C: " + getFundingEntityStateNameById(helpers.web3util.toDecimal(log.args._current)));
-                console.log(logPre + " Entity R: " + getFundingEntityStateNameById(helpers.web3util.toDecimal(log.args._required)));
-            } else if (log.event === "DebugCallAgain") {
-                let whoAr = [0, "Entity", "Record"];
-                let who = helpers.web3util.toDecimal(log.args._who);
-                console.log(logPre + " DebugCallAgain: " + whoAr[who]);
-            } else if (log.event === "EventEntityProcessor") {
-                console.log(logPre + " EventEntityProcessor: state:" + getFundingEntityStateNameById(helpers.web3util.toDecimal(log.args._state)) );
-            }
-
-        }
-
-        await showGasUsage(helpers, tx);
-        await showDebugRequiredStateChanges(helpers, assetContract);
-    }
-}
-
-async function showDebugRequiredStateChanges(helpers, assetContract) {
-
-    helpers.utils.toLog("\n" + logPre + " Debug - Required State Changes: ");
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-
-    let contractTimeStamp = await assetContract.getTimestamp.call();
-    helpers.utils.toLog(
-        logPre + "Contract Time and Date:  " + helpers.utils.toDate(contractTimeStamp)
-    );
-
-    let reqChanges = await assetContract.getRequiredStateChanges.call();
-
-    let CurrentFundingStageState = getFundingStageStateNameById(helpers.web3util.toDecimal(reqChanges[0]));
-    let FundingStageStateRequired = getFundingStageStateNameById(helpers.web3util.toDecimal(reqChanges[1]));
-    let EntityStateRequired = getFundingEntityStateNameById(helpers.web3util.toDecimal(reqChanges[2]));
-
-
-    let CurrentEntityStateReq =  await assetContract.CurrentEntityState.call();
-    let CurrentEntityState = helpers.web3util.toDecimal(CurrentEntityStateReq);
-
-
-    let stageId = helpers.web3util.toDecimal( await assetContract.currentFundingStage.call() );
-
-    helpers.utils.toLog(
-        logPre + "Current stage id:        " + stageId
-    );
-
-    helpers.utils.toLog(
-        logPre + "Received RECORD state:   " +
-        helpers.utils.colors.green +
-        "["+reqChanges[0]+"] "+
-        CurrentFundingStageState
-    );
-
-    let color = helpers.utils.colors.red;
-
-    let stateChangeInt = helpers.web3util.toDecimal(reqChanges[1]);
-    if(stateChangeInt == 0) {
-        color = helpers.utils.colors.green;
-    }
-
-    helpers.utils.toLog(
-        logPre + "Required RECORD change:  " +
-        color +
-        "["+stateChangeInt+"] "+
-        FundingStageStateRequired
-    );
-
-    color = helpers.utils.colors.red;
-
-
-    helpers.utils.toLog(
-        logPre + "Current ENTITY:          " +
-        helpers.utils.colors.green +
-        "["+CurrentEntityState+"] "+
-        getFundingEntityStateNameById(CurrentEntityState)
-    );
-
-    if(reqChanges[2] == 0 ) {
-        color = helpers.utils.colors.green;
-    }
-    helpers.utils.toLog(
-        logPre + "Required ENTITY change:  " +
-        color +
-        "["+reqChanges[2]+"] "+
-        EntityStateRequired
-    );
-
-    // FundingStageStates
-
-    // let FundingStage = await assetContract.Collection.call(stageId);
-    // displayFundingStageStruct(helpers, FundingStage);
-
-
-    helpers.utils.toLog("");
-}
-
-async function showDebugFundingStageStateRequiredChanges(helpers, assetContract) {
-
-    helpers.utils.toLog("\n" + logPre + " Debug - FundingStage Required State Changes: ");
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-
-    let contractTimeStamp = await assetContract.getTimestamp.call();
-    helpers.utils.toLog(
-        logPre + "Contract Time and Date: " + helpers.utils.toDate(contractTimeStamp)
-    );
-
-    let stageId = helpers.web3util.toDecimal( await assetContract.currentFundingStage.call() );
-
-    helpers.utils.toLog(
-        logPre + "Current stage id:      " + stageId
-    );
-
-    let FundingStage = await assetContract.Collection.call(stageId);
-    helpers.utils.toLog(
-        logPre + "Current state:          " +
-        helpers.utils.colors.green +
-        getFundingStageStateNameById(helpers.web3util.toDecimal(FundingStage[2]))
-    );
-
-    let stateChanges = await assetContract.getFundingStageStateRequiredChanges.call();
-
-    let stateChangeInt = helpers.web3util.toDecimal(stateChanges);
-    if(stateChangeInt !== 0) {
-        helpers.utils.toLog(
-            logPre + "Required state change:  " +
-            helpers.utils.colors.red +
-            getFundingStageStateNameById(stateChangeInt)
-        );
-    } else {
-        helpers.utils.toLog(
-            logPre + "Required state change:  " +
-            helpers.utils.colors.green +
-            getFundingStageStateNameById(stateChangeInt)
-        );
-    }
-
-    // FundingStageStates
-
-    // let FundingStage = await assetContract.Collection.call(stageId);
-    // displayFundingStageStruct(helpers, FundingStage);
-
-
-    helpers.utils.toLog("");
-}
-
-async function showCurrentSettings(helpers, assetContract) {
-
-    helpers.utils.toLog("\n" + logPre + " Debug - Current Settings: ");
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-
-    let AmountRaised = await assetContract.AmountRaised.call();
-    let AmountCapSoft = await assetContract.AmountCapSoft.call();
-    let AmountCapHard = await assetContract.AmountCapHard.call();
-    helpers.utils.toLog(logPre + "AmountRaised ether:  " + helpers.web3util.fromWei(AmountRaised, "ether"));
-    helpers.utils.toLog(logPre + "AmountCapSoft ether: " + helpers.web3util.fromWei(AmountCapSoft, "ether"));
-    helpers.utils.toLog(logPre + "AmountCapHard ether: " + helpers.web3util.fromWei(AmountCapHard, "ether"));
-
-    let stageId = helpers.web3util.toDecimal( await assetContract.currentFundingStage.call() );
-
-    helpers.utils.toLog(
-        logPre +
-        "Current STAGE id:    " + stageId
-    );
-
-    let FundingStage = await assetContract.Collection.call(stageId);
-
-    helpers.utils.toLog(
-        logPre +
-        "time_start:          " +
-        helpers.utils.toDateFromHex(FundingStage[3])
-    );
-
-    helpers.utils.toLog(
-        logPre +
-        "time_end:            " +
-        helpers.utils.toDateFromHex(FundingStage[4])
-    );
-
-    helpers.utils.toLog(
-        logPre +
-        "amount_cap_soft:     " +
-        helpers.web3util.fromWei(FundingStage[5], "ether")
-    );
-    helpers.utils.toLog(
-        logPre +
-        "amount_cap_hard:     " +
-        helpers.web3util.fromWei(FundingStage[6], "ether")
-    );
-
-
-    let Contract_current_timestamp = await assetContract.getTimestamp.call();
-
-    helpers.utils.toLog(
-        logPre +
-        "CURRENT DATE:        " +
-        helpers.utils.toDate(Contract_current_timestamp)
-    );
-
-}
-
-async function showDebugSettings(helpers, assetContract) {
-
-    helpers.utils.toLog("\n" + logPre + " Debug - Settings: ");
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-    let AmountRaised = await assetContract.AmountRaised.call();
-    let AmountCapSoft = await assetContract.AmountCapSoft.call();
-    let AmountCapHard = await assetContract.AmountCapHard.call();
-    let TokenSellPercentage = await assetContract.TokenSellPercentage.call();
-
-    let Contract_current_timestamp = await assetContract.getTimestamp.call();
-    let Funding_Setting_funding_time_start = await assetContract.Funding_Setting_funding_time_start.call();
-    let Funding_Setting_funding_time_end = await assetContract.Funding_Setting_funding_time_end.call();
-    let Funding_Setting_cashback_time_start = await assetContract.Funding_Setting_cashback_time_start.call();
-    let Funding_Setting_cashback_time_end = await assetContract.Funding_Setting_cashback_time_end.call();
-
-    helpers.utils.toLog(logPre + "AmountRaised ether:    " + helpers.web3util.fromWei(AmountRaised, "ether"));
-    helpers.utils.toLog(logPre + "AmountCapSoft ether:   " + helpers.web3util.fromWei(AmountCapSoft, "ether"));
-    helpers.utils.toLog(logPre + "AmountCapHard ether:   " + helpers.web3util.fromWei(AmountCapHard, "ether"));
-    helpers.utils.toLog(logPre + "TokenSellPercentage %: " + helpers.web3util.toDecimal(TokenSellPercentage));
-
-
-    helpers.utils.toLog(
-        logPre + "CURRENT DATE:        " + helpers.utils.toDate(Contract_current_timestamp)
-    );
-    helpers.utils.toLog(
-        logPre + "Funding Start DATE:  " + helpers.utils.toDate(Funding_Setting_funding_time_start)
-    );
-    helpers.utils.toLog(
-        logPre + "Funding End DATE:    " + helpers.utils.toDate(Funding_Setting_funding_time_end)
-    );
-
-    helpers.utils.toLog(
-        logPre + "CashBack Start DATE: " + helpers.utils.toDate(Funding_Setting_cashback_time_start)
-    );
-    helpers.utils.toLog(
-        logPre + "CashBack End DATE:   " + helpers.utils.toDate(Funding_Setting_cashback_time_end)
-    );
-
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-    helpers.utils.toLog("");
-}
-
-async function showDebugFundingStages(helpers, assetContract) {
-
-    helpers.utils.toLog("\n" + logPre + " Debug - Funding Stages: ");
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-
-    let FundingStageNum = await assetContract.FundingStageNum.call();
-    if (FundingStageNum > 0) {
-        helpers.utils.toLog(logPre +
-            "[" +
-            helpers.utils.colors.orange +
-            FundingStageNum +
-            helpers.utils.colors.none +
-            "] Funding Stages: ");
-
-        for (let i = 1; i <= FundingStageNum; i++) {
-            let stageId = i;
-            helpers.utils.toLog(logPre + "Checking stage id: " + stageId);
-
-            let FundingStage = await assetContract.Collection.call(stageId);
-            displayFundingStageStruct(helpers, FundingStage);
-
-        }
-    } else {
-        helpers.utils.toLog(logPre + "None Found");
-    }
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-    helpers.utils.toLog("");
-}
-
-function displayFundingStageStruct(helpers, struct) {
-
-    // helpers.utils.toLog(struct);
-    helpers.utils.toLog(logPre + "name:             " + helpers.web3util.toAscii(struct[0]));           // bytes32
-    helpers.utils.toLog(logPre + "description:      " + helpers.web3util.toAscii(struct[1]));           // bytes32
-    helpers.utils.toLog(logPre + "state:            " + helpers.web3util.toDecimal(struct[2]));         // uint8
-    helpers.utils.toLog(logPre + "time_start:       " + helpers.utils.toDateFromHex(struct[3]));        // uint256
-    helpers.utils.toLog(logPre + "time_end:         " + helpers.utils.toDateFromHex(struct[4]));        // uint256
-    helpers.utils.toLog(logPre + "amount_cap_soft:  " + helpers.web3util.fromWei(struct[5], "ether"));  // uint256
-    helpers.utils.toLog(logPre + "amount_cap_hard:  " + helpers.web3util.fromWei(struct[6], "ether"));  // uint256
-    helpers.utils.toLog(logPre + "minimum_entry:    " + helpers.web3util.fromWei(struct[7], "ether"));  // uint256
-    helpers.utils.toLog(logPre + "methods:          " + helpers.web3util.toDecimal(struct[8]));         // uint8
-    helpers.utils.toLog(logPre + "start_parity:     " + helpers.web3util.toDecimal(struct[9]));         // uint256
-    helpers.utils.toLog(logPre + "use_parity:       " + struct[10]);                                    // bool
-    helpers.utils.toLog(logPre + "token_share_perc: " + helpers.web3util.toDecimal(struct[11]));        // uint8
-    helpers.utils.toLog(logPre + "index:            " + helpers.web3util.toDecimal(struct[12]));        // uint8
-    helpers.utils.toLog("");
-}
-
-
-
-
-
-async function showContractDebug(helpers, assetContract) {
-
-    helpers.utils.toLog("\n" + logPre + " Debug: ");
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-
-    // purchaseRecords
-    let RecordsNum = await assetContract.purchaseRecordsNum.call();
-
-    helpers.utils.toLog(
-        logPre + "Puchase Record Count: "+
-        helpers.utils.colors.orange+
-        RecordsNum
-    );
-
-    if (RecordsNum > 0) {
-
-        for (let i = 1; i <= RecordsNum; i++) {
-            let Record = await assetContract.purchaseRecords.call(i);
-            helpers.utils.toLog(logPre + "Record ID:      " + i);         // uint16
-            helpers.utils.toLog(logPre + "  unix_time:      " + helpers.utils.toDateFromHex(Record[0]));        // uint256
-            helpers.utils.toLog(logPre + "  payment_method: " + helpers.web3util.toDecimal(Record[1]));         // uint8
-            helpers.utils.toLog(logPre + "  amount:         " + helpers.web3util.fromWei(Record[2], "ether"));  // uint256
-            helpers.utils.toLog(logPre + "  index:          " + helpers.web3util.toDecimal(Record[3]));         // uint16
-            helpers.utils.toLog("");
-        }
-    }
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-
-    let amountDirect = await assetContract.amount_direct.call();
-    let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
-    helpers.utils.toLog(
-        logPre + "Direct balance:      "+amountDirectInEther
-    );
-
-    let amountMilestone = await assetContract.amount_milestone.call();
-    let amountMilestoneInEther = helpers.web3util.fromWei(amountMilestone, "ether");
-    helpers.utils.toLog(
-        logPre + "Milestone balance:   "+amountMilestoneInEther
-    );
-
-    await showContractBalance(helpers, assetContract);
-
-    helpers.utils.toLog(
-        logPre + "-----------------------------------------------------------"
-    );
-    helpers.utils.toLog("");
-}
-
-
-
-async function showAccountBalances(helpers, accounts) {
-
-    helpers.utils.toLog(logPre + " TestRPC Balances: ");
-    for (let i = 0; i < 10; i++) {
-        let balance = await helpers.utils.getBalance(helpers.artifacts, accounts[i]);
-        helpers.utils.toLog(
-            logPre +
-            "["+i+"] "+accounts[i]+ ": "+ helpers.web3util.fromWei(balance, "ether")
-        );
-    }
-
-}
-
-async function showContractBalance(helpers, contract) {
-
-    helpers.utils.toLog("\n" + logPre + " Contract Balances: ");
-    let balance = await helpers.utils.getBalance(helpers.artifacts, contract.address.toString());
-    helpers.utils.toLog(
-        logPre +
-        contract.address.toString()+ ": "+ helpers.web3util.fromWei(balance, "ether")
-    );
-
-
-}

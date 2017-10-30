@@ -105,11 +105,14 @@ contract Funding is ApplicationAsset {
     function runBeforeInitialization() internal requireNotInitialised {
         DirectInput = new FundingInputDirect();
         MilestoneInput = new FundingInputMilestone();
+
+        // instantiate token manager, moved from runBeforeApplyingSettings
+        TokenManagerEntity = TokenManager( getApplicationAssetAddressByName('TokenManager') );
+
         EventRunBeforeInit(assetName);
     }
 
     function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied {
-        // TokenManagerEntity = TokenManager( getApplicationAssetAddressByName('TokenManager') );
         EventRunBeforeApplyingSettings(assetName);
     }
 
@@ -181,9 +184,8 @@ contract Funding is ApplicationAsset {
             revert();
         }
 
-        /*
         // if TokenSCADA requires hard cap, then we require it, otherwise we reject it if provided
-        if(TokenManagerEntity.getTokenSCADARequiresHardCap())
+        if(TokenManagerEntity.getTokenSCADARequiresHardCap() == true)
         {
             // make sure hard cap exists!
             if(_amount_cap_hard == 0) {
@@ -196,13 +198,11 @@ contract Funding is ApplicationAsset {
             }
         }
 
-        */
 
         // make sure soft cap is not higher than hard cap
         if(_amount_cap_soft > _amount_cap_hard) {
             revert();
         }
-
 
         // make sure we're not selling more than 100% of token share... as that's not possible
         if(_token_share_percentage > 100) {

@@ -4,14 +4,12 @@ const Token                 = artifacts.require('Token');
 const GatewayInterface      = artifacts.require('GatewayInterface');
 const ApplicationEntity     = artifacts.require('ApplicationEntity');
 const getContract = (obj)   => artifacts.require(obj.name);
+const ProjectSettings           = require('../project-settings.js');
 
-let token_settings = {
-    supply: 5 * ( 10 ** 6 ) * 10 ** 18,
-    decimals: 18,
-    name: "Block Bits IO Tokens",
-    symbol: "BBX",
-    version: "v1"
-};
+let settings = ProjectSettings.application_settings;
+settings.sourceCodeUrl = "http://www.blockbits.io/"
+
+let token_settings = settings.token;
 
 const assets = [
     {'name' : 'TokenManager'},
@@ -126,7 +124,7 @@ async function doStage(deployer)  {
     utils.toLog("  Added Milestones Settings");
 
     // await FundingAsset.contract.
-    utils.toLog("  Added Milestones Settings");
+    utils.toLog("  Added Funding Settings");
 
     utils.toLog(
         '  Lock and initialized Settings into Entities:\n'+
