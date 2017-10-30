@@ -481,12 +481,13 @@ module.exports = {
         helpers.utils.toLog(logPre + "time_end:         " + helpers.utils.toDateFromHex(struct[4]));        // uint256
         helpers.utils.toLog(logPre + "amount_cap_soft:  " + helpers.web3util.fromWei(struct[5], "ether"));  // uint256
         helpers.utils.toLog(logPre + "amount_cap_hard:  " + helpers.web3util.fromWei(struct[6], "ether"));  // uint256
-        helpers.utils.toLog(logPre + "minimum_entry:    " + helpers.web3util.fromWei(struct[7], "ether"));  // uint256
-        helpers.utils.toLog(logPre + "methods:          " + helpers.web3util.toDecimal(struct[8]));         // uint8
-        helpers.utils.toLog(logPre + "start_parity:     " + helpers.web3util.toDecimal(struct[9]));         // uint256
-        helpers.utils.toLog(logPre + "use_parity:       " + struct[10]);                                    // bool
-        helpers.utils.toLog(logPre + "token_share_perc: " + helpers.web3util.toDecimal(struct[11]));        // uint8
-        helpers.utils.toLog(logPre + "index:            " + helpers.web3util.toDecimal(struct[12]));        // uint8
+        helpers.utils.toLog(logPre + "amount_raised:    " + helpers.web3util.fromWei(struct[7], "ether"));  // uint256
+        helpers.utils.toLog(logPre + "minimum_entry:    " + helpers.web3util.fromWei(struct[8], "ether"));  // uint256
+        helpers.utils.toLog(logPre + "methods:          " + helpers.web3util.toDecimal(struct[9]));         // uint8
+        helpers.utils.toLog(logPre + "start_parity:     " + helpers.web3util.toDecimal(struct[10]));         // uint256
+        helpers.utils.toLog(logPre + "use_parity:       " + struct[11]);                                    // bool
+        helpers.utils.toLog(logPre + "token_share_perc: " + helpers.web3util.toDecimal(struct[12]));        // uint8
+        helpers.utils.toLog(logPre + "index:            " + helpers.web3util.toDecimal(struct[13]));        // uint8
         helpers.utils.toLog("");
     },
     async getFundingStageStateNameById(_id) {

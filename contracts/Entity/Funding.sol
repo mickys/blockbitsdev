@@ -307,9 +307,11 @@ contract Funding is ApplicationAsset {
             uint256  // amount_raised
         )
     {
+        uint8 StageId = _id + 1;
+
         return (
-        Collection[_id].token_share_percentage,
-        Collection[_id].amount_raised
+        Collection[StageId].token_share_percentage,
+        Collection[StageId].amount_raised
         );
     }
 
@@ -322,7 +324,8 @@ contract Funding is ApplicationAsset {
         onlyInputPaymentMethod
         returns(bool)
     {
-        if(allowedPaymentMethod(_payment_method)) {
+        // check that msg.value is higher than 0, don't really want to have to deal with minus in case the network breaks this somehow
+        if(allowedPaymentMethod(_payment_method) && msg.value > 0) {
             FundingVault vault;
 
             // no vault present
@@ -330,7 +333,12 @@ contract Funding is ApplicationAsset {
                 // create and initialize a new one
                 vault = new FundingVault();
 
-                if(vault.initialize(_sender, multiSigOutputAddress, address(this), getMilestoneAssetAddressFromApp())) {
+                if(vault.initialize(
+                    _sender,
+                    multiSigOutputAddress,
+                    address(this),
+                    address(getApplicationAssetAddressByName('Milestones'))
+                )) {
                     // store new vault address.
                     vaultList[_sender] = vault;
                 } else {
@@ -340,6 +348,9 @@ contract Funding is ApplicationAsset {
                 // use existing vault
                 vault = FundingVault(vaultList[_sender]);
             }
+
+            // increase amount raised, we don't care about payment method here.
+            Collection[currentFundingStage].amount_raised+= msg.value;
 
             // save in local mapping, emit event, send value to vault, return success or revert.
             EventVaultReceivedPayment(vault, _payment_method, msg.value);
@@ -354,18 +365,16 @@ contract Funding is ApplicationAsset {
         }
     }
 
-    // TODO: change to milestone asset
-    function getMilestoneAssetAddressFromApp() public view returns(address) {
-        //
-        return address(this);
-    }
-
     modifier onlyInputPaymentMethod() {
         require(msg.sender != 0x0 && ( msg.sender == address(DirectInput) || msg.sender == address(MilestoneInput) ));
         _;
     }
 
     mapping  (address => address) public vaultList;
+
+    function getMyVaultAddress(address _sender) public view returns (address) {
+        return vaultList[_sender];
+    }
 
     function hasVault(address _sender) internal view returns(bool) {
         if(vaultList[_sender] != address(0x0)) {

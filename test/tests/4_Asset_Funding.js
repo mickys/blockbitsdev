@@ -25,8 +25,9 @@ module.exports = function (setup) {
 
         beforeEach(async () => {
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
-            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager"] );
+            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "Milestones"] );
             await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
+            await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
         });
 
         it('deploys with no Funding Stages', async () => {
@@ -112,10 +113,9 @@ module.exports = function (setup) {
                     });
 
                 });
-
             }
-
-            if(setup.settings.tokenSCADA.requires_global_hard_cap === false) {
+            else if(setup.settings.tokenSCADA.requires_global_hard_cap === false)
+            {
 
                 context("SCADA Disallows Hard Cap", async () => {
 
@@ -428,8 +428,6 @@ module.exports = function (setup) {
                 });
 
             });
-
-
 
             /*
 

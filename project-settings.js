@@ -1,3 +1,4 @@
+const BigNumber = require('bignumber.js');    // using bn.js from web3-utils
 // these settings are used in both deployments and tests
 
 // ethereum network related variables
@@ -14,7 +15,7 @@ let solidity = {
 // Project Token settings
 
 let token_settings = {
-    supply: 5 * ( 10 ** 6 ) * ( 10 ** 18 ),     // 5 mil tokens
+    supply: new BigNumber(5).mul(10 ** 6).mul( 10 ** 18 ),   // 5 mil tokens * decimals
     decimals: 18,                           // make sure to update supply decimals if updated
     name: "Block Bits IO Tokens",
     symbol: "BBX",
@@ -131,7 +132,8 @@ let application_settings = {
     milestones:project_milestones,
     token:token_settings,
     tokenSCADA:tokenSCADA,
-    solidity:solidity
+    solidity:solidity,
+    doDeployments: false
 };
 
 module.exports = {

@@ -7,19 +7,28 @@ module.exports = function(setup) {
 
     contract('Funding Vault', accounts => {
 
+        let TestBuildHelper;
         let deploymentAddress = accounts[0];
         let investorAddress = accounts[1];
-        let platformWalletAddress = accounts[8];
         let assetContract;
         let assetName = "FundingVault";
-        let fundingContract, milestonesContract;
+        let FundingContract, MilestonesContract, TokenManagerContract;
         let FUNDING_DIRECT_METHOD = 1;
         let FUNDING_MILESTONE_METHOD = 2;
 
+        // settings
+        let platformWalletAddress = accounts[8];
+
         beforeEach(async () => {
-            fundingContract = await helpers.getContract("TestFunding").new();
-            milestonesContract = await helpers.getContract("TestMilestones").new();
+
+            TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
+            FundingContract = await TestBuildHelper.deployAndInitializeAsset( "Funding", ["TokenManager", "Milestones"] );
+            await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
+            await TestBuildHelper.AddAssetSettingsAndLock("Funding");
+            MilestonesContract = await TestBuildHelper.getDeployedByName("Milestones");
+            TokenManagerContract = await TestBuildHelper.getDeployedByName("TokenManager");
             assetContract = await helpers.getContract("Test" + assetName).new();
+
         });
 
         it('initializes with empty properties', async () => {
@@ -43,8 +52,8 @@ module.exports = function(setup) {
                     await assetContract.initialize(
                         investorAddress,
                         platformWalletAddress,
-                        fundingContract.address,
-                        milestonesContract.address,
+                        await FundingContract.address,
+                        await MilestonesContract.address,
                         {from: deploymentAddress}
                     );
                 });
@@ -54,8 +63,8 @@ module.exports = function(setup) {
                 await assetContract.initialize(
                     investorAddress,
                     platformWalletAddress,
-                    fundingContract.address,
-                    milestonesContract.address,
+                    await FundingContract.address,
+                    await MilestonesContract.address,
                     {from: deploymentAddress}
                 );
                 assert.equal(await assetContract.vaultOwner.call(), investorAddress, 'vaultOwner address should not be empty');
@@ -71,8 +80,8 @@ module.exports = function(setup) {
                 await assetContract.initialize(
                     investorAddress,
                     platformWalletAddress,
-                    fundingContract.address,
-                    milestonesContract.address,
+                    await FundingContract.address,
+                    await MilestonesContract.address,
                     {from: deploymentAddress}
                 );
                 assert.equal(await assetContract.vaultOwner.call(), investorAddress, 'vaultOwner address should not be empty');

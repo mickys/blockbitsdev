@@ -1,5 +1,9 @@
-// const web3                      = require('web3');
+// const web3                   = require('web3');
 const web3util                  = require('web3-utils');
+const BigNumber                 = require('bignumber.js');
+
+BigNumber.config({ DECIMAL_PLACES: 0 , ROUNDING_MODE: 1 }); // ROUND_DOWN = 1
+
 
 const TestBuildHelper           = require('./app/builder.js');
 const ProjectSettings           = require('../project-settings.js');
@@ -30,7 +34,8 @@ const setup = {
         getContract:getContract,
         solidity:settings.solidity,
         artifacts:artifacts,
-        TestBuildHelper:TestBuildHelper
+        TestBuildHelper:TestBuildHelper,
+        BigNumber:BigNumber
     },
     contracts:{
         EmptyStub:EmptyStub,
@@ -62,9 +67,12 @@ tests.push("4_Asset_TokenManager");
 tests.push("Algorithms/TokenSCADA1Market");
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
-// tests = [];
+tests.push("4_Asset_Funding_Payments");
 
 // tests = [];
+// tests = [];
+
+
 
 
 

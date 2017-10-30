@@ -1,9 +1,10 @@
 
-function TestBuildHelper(setup, assert, accounts){
+function TestBuildHelper(setup, assert, accounts, platformWalletAddress){
     this.setup = setup;
     this.assert = assert;
     this.accounts = accounts;
     this.deployed = [];
+    this.platformWalletAddress = platformWalletAddress;
 }
 
 TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, requiredAssets) {
@@ -67,9 +68,44 @@ TestBuildHelper.prototype.addFundingStage = async function ( id, overrides ) {
     );
 };
 
+
+TestBuildHelper.prototype.getMyVaultAddress = async function (myAddress) {
+    let fundingAsset = this.getDeployedByName("Funding");
+    let VaultAddress = await fundingAsset.getMyVaultAddress.call(myAddress);
+    let contract = await this.getContract("TestFundingVault");
+    return await contract.at(VaultAddress.toString());
+};
+
 TestBuildHelper.prototype.addFundingSettings = async function () {
+    let fundingAsset = this.getDeployedByName("Funding");
+    await fundingAsset.addSettings(this.platformWalletAddress);
 
 };
+
+TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (FundingPeriodId, DirectPaymentValue) {
+
+    let fundingAsset = this.getDeployedByName("Funding");
+    let FundingSettings = await fundingAsset.getFundingStageVariablesRequiredBySCADA.call(FundingPeriodId);
+    // let token_share_percentage = FundingSettings[0];
+    let amount_raised = FundingSettings[1];
+
+    let percentInSettings = this.setup.settings.funding_periods[FundingPeriodId].token_share_percentage.toString();
+    let tokenSupplyInSettings = this.setup.settings.token.supply;
+
+    let raisedAmount = new this.setup.helpers.BigNumber( amount_raised.toString() );                  // should be paymentValue
+    let totalTokenSupply = new this.setup.helpers.BigNumber( tokenSupplyInSettings.toString() );      // 5 mil integral tokens
+
+    let tokensInStage = totalTokenSupply.mul(percentInSettings).div(100);
+
+    /*
+    uint256 tokensInStage = tokenSupply * percentInStage / 100;
+    uint256 myTokens = (tokensInStage * _ether_amount) / raisedAmount;
+    */
+
+    return tokensInStage.mul( DirectPaymentValue ).div(raisedAmount);
+};
+
+
 
 TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
     let object = this.getDeployedByName(name);
@@ -78,7 +114,7 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
         let token_settings = this.setup.settings.token;
 
         await object.addTokenSettingsAndInit(
-            token_settings.supply,
+            token_settings.supply.toString(),
             token_settings.decimals,
             token_settings.name,
             token_settings.symbol,
@@ -88,7 +124,7 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
     } else if(name === "Funding") {
         // add funding phases
 
-        for(let i = 0; i < this.setup.funding_periods.length; i++) {
+        for(let i = 0; i < this.setup.settings.funding_periods.length; i++) {
             await this.addFundingStage(i);
         }
 

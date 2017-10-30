@@ -164,7 +164,10 @@ async function doStage(deployer)  {
 }
 
 module.exports = (deployer, network) => {
-    deployer.then(async () => await doStage(deployer));
+
+    if(settings.doDeployments) {
+        deployer.then(async () => await doStage(deployer));
+    }
 };
 
 

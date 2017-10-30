@@ -19,6 +19,8 @@ pragma solidity ^0.4.17;
 
 import "./Funding.sol";
 import "./Milestones.sol";
+import "./TokenManager.sol";
+import "./../Algorithms/TokenSCADAGeneric.sol";
 
 import "./../ApplicationEntityABI.sol";
 
@@ -42,6 +44,8 @@ contract FundingVault {
     */
     Funding public FundingEntity;
     Milestones public MilestonesEntity;
+    TokenManager public TokenManagerEntity;
+    TokenSCADAGeneric public TokenSCADAEntity;
 
     /*
         Globals
@@ -87,6 +91,12 @@ contract FundingVault {
         // assets
         FundingEntity = Funding(_fundingAddress);
         MilestonesEntity = Milestones(_milestoneAddress);
+
+        address TokenManagerAddress = FundingEntity.getApplicationAssetAddressByName("TokenManager");
+        TokenManagerEntity = TokenManager(TokenManagerAddress);
+
+        address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
+        TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
 
         // init
         _initialized = true;
@@ -135,6 +145,9 @@ contract FundingVault {
         }
     }
 
+    function getMyTokenStakeInCurrentFunding() public view returns (uint256) {
+        return TokenSCADAEntity.getTokenAmountByEtherForFundingStage(0, amount_direct);
+    }
 
     function ReleaseFundsToOutputAddress()
         public
