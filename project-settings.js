@@ -33,8 +33,8 @@ let tokenSCADA = {
     requires_global_hard_cap: false
 };
 
-let funding_global_soft_cap = 20000;
-let funding_global_hard_cap = 60000;
+let funding_global_soft_cap = new BigNumber(20000).mul( 10 ** 18 );
+let funding_global_hard_cap = new BigNumber(60000).mul( 10 ** 18 );
 let funding_next_phase_price_increase = 20; // percentage increase in next funding phase
 
 let pre_ico_duration = 7 * days;
@@ -46,8 +46,8 @@ let pre_ico_settings = {
     description: "PRE ICO Funding Phase",   //  bytes32 _description,
     start_time: pre_ico_start,              //  uint256 _time_start,
     end_time: pre_ico_end,                  //  uint256 _time_end,
-    amount_cap_soft: 4000,                  //  uint256 _amount_cap_soft,
-    amount_cap_hard: 10000,                 //  uint256 _amount_cap_hard,
+    amount_cap_soft: 0,                     //  uint256 _amount_cap_soft,
+    amount_cap_hard: 0,                     //  uint256 _amount_cap_hard,
     methods: 3,                             //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
     minimum_entry: 1,                       //  uint256 _minimum_entry,
     start_parity: 0,                        //  uint256 _start_parity,
@@ -64,8 +64,8 @@ let ico_settings = {
     description: "ICO Funding Phase",
     start_time: ico_start,
     end_time: ico_end,
-    amount_cap_soft: 16000,
-    amount_cap_hard: 50000,
+    amount_cap_soft: 0,
+    amount_cap_hard: 0,
     methods: 3,
     minimum_entry: 0,
     start_parity: 0,
@@ -75,6 +75,7 @@ let ico_settings = {
 
 let funding_periods = [pre_ico_settings, ico_settings];
 
+/*
 if(tokenSCADA.requires_global_hard_cap === false) {
     // remove hard caps if SCADA requires them to not be set
     funding_global_soft_cap = 0;
@@ -86,9 +87,10 @@ if(tokenSCADA.requires_global_hard_cap === false) {
         funding_periods[i].amount_cap_hard = 0;
     }
 }
-
+*/
 
 let project_milestones = [];
+/*
 let milestone_one = {
     name: "ICO",
     description: "ICO Funding Phase",
@@ -103,7 +105,7 @@ let milestone_one = {
     token_share_percentage: 40,
 };
 project_milestones.push(milestone_one);
-
+*/
 
 let project_bylaws = {
     // funding bylaws
@@ -126,6 +128,64 @@ let project_bylaws = {
 
 };
 
+let team_wallets = [
+    {
+        name: "micky",
+        address: 0,
+        address_rpc: 24,
+        allocation: {
+            units: 25,
+            numerator: 50
+        }
+
+    },
+    {
+        name: "calin",
+        address: 0,
+        address_rpc: 23,
+        allocation: {
+            units: 15,
+            numerator: 50
+        }
+    },
+    {
+        name: "mitza",
+        address: 0,
+        address_rpc: 22,
+        allocation: {
+            units: 7,
+            numerator: 50
+        }
+    },
+    {
+        name: "vlad",
+        address: 0,
+        address_rpc: 21,
+        allocation: {
+            units: 1,
+            numerator: 50
+        }
+    },
+    {
+        name: "ionut",
+        address: 0,
+        address_rpc: 20,
+        allocation: {
+            units: 1,
+            numerator: 50
+        }
+    },
+    {
+        name: "radu",
+        address: 0,
+        address_rpc: 19,
+        allocation: {
+            units: 1,
+            numerator: 50
+        }
+    }
+];
+
 let application_settings = {
     bylaws:project_bylaws,
     funding_periods:funding_periods,
@@ -133,6 +193,7 @@ let application_settings = {
     token:token_settings,
     tokenSCADA:tokenSCADA,
     solidity:solidity,
+    team_wallets:team_wallets,
     doDeployments: false
 };
 

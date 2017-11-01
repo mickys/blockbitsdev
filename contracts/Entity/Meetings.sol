@@ -13,10 +13,10 @@ pragma solidity ^0.4.17;
 import "./../ApplicationAsset.sol";
 
 contract Meetings is ApplicationAsset {
-
+    /*
     function add() public view onlyOwner {
         // find out AppEntity delivery state and based on that decide if initiator has access to call this or not
 
     }
-
+    */
 }

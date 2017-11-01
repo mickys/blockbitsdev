@@ -18,6 +18,7 @@ import "./../ApplicationAsset.sol";
 
 contract ListingContract is ApplicationAsset {
 
+    /*
     // child items
     struct childItem {
         bytes32 name;
@@ -57,5 +58,5 @@ contract ListingContract is ApplicationAsset {
         require(child.index != 0);
         _;
     }
-
+    */
 }

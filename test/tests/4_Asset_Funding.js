@@ -10,6 +10,7 @@ module.exports = function (setup) {
 
 
     contract('Funding Asset', accounts => {
+
         let app, assetContract, TestBuildHelper = {};
         let assetName = "Funding";
 
@@ -54,13 +55,50 @@ module.exports = function (setup) {
             it('throws if called when settings are locked', async () => {
                 await assetContract.applyAndLockSettings();
                 helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addSettings(platformWalletAddress);
+                    await assetContract.addSettings(
+                        platformWalletAddress,
+                        settings.bylaws["funding_global_soft_cap"],
+                        settings.bylaws["funding_global_hard_cap"]
+                    );
                 });
             });
 
-            it('properly sets up the multiSigOutputAddress', async () => {
-                let tx = await assetContract.addSettings(platformWalletAddress);
-                assert.equal(await assetContract.multiSigOutputAddress.call(), platformWalletAddress, 'multiSigOutputAddress should be 0!');
+
+            it('throws if global soft cap is greater than global hard cap', async () => {
+                helpers.assertInvalidOpcode(async () => {
+                    await assetContract.addSettings(
+                        platformWalletAddress,
+                        settings.bylaws["funding_global_hard_cap"],
+                        settings.bylaws["funding_global_soft_cap"]
+                    );
+                });
+            });
+
+            it('properly sets up the funding settings', async () => {
+
+                let tx = await assetContract.addSettings(
+                    platformWalletAddress,
+                    settings.bylaws["funding_global_soft_cap"],
+                    settings.bylaws["funding_global_hard_cap"]
+                );
+
+                let softCap = await assetContract.GlobalAmountCapSoft.call();
+                let hardCap = await assetContract.GlobalAmountCapHard.call();
+                assert.equal(
+                    await assetContract.multiSigOutputAddress.call(),
+                    platformWalletAddress,
+                    'multiSigOutputAddress should not be 0!'
+                );
+                assert.equal(
+                    softCap.toString(),
+                    settings.bylaws["funding_global_soft_cap"].toString(),
+                    'GlobalAmountCapSoft should not be 0!'
+                );
+                assert.equal(
+                    hardCap.toString(),
+                    settings.bylaws["funding_global_hard_cap"].toString(),
+                    'GlobalAmountCapHard should not be 0!'
+                );
             });
 
         });
@@ -281,7 +319,7 @@ module.exports = function (setup) {
 
                         let eventFilter = helpers.utils.hasEvent(
                             paymentTx,
-                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                            'EventFundingReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
@@ -311,13 +349,13 @@ module.exports = function (setup) {
 
                         let eventFilter = helpers.utils.hasEvent(
                             paymentTx,
-                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                            'EventFundingReceivedPayment(address,uint8,uint256)'
                         );
                         let secondPaymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
 
                         eventFilter = helpers.utils.hasEvent(
                             secondPaymentTx,
-                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                            'EventFundingReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
@@ -354,13 +392,13 @@ module.exports = function (setup) {
                         // direct payment
                         let eventFilter = helpers.utils.hasEvent(
                             await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1}),
-                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                            'EventFundingReceivedPayment(address,uint8,uint256)'
                         );
 
                         // milestone payment
                         eventFilter = helpers.utils.hasEvent(
                             await FundingInputMilestone.sendTransaction({value: MilestonePaymentValue, from: investorWallet1}),
-                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                            'EventFundingReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
@@ -401,7 +439,7 @@ module.exports = function (setup) {
                         let paymentTx = await FundingInputMilestone.sendTransaction({value: PaymentValue, from: investorWallet1});
                         let eventFilter = helpers.utils.hasEvent(
                             paymentTx,
-                            'EventVaultReceivedPayment(address,uint8,uint256)'
+                            'EventFundingReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );

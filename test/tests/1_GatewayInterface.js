@@ -11,7 +11,6 @@ module.exports = function(setup) {
         });
 
         it('initializes with empty properties', async () => {
-            gateway = await contracts.GatewayInterface.new();
             assert.equal( await gateway.getApplicationAddress.call() , 0x0, 'address should be empty');
         });
 
@@ -34,6 +33,27 @@ module.exports = function(setup) {
                     await gateway.requestCodeUpgrade(emptystub.address, settings.sourceCodeUrl)
                 })
             });
+
+            it('throws if current Application cannot initialize Assets properly', async () => {
+                let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                return helpers.assertInvalidOpcode(async () => {
+                    await appBad.linkToGateway(gateway.address, settings.sourceCodeUrl);
+                });
+            });
+
+            /*
+            it('throws if current Application cannot transfer assets to new application', async () => {
+                let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                let proposals = await contracts.Proposals.new();
+                await appBad.addAssetProposals(proposals.address);
+                await appBad.setTestInitializeAssetsResponse(true);
+                await appBad.setTestGatewayInterfaceEntity(gateway.address);
+                return helpers.assertInvalidOpcode(async () => {
+                    await gateway.requestCodeUpgrade(appBad.address, settings.sourceCodeUrl);
+                });
+            });
+
+            */
 
             it('links Application if valid', async () => {
                 await testapp.setTestGatewayInterfaceEntity(gateway.address);
@@ -91,6 +111,57 @@ module.exports = function(setup) {
                 );
                 assert.equal(eventFilter.length, 1, 'EventAppEntityAssetsToNewApplication event not received.')
     
+            });
+
+            it('throws if current Application cannot transfer assets to new application', async () => {
+                let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                let proposals = await contracts.Proposals.new();
+                await appBad.addAssetProposals(proposals.address);
+                await appBad.setTestInitializeAssetsResponse(true);
+                await appBad.setTestTransferResponse(false);
+                await appBad.setTestGatewayInterfaceEntity(gateway.address);
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await gateway.requestCodeUpgrade(appBad.address, settings.sourceCodeUrl);
+                });
+            });
+
+
+            it('throws if current Application cannot initialize new application', async () => {
+
+                let proposals = await contracts.Proposals.new();
+                let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                await appBad.addAssetProposals(proposals.address);
+                await appBad.setTestInitializeAssetsResponse(true);
+                await appBad.setTestTransferResponse(true);
+                await appBad.setTestTestLockResponse(true);
+                await appBad.setTestInitializeResponse(true);
+                await appBad.linkToGateway(gateway.address, settings.sourceCodeUrl);
+                let testapp2 = await helpers.getContract("TestApplicationEntityBad").new();
+                await testapp2.setTestGatewayInterfaceEntity(gateway.address);
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await appBad.callTestApproveCodeUpgrade(testapp2.address);
+                });
+            });
+
+
+            it('throws if current Application cannot lock itself after transferring assets', async () => {
+
+                let proposals = await contracts.Proposals.new();
+                let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                await appBad.addAssetProposals(proposals.address);
+                await appBad.setTestInitializeAssetsResponse(true);
+                await appBad.setTestTransferResponse(true);
+                await appBad.setTestInitializeResponse(true);
+                await appBad.linkToGateway(gateway.address, settings.sourceCodeUrl);
+                let testapp2 = await helpers.getContract("TestApplicationEntityBad").new();
+                await testapp2.setTestGatewayInterfaceEntity(gateway.address);
+                await appBad.setTestTestLockResponse(false);
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await appBad.callTestApproveCodeUpgrade(testapp2.address);
+                });
             });
         });
     });

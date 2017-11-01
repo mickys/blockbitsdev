@@ -4,7 +4,7 @@
   "description": "Core contracts for BlockBits",
   "main": "index.js",
   "scripts": {
-    "test": "truffle test",
+    "test": "scripts/test.sh",
     "testToHtml": "scripts/testOutputToHtml.sh",
     "lint": "solium --dir ./contracts",
     "coverage": "scripts/coverage.sh",

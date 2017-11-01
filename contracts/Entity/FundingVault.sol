@@ -9,7 +9,6 @@
 
 // add Token / Ether Black Hole prevention
 
-// add Milestones
 // add Emergency Fund
 
 // think about team's locked tokens

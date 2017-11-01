@@ -67,14 +67,17 @@ tests.push("4_Asset_TokenManager");
 tests.push("Algorithms/TokenSCADA1Market");
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
-// tests = [];
-
-
-tests = [];
 tests.push("4_Asset_Funding_Payments");
 
-tests = [];
-tests.push("3_ApplicationEntity");
+
+// tests = [];
+// tests.push("4_FundingVault");
+// tests.push("4_Asset_Funding");
+// tests.push("4_Asset_Funding_Payments");
+// tests.push("1_GatewayInterface");
+
+//tests = [];
+
 
 
 

@@ -11,22 +11,24 @@ fi
 
 testrpc_running() {
   nc -z localhost "$testrpc_port"
+
 }
 
 start_testrpc() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
+    node_modules/.bin/testrpc-sc -a 25 --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
 #    node_modules/.bin/testrpc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
   else
-    node_modules/.bin/testrpc -i 15 > /dev/null &
+    node_modules/.bin/testrpc -a 25 -i 15 > /dev/null &
   fi
 
   testrpc_pid=$!
+  echo $testrpc_pid > testrpc.pid
 }
 
 if testrpc_running; then
-  echo "Using existing testrpc instance at port $testrpc_port"
-else
-  echo "Starting our own testrpc instance at port $testrpc_port"
-  start_testrpc
+    kill -9 $(<"testrpc.pid")
 fi
+
+echo "Starting our own testrpc instance at port $testrpc_port"
+start_testrpc

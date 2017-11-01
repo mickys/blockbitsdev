@@ -267,5 +267,20 @@ module.exports = function(setup) {
                 });
             });
         });
+
+        context('acceptCodeUpgradeProposal()', async () => {
+            beforeEach(async () => {
+                gateway = await contracts.GatewayInterface.new();
+            });
+
+            it('throws if caller is not Proposals Asset', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                let app2 = await contracts.ApplicationEntity.new();
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.acceptCodeUpgradeProposal(app2.address);
+                });
+            });
+        });
+
     });
 };

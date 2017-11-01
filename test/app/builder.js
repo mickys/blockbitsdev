@@ -5,6 +5,9 @@ function TestBuildHelper(setup, assert, accounts, platformWalletAddress){
     this.accounts = accounts;
     this.deployed = [];
     this.platformWalletAddress = platformWalletAddress;
+
+    this.assignTeamWallets();
+
 }
 
 TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, requiredAssets) {
@@ -70,6 +73,13 @@ TestBuildHelper.prototype.addFundingStage = async function ( id, overrides ) {
     );
 };
 
+TestBuildHelper.prototype.assignTeamWallets = async function () {
+    for(i = 0; i < this.setup.settings.team_wallets.length; i++) {
+        if(this.setup.settings.team_wallets[i].address === 0) {
+            this.setup.settings.team_wallets[i].address = this.accounts[this.setup.settings.team_wallets[i].address_rpc];
+        }
+    }
+};
 
 TestBuildHelper.prototype.getMyVaultAddress = async function (myAddress) {
     let fundingAsset = this.getDeployedByName("Funding");
@@ -80,7 +90,11 @@ TestBuildHelper.prototype.getMyVaultAddress = async function (myAddress) {
 
 TestBuildHelper.prototype.addFundingSettings = async function () {
     let fundingAsset = this.getDeployedByName("Funding");
-    await fundingAsset.addSettings(this.platformWalletAddress);
+    await fundingAsset.addSettings(
+        this.platformWalletAddress,
+        this.setup.settings.bylaws["funding_global_soft_cap"],
+        this.setup.settings.bylaws["funding_global_hard_cap"]
+    );
 
 };
 
@@ -99,12 +113,11 @@ TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (Funding
 
     let tokensInStage = totalTokenSupply.mul(percentInSettings).div(100);
 
-    /*
-    uint256 tokensInStage = tokenSupply * percentInStage / 100;
-    uint256 myTokens = (tokensInStage * _ether_amount) / raisedAmount;
-    */
-
-    return tokensInStage.mul( DirectPaymentValue ).div(raisedAmount);
+    let result = tokensInStage.mul( DirectPaymentValue ).div(raisedAmount);
+    if(result.toString() === "NaN") {
+        result = new this.setup.helpers.BigNumber(0);
+    }
+    return result;
 };
 
 

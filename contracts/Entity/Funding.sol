@@ -97,6 +97,10 @@ contract Funding is ApplicationAsset {
 
     event DebugAction(bytes32 indexed _name, bool indexed _allowed);
 
+
+    event EventFundingReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
+
+
     function Funding() ApplicationAsset public {
         setApplicationStates();
         CurrentEntityState = getEntityState("NEW");
@@ -143,21 +147,26 @@ contract Funding is ApplicationAsset {
         return EntityStates[name];
     }
 
-    function addSettings(address _outputAddress) public requireInitialised requireSettingsNotApplied {
-        multiSigOutputAddress = _outputAddress;
-    }
 
     /*
         When using a funding model that can sell tokens at the market decided value, then a global hard cap is required.
         If global hard cap is defined:
             - funding stage caps are ignored.
-            - token distribution is done based on calculated parity in each funding stage
+            - token distribution is done based on fractions in each funding stage
             - tokens left unsold in funding stages get redistributed to all participants
     */
 
+    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap )
+        public
+        requireInitialised
+        requireSettingsNotApplied
+    {
+        if(soft_cap > hard_cap) {
+            revert();
+        }
 
-    function addGlobalHardCap(uint256 hard_cap ) public requireNotInitialised {
-        require(hard_cap > 0);
+        multiSigOutputAddress = _outputAddress;
+        GlobalAmountCapSoft = soft_cap;
         GlobalAmountCapHard = hard_cap;
     }
 
@@ -315,7 +324,6 @@ contract Funding is ApplicationAsset {
         );
     }
 
-    event EventVaultReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
 
     function receivePayment(address _sender, uint8 _payment_method)
         payable
@@ -353,7 +361,7 @@ contract Funding is ApplicationAsset {
             Collection[currentFundingStage].amount_raised+= msg.value;
 
             // save in local mapping, emit event, send value to vault, return success or revert.
-            EventVaultReceivedPayment(vault, _payment_method, msg.value);
+            EventFundingReceivedPayment(vault, _payment_method, msg.value);
 
             if( vault.addPayment.value(msg.value)( _payment_method ) ) {
                 return true;

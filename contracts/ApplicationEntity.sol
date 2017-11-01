@@ -55,6 +55,7 @@ contract ApplicationEntity {
     event EventAppEntityReady ( address indexed _address );
     event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
     event EventAppEntityInitAsset ( bytes32 indexed _name, address indexed _address );
+    event EventAppEntityInitAssetsToThis ( uint8 indexed _assetNum );
     event EventAppEntityAssetsToNewApplication ( address indexed _address );
     event EventAppEntityLocked ( address indexed _address );
 
@@ -163,11 +164,8 @@ contract ApplicationEntity {
     }
 
     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {
-
         _initialized = true;
-
         EventAppEntityReady( address(this) );
-
         return true;
     }
 
@@ -210,6 +208,8 @@ contract ApplicationEntity {
                 revert();
             }
         }
+        EventAppEntityInitAssetsToThis( AssetCollectionNum );
+
         return true;
     }
 
