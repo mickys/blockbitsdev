@@ -16,6 +16,7 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     let app = await this.deploy("ApplicationEntity");
 
     // add bylaws into app
+    await this.addBylawsIntoApp();
 
     // deploy asset contract
     let assetContract = await this.deploy(assetName);
@@ -37,6 +38,10 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     await app.initializeAssetsToThisApplication();
 
     return assetContract;
+};
+
+TestBuildHelper.prototype.addBylawsIntoApp = async function () {
+
 };
 
 TestBuildHelper.prototype.addFundingStage = async function ( id, overrides ) {

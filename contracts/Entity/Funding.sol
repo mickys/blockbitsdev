@@ -31,6 +31,10 @@ contract Funding is ApplicationAsset {
     mapping (bytes32 => uint8) public EntityStates;
     mapping (bytes32 => uint8) public RecordStates;
 
+    mapping  (address => address) public vaultList;
+    mapping  (uint256 => address) public vaultById;
+    uint256 vaultNum = 0;
+
     uint8 public CurrentEntityState;
 
     // mapping (bytes32 => uint8) public FundingMethods;
@@ -131,6 +135,7 @@ contract Funding is ApplicationAsset {
         EntityStates["FUNDING_ENDED"]   = 5;
         EntityStates["FAILED"]          = 6;
         EntityStates["SUCCESSFUL"]      = 7;
+        EntityStates["FINAL"]           = 8;
 
         // Funding Stage States
         RecordStates["__IGNORED__"]     = 0;
@@ -319,8 +324,8 @@ contract Funding is ApplicationAsset {
         uint8 StageId = _id + 1;
 
         return (
-        Collection[StageId].token_share_percentage,
-        Collection[StageId].amount_raised
+            Collection[StageId].token_share_percentage,
+            Collection[StageId].amount_raised
         );
     }
 
@@ -349,6 +354,11 @@ contract Funding is ApplicationAsset {
                 )) {
                     // store new vault address.
                     vaultList[_sender] = vault;
+                    // increase internal vault number
+                    //vaultNum++;
+                    // assign vault to by int registry
+                    //vaultById[vaultNum] = vault;
+
                 } else {
                     revert();
                 }
@@ -372,13 +382,12 @@ contract Funding is ApplicationAsset {
             revert();
         }
     }
-
     modifier onlyInputPaymentMethod() {
         require(msg.sender != 0x0 && ( msg.sender == address(DirectInput) || msg.sender == address(MilestoneInput) ));
         _;
     }
 
-    mapping  (address => address) public vaultList;
+
 
     function getMyVaultAddress(address _sender) public view returns (address) {
         return vaultList[_sender];
@@ -391,6 +400,64 @@ contract Funding is ApplicationAsset {
             return false;
         }
     }
+
+    /*
+
+    uint256 lastProcessedVaultId = 1;
+
+    function FundingEndedProcessVaultList(uint8 length) public {
+        require(CurrentEntityState == getEntityState("FUNDING_ENDED"));
+
+        uint256 start = lastProcessedVaultId;
+        uint256 end = lastProcessedVaultId + length;
+
+        if(end > vaultNum) {
+            end = vaultNum;
+        }
+
+        for(uint256 i = start; i <= end; i++) {
+            address currentVault = vaultById[i];
+
+            lastProcessedVaultId++;
+        }
+
+        if(lastProcessedVaultId  == vaultNum + 1) {
+            // we finished
+            // change current state to next.. FINAL
+        }
+
+    }
+
+    struct TeamMember {
+        uint8 id;
+        address wallet;
+        uint8 fraction;
+    }
+
+    mapping (uint8 => TeamMember) TeamMembers;
+    uint8 TeamMembersNum = 0;
+
+    function addTeamMember(address _wallet, uint8 _fraction) public requireNotInitialised {
+
+        TeamMember storage member = TeamMembers[TeamMembersNum++];
+            member.id = TeamMembersNum;
+            member.wallet = _wallet;
+            member.fraction = _fraction;
+    }
+
+    function AllocateTokensToTeamMembers() public requireNotInitialised {
+        for(uint8 i = 0; i < TeamMembersNum; i++ ) {
+
+            TeamMember storage member = TeamMembers[i];
+            // member.id = TeamMembersNum;
+            // member.wallet = _wallet;
+            // member.fraction = _fraction;
+            // member.id = i;
+        }
+        // create token vault
+        // allocate tokens
+    }
+    */
 
     /*
         Hook into Project State

@@ -16,6 +16,7 @@
 
 pragma solidity ^0.4.17;
 
+import "./Token.sol";
 import "./Funding.sol";
 import "./Milestones.sol";
 import "./TokenManager.sol";
@@ -41,6 +42,7 @@ contract FundingVault {
     /*
         Assets
     */
+    // ApplicationEntityABI public ApplicationEntity;
     Funding public FundingEntity;
     Milestones public MilestonesEntity;
     TokenManager public TokenManagerEntity;
@@ -52,6 +54,7 @@ contract FundingVault {
     uint256 public amount_direct = 0;
     uint256 public amount_milestone = 0;
 
+    bool emergencyFundReleased = false;
 
     struct PurchaseStruct {
         uint256 unix_time;
@@ -96,6 +99,10 @@ contract FundingVault {
 
         address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
         TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
+
+
+        // address ApplicationEntityAddress = TokenManagerEntity.owner();
+        // ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
 
         // init
         _initialized = true;
@@ -154,6 +161,31 @@ contract FundingVault {
         requireInitialised
         onlyManager
     {
+        // first make sure cashback is not possible
+        if(!canCashBack()) {
+            if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL") ) {
+
+                // step 0
+                // figure out how much ether we are releasing.
+                // based on application state
+                // we want to have an internal state or something that does not let us run the same thing again
+
+                // step 1
+                // allocate tokens for direct funding.
+
+                // step 2
+                // allocate tokens for milestone funding.
+
+                // step 3
+                // allocate tokens for emergency fund
+
+                // step 4
+                // send ether to output address
+
+            }
+        }
+
+
         // IF Funding Contract is SUCCESSFUL
         // - release direct funding => direct_released = true
 
@@ -170,38 +202,128 @@ contract FundingVault {
         */
     }
 
+    /*
+    function releaseTokensAndEtherForEmergencyFund() public {
+        uint256 Emergency_Fund_Exists = ApplicationEntity.getBylawUint256("Emergency_Fund_Exists") ;
+
+        if(Emergency_Fund_Exists == 1 && emergencyFundReleased == false) {
+            // get amount percentage from application bylaws
+            uint256 percentage = ApplicationEntity.getBylawUint256("Emergency_Fund_Percentage") ;
+        }
+    }
+
+
+   function getTokenAmountByEther() public view {
+
+       var (percentInStage, raisedAmount) = FundingEntity.getFundingStageVariablesRequiredBySCADA(_fundingStage);
+
+       // make sure raisedAmount is higher than 0
+       if(raisedAmount > 0) {
+           uint256 tokensInStage = tokenSupply * percentInStage / 100;
+           uint256 myTokens = (tokensInStage * _ether_amount) / raisedAmount;
+           return myTokens;
+       } else {
+           return 0;
+       }
+
+    }
+    */
+
     function ReleaseFundsToInvestor()
         public
-        view // remove this shit
         requireInitialised
         isOwner
     {
-        if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("NEW") ) {
+        if(canCashBack()) {
 
+            // IF we're doing a cashback
+            // transfer vault tokens back to owner address
+            // send all ether to wallet owner
+
+            address TokenAddress = TokenManagerEntity.TokenEntity();
+            Token TokenEntity = Token(TokenAddress);
+
+            // get token balance
+            uint256 myBalance = TokenEntity.balanceOf(address(this));
+            // transfer all vault tokens to owner
+            TokenEntity.transferFrom(address(this), outputAddress, myBalance );
+
+            // now transfer all remaining ether back to investor address
+            vaultOwner.transfer(this.balance);
         }
-        // IF Funding Contract is FAILED
-        // transfer my tokens back to owner address
-        // send all ether to wallet owner
     }
 
     /*
-    function getStats() public view returns (uint256, uint256) {
-        uint256 amoutByDirect = 0;
-        uint256 amoutByMilestone = 0;
-        for(uint16 i = 1; i <= purchaseRecordsNum; i++ ) {
-            PurchaseStruct storage current = purchaseRecords[i];
-            // direct funding
-            if(current.payment_method == 1) {
-                amoutByDirect+=current.amount;
-            }
-            // milestone funding
-            else if(current.payment_method == 2) {
-                amoutByMilestone+=current.amount;
-            }
-        }
-        return (amoutByDirect, amoutByMilestone);
-    }
+        1 - if the funding of the project Failed, and releases all locked ethereum back to the Investor.
+        2 - if the Investor votes NO to a Development Milestone Completion Proposal, where the majority
+            also votes NO and releases remaining locked ethereum back to the Investor.
+
+        3 - project owner misses a Development Milestone Completion Meeting and releases remaining locked
+            ethereum back to the Investor.
+
+        4 - checks if project is stuck in "development" ?!
+
+        Can be manually triggered by anyone if the project remains stuck at any state
+        other than "Development Finalised" for whatever reason. ( Never be possible in
+        theory but cannot be ruled out )
+
     */
+    function canCashBack() public view requireInitialised returns (bool) {
+
+        // case 1
+        if(checkFundingStateFailed()) {
+            return true;
+        }
+        // case 2
+        if(checkMilestoneStateInvestorVotedNoVotingEndedNo()) {
+            return true;
+        }
+        // case 3
+        if(checkOwnerFailedToSetTimeOnMeeting()) {
+            return true;
+        }
+        // case 4
+        if(checkIfAppOrAnyAssetFailedToChangeState()) {
+            return true;
+        }
+        return false;
+    }
+
+    function checkFundingStateFailed() public view returns (bool) {
+        if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED") ) {
+            return true;
+        }
+        return false;
+    }
+
+    function checkMilestoneStateInvestorVotedNoVotingEndedNo() public view returns (bool) {
+        if(MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("VOTING_ENDED_NO") ) {
+            // check if we voted NO, and if so return true
+            return true;
+        }
+        return false;
+    }
+
+    function checkOwnerFailedToSetTimeOnMeeting() public view returns (bool) {
+        // probably need to check all state change rules on all assets.
+
+        uint8 currentMilestoneId = MilestonesEntity.currentMilestone();
+        currentMilestoneId = 0;
+        // get record times
+
+        // get bylaws from app
+
+        // check if time has passed.
+
+        return false;
+    }
+
+    // change to view once we do things
+    function checkIfAppOrAnyAssetFailedToChangeState() public pure returns (bool) {
+        // probably need to check all state change rules on all assets.
+        return false;
+    }
+
 
     modifier isOwner() {
         require(msg.sender == vaultOwner);

@@ -20,4 +20,5 @@ contract ApplicationEntityABI {
     function getBylawUint256(bytes32 name) public view returns (uint256);
     function getBylawString(bytes32 name) public view returns (string);
 
+
 }

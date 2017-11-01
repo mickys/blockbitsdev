@@ -85,10 +85,11 @@ module.exports = function(setup) {
 
             // no payment
             let FundingPeriodId = 0;
-            let TokenStake = await assetContract.getMyTokenStakeInCurrentFunding.call({from: accounts[0]});
+            let TokenStake = await assetContract.getMyTokenStakeInCurrentFunding.call({from: accounts[5]});
             let expectedTokens = await TestBuildHelper.getTokenStakeInFundingPeriod(FundingPeriodId, 0);
             assert.equal(TokenStake.toString(), expectedTokens.toString(), "Token stake value mismatch!");
         });
+
 
         context('addPayment()', async () => {
             beforeEach(async () => {

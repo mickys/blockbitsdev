@@ -70,8 +70,8 @@ tests.push("4_Asset_Funding");
 tests.push("4_Asset_Funding_Payments");
 
 
-// tests = [];
-// tests.push("4_FundingVault");
+tests = [];
+tests.push("oneDeployTest");
 // tests.push("4_Asset_Funding");
 // tests.push("4_Asset_Funding_Payments");
 // tests.push("1_GatewayInterface");

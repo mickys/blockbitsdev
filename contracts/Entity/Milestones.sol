@@ -15,6 +15,12 @@ import "./../ApplicationAsset.sol";
 
 contract Milestones is ApplicationAsset {
 
+    mapping (bytes32 => uint8) public EntityStates;
+    mapping (bytes32 => uint8) public RecordStates;
+
+    uint8 public CurrentEntityState;
+
+
     // link bylaws contract
     // link project state contract.. maybe in bylaws ?
     //
@@ -61,6 +67,8 @@ contract Milestones is ApplicationAsset {
     }
 
     mapping (uint8 => Record) public collection;
+    uint8 public currentMilestone = 1;
+
     mapping (bytes32 => StateChangeRecord) public stateChanges;
 
     // remove this shit
@@ -74,7 +82,38 @@ contract Milestones is ApplicationAsset {
     mapping (bytes32 => Requirement) public requirements;
 
     function Milestones() ApplicationAsset public {
+        setApplicationStates();
+        CurrentEntityState = getEntityState("NEW");
+    }
 
+    function setApplicationStates() internal {
+
+        // Contract States
+        EntityStates["__IGNORED__"]                 = 0;
+        EntityStates["NEW"]                         = 1;
+        EntityStates["WAITING"]                     = 2;
+        EntityStates["IN_DEVELOPMENT"]              = 3;
+        EntityStates["DEADLINE_MEETING_TIME_YES"]   = 4;
+        EntityStates["DEADLINE_MEETING_TIME_FAILED"]= 5;
+        EntityStates["VOTING_IN_PROGRESS"]          = 6;
+        EntityStates["VOTING_ENDED_YES"]            = 7;
+        EntityStates["VOTING_ENDED_NO"]             = 8;
+        EntityStates["FINAL"]                       = 9;
+
+
+        // Funding Stage States
+        RecordStates["__IGNORED__"]     = 0;
+        RecordStates["NEW"]             = 1;
+        RecordStates["IN_PROGRESS"]     = 2;
+        RecordStates["FINAL"]           = 3;
+    }
+
+    function getRecordState(bytes32 name) public view returns (uint8) {
+        return RecordStates[name];
+    }
+
+    function getEntityState(bytes32 name) public view returns (uint8) {
+        return EntityStates[name];
     }
 
     /*
@@ -485,12 +524,18 @@ contract Milestones is ApplicationAsset {
         } else if (rec.state == uint8(States.VOTING_ENDED)) {
 
             // get voting result
+            /*
             if( getProposalVotingResult(_RecordId) ) {
                 // accepted
                 result = int8(States.FINAL);
             } else {
                 result = int8(States.CASH_BACK_VOTE_REJECTED);
             }
+            */
+
+            // if we have a vote result that majority said NO
+            // we wait for 7 days before moving from this state to "funds release".
+
 
         } else if (rec.state == uint8(States.CASH_BACK_VOTE_REJECTED)) {
 

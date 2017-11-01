@@ -59,5 +59,4 @@ contract TokenManager is ApplicationAsset {
     function getTokenSCADARequiresHardCap() public view returns (bool) {
         return TokenSCADAEntity.requiresHardCap();
     }
-
 }
