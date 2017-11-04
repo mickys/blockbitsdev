@@ -35,6 +35,7 @@ let tokenSCADA = {
 
 let funding_global_soft_cap = new BigNumber(20000).mul( 10 ** 18 );
 let funding_global_hard_cap = new BigNumber(60000).mul( 10 ** 18 );
+
 let funding_next_phase_price_increase = 20; // percentage increase in next funding phase
 
 let pre_ico_duration = 7 * days;

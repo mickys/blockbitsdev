@@ -7,7 +7,6 @@ function TestBuildHelper(setup, assert, accounts, platformWalletAddress){
     this.platformWalletAddress = platformWalletAddress;
 
     this.assignTeamWallets();
-
 }
 
 TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, requiredAssets) {
@@ -91,6 +90,36 @@ TestBuildHelper.prototype.FundingProcessToEndState = async function (test) {
     }
     // run ticks and such till
 };
+
+TestBuildHelper.prototype.ValidateFundingState = async function ( entity_start, entity_required, record_start, record_required ) {
+
+    let FundingAsset = this.getDeployedByName("Funding");
+
+    let CurrentRecordState, RecordStateRequired, CurrentEntityState, EntityStateRequired;
+    let States = await FundingAsset.getRequiredStateChanges.call();
+    CurrentRecordState = States[0];
+    RecordStateRequired = States[1];
+    EntityStateRequired = States[2];
+    CurrentEntityState = await FundingAsset.CurrentEntityState.call();
+
+
+    if(CurrentEntityState.toString() !== entity_start) {
+        return false;
+    }
+    else if(EntityStateRequired.toString() !== entity_required) {
+        return false;
+    }
+    else if(CurrentRecordState.toString() !== record_start) {
+        return false;
+    }
+    else if(RecordStateRequired.toString() !== record_required) {
+        return false;
+    }
+
+    return true;
+};
+
+
 
 TestBuildHelper.prototype.assignTeamWallets = async function () {
     for(i = 0; i < this.setup.settings.team_wallets.length; i++) {

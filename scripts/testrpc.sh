@@ -15,10 +15,12 @@ testrpc_running() {
 
 start_testrpc() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/testrpc-sc -a 25 --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
+#    node_modules/.bin/testrpc-sc -a 10 --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
 #    node_modules/.bin/testrpc --gasLimit 0xfffffffffff --port "$testrpc_port"  > /dev/null &
+    scripts/startrpccov.sh > /dev/null &
   else
-    node_modules/.bin/testrpc -a 25 -i 15 > /dev/null &
+    # node_modules/.bin/testrpc -a 10 -i 15 > /dev/null &
+    scripts/startrpc.sh > /dev/null &
   fi
 
   # testrpc_pid=$!
@@ -26,8 +28,8 @@ start_testrpc() {
 }
 
 if testrpc_running; then
-    # kill -9 $( lsof -i -P | grep $testrpc_port | awk '{print $2}' )
-    echo "not killing anything";
+    kill -9 $( lsof -i -P | grep $testrpc_port | awk '{print $2}' ) > /dev/null &
+    # echo "not killing anything";
 fi
 
 echo "Starting our own testrpc instance at port $testrpc_port"

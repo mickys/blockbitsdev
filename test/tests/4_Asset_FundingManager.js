@@ -66,6 +66,8 @@ module.exports = function (setup) {
         });
 
         context('FundingEndedProcessVaultList()', async () => {
+            /*
+
             let paymentNum, accNum;
             beforeEach(async () => {
                 let PaymentValue = 100; // 100 wei  //0.01 * helpers.solidity.ether;
@@ -95,14 +97,17 @@ module.exports = function (setup) {
 
             it('Funding State is "FUNDING_ENDED"', async () => {
 
+
                 try {
                     let tx = await FundingManager.doProcessVaultOne();
 
                 } catch(e) {
                     console.log(e);
                 }
+
             });
 
+            */
 
             /*
                 These work!

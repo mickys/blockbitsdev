@@ -17,6 +17,12 @@ contract ApplicationAsset {
     event EventRunBeforeInit(bytes32 indexed _name);
     event EventRunBeforeApplyingSettings(bytes32 indexed _name);
 
+
+    mapping (bytes32 => uint8) public EntityStates;
+    mapping (bytes32 => uint8) public RecordStates;
+    uint8 public CurrentEntityState;
+
+
     bytes32 assetName;
 
     /* Asset records */
@@ -38,6 +44,10 @@ contract ApplicationAsset {
     }
 
     function setInitialOwnerAndName(bytes32 _name) external requireNotInitialised returns (bool){
+        // init states
+        setAssetStates();
+        // set initial state
+        CurrentEntityState = getEntityState("NEW");
         address _newOwner = msg.sender;
         require(owner == address(0x0) && _newOwner != address(0x0));
         owner = _newOwner;
@@ -48,10 +58,23 @@ contract ApplicationAsset {
         return true;
     }
 
-    function runBeforeInitialization()
-        internal
-        requireNotInitialised
-    {
+    function setAssetStates() internal {
+        // Asset States
+        EntityStates["__IGNORED__"]     = 0;
+        EntityStates["NEW"]             = 1;
+        // Funding Stage States
+        RecordStates["__IGNORED__"]     = 0;
+    }
+
+    function getRecordState(bytes32 name) public view returns (uint8) {
+        return RecordStates[name];
+    }
+
+    function getEntityState(bytes32 name) public view returns (uint8) {
+        return EntityStates[name];
+    }
+
+    function runBeforeInitialization() internal requireNotInitialised {
         EventRunBeforeInit(assetName);
     }
 

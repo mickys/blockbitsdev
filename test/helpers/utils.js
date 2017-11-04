@@ -50,12 +50,11 @@ let FundingEntityStates = [
     { key: 2,  name: "WAITING"},
     { key: 3,  name: "IN_PROGRESS"},
     { key: 4,  name: "COOLDOWN"},
-    { key: 5,  name: "ALL_FUNDING_PERIODS_PROCESSED"},
-    { key: 6,  name: "SUCCESSFUL"},
-    { key: 7,  name: "FAILED"},
-    { key: 8,  name: "CASHBACK_IN_PROGRESS"},
-    { key: 9,  name: "CASHBACK_COMPLETE"},
-    { key: 10, name: "FINAL"}
+    { key: 5,  name: "FUNDING_ENDED"},
+    { key: 6,  name: "FAILED"},
+    { key: 7,  name: "FAILED_FINAL"},
+    { key: 8,  name: "SUCCESSFUL"},
+    { key: 9,  name: "SUCCESSFUL_FINAL"},
 ];
 
 let FundingMethodIds = [
@@ -155,7 +154,7 @@ module.exports = {
     },
     async showAccountBalances(helpers, accounts) {
         helpers.utils.toLog(logPre + " TestRPC Balances: ");
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < accounts.length; i++) {
             let balance = await helpers.utils.getBalance(helpers.artifacts, accounts[i]);
             helpers.utils.toLog(
                 logPre +
@@ -312,18 +311,21 @@ module.exports = {
             helpers.utils.getFundingStageStateNameById(helpers.web3util.toDecimal(FundingStage[2]))
         );
 
-        let stateChanges = await assetContract.getFundingStageStateRequiredChanges.call();
+        let stateChanges = await assetContract.getRequiredStateChanges.call();
+        let RecordStateRequired = stateChanges[1];
+        let EntityStateRequired = stateChanges[2];
 
-        let stateChangeInt = helpers.web3util.toDecimal(stateChanges);
+
+        let stateChangeInt = helpers.web3util.toDecimal(RecordStateRequired);
         if(stateChangeInt !== 0) {
             helpers.utils.toLog(
-                logPre + "Required state change:  " +
+                logPre + "Required record change: " +
                 helpers.utils.colors.red +
                 helpers.utils.getFundingStageStateNameById(stateChangeInt)
             );
         } else {
             helpers.utils.toLog(
-                logPre + "Required state change:  " +
+                logPre + "Required record change: " +
                 helpers.utils.colors.green +
                 helpers.utils.getFundingStageStateNameById(stateChangeInt)
             );
@@ -400,8 +402,8 @@ module.exports = {
             logPre + "-----------------------------------------------------------"
         );
         let AmountRaised = await assetContract.AmountRaised.call();
-        let AmountCapSoft = await assetContract.AmountCapSoft.call();
-        let AmountCapHard = await assetContract.AmountCapHard.call();
+        let AmountCapSoft = await assetContract.GlobalAmountCapSoft.call();
+        let AmountCapHard = await assetContract.GlobalAmountCapHard.call();
         let TokenSellPercentage = await assetContract.TokenSellPercentage.call();
 
         let Contract_current_timestamp = await assetContract.getTimestamp.call();
@@ -471,7 +473,7 @@ module.exports = {
         );
         helpers.utils.toLog("");
     },
-    async displayFundingStageStruct(helpers, struct) {
+    displayFundingStageStruct(helpers, struct) {
 
         // helpers.utils.toLog(struct);
         helpers.utils.toLog(logPre + "name:             " + helpers.web3util.toAscii(struct[0]));           // bytes32
@@ -490,16 +492,16 @@ module.exports = {
         helpers.utils.toLog(logPre + "index:            " + helpers.web3util.toDecimal(struct[13]));        // uint8
         helpers.utils.toLog("");
     },
-    async getFundingStageStateNameById(_id) {
+    getFundingStageStateNameById(_id) {
         return FundingStageStates.filter(x => x.key === _id)[0].name;
     },
-    async getFundingStageStateIdByName(_name) {
+    getFundingStageStateIdByName(_name) {
         return FundingStageStates.filter(x => x.name === _name)[0].key;
     },
-    async getFundingEntityStateNameById(_id) {
+    getFundingEntityStateNameById(_id) {
         return FundingEntityStates.filter(x => x.key === _id)[0].name;
     },
-    async getFundingEntityStateIdByName(_name) {
+    getFundingEntityStateIdByName(_name) {
         return FundingEntityStates.filter(x => x.name === _name)[0].key;
     },
     async getContractBalance(helpers, address) {

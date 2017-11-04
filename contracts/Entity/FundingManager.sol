@@ -31,6 +31,19 @@ contract FundingManager is ApplicationAsset {
     mapping  (uint256 => address) public vaultById;
     uint256 public vaultNum = 0;
 
+    function setAssetStates() internal {
+        // Asset States
+        EntityStates["__IGNORED__"]                 = 0;
+        EntityStates["NEW"]                         = 1;
+        EntityStates["FUNDING_SUCCESSFUL_START"]    = 7;
+        EntityStates["FUNDING_SUCCESSFUL_PROCESSED"]= 8;
+        EntityStates["FUNDING_FAILED_START"]        = 9;
+        EntityStates["FUNDING_FAILED_PROCESSED"]    = 10;
+
+        // Funding Stage States
+        RecordStates["__IGNORED__"]     = 0;
+    }
+
     function runBeforeApplyingSettings()
         internal
         requireInitialised
@@ -120,6 +133,8 @@ contract FundingManager is ApplicationAsset {
         }
     }
 
+    bool public fundingProcessed = false;
+
     uint256 public lastProcessedVaultId = 0;
 
     function FundingEndedProcessVaultList(uint8 length) public {
@@ -136,7 +151,7 @@ contract FundingManager is ApplicationAsset {
             address currentVault = vaultById[i];
 
             EventFundingManagerProcessedVault(currentVault, i);
-            FundingVault vault = FundingVault(currentVault);
+            // FundingVault vault = FundingVault(currentVault);
 
             /*
             if(!vault.ReleaseFundsToOutputAddress()) {
@@ -152,6 +167,9 @@ contract FundingManager is ApplicationAsset {
             lastProcessedVaultId = 0;
             // reset and change state
             // change funding state to FINAL
+            fundingProcessed = true;
+            //
+
         }
 
     }

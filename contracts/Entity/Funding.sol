@@ -28,10 +28,6 @@ contract Funding is ApplicationAsset {
     FundingInputDirect public DirectInput;
     FundingInputMilestone public MilestoneInput;
 
-    mapping (bytes32 => uint8) public EntityStates;
-    mapping (bytes32 => uint8) public RecordStates;
-
-    uint8 public CurrentEntityState;
 
     // mapping (bytes32 => uint8) public FundingMethods;
     enum FundingMethodIds {
@@ -71,8 +67,8 @@ contract Funding is ApplicationAsset {
 
     // funding settings
     uint256 public AmountRaised = 0;
-    uint256 public AmountCapSoft = 0;
-    uint256 public AmountCapHard = 0;
+    // uint256 public AmountCapSoft = 0;
+    // uint256 public AmountCapHard = 0;
 
     uint256 public GlobalAmountCapSoft = 0;
     uint256 public GlobalAmountCapHard = 0;
@@ -94,7 +90,8 @@ contract Funding is ApplicationAsset {
     event DebugRecordRequiredChanges( uint8 indexed _current, uint8 indexed _required );
     event DebugEntityRequiredChanges( uint8 indexed _current, uint8 indexed _required );
     event DebugCallAgain(uint8 indexed _who);
-    event EventEntityProcessor(uint8 indexed _state);
+    event EventEntityProcessor(uint8 indexed _current, uint8 indexed _required);
+    event EventRecordProcessor(uint8 indexed _current, uint8 indexed _required);
 
     event DebugAction(bytes32 indexed _name, bool indexed _allowed);
 
@@ -103,8 +100,7 @@ contract Funding is ApplicationAsset {
 
 
     function Funding() ApplicationAsset public {
-        setApplicationStates();
-        CurrentEntityState = getEntityState("NEW");
+
     }
 
     function runBeforeInitialization() internal requireNotInitialised {
@@ -122,9 +118,8 @@ contract Funding is ApplicationAsset {
         EventRunBeforeApplyingSettings(assetName);
     }
 
-    function setApplicationStates() internal {
-
-        // Contract States
+    function setAssetStates() internal {
+        // Asset States
         EntityStates["__IGNORED__"]     = 0;
         EntityStates["NEW"]             = 1;
         EntityStates["WAITING"]         = 2;
@@ -132,22 +127,15 @@ contract Funding is ApplicationAsset {
         EntityStates["COOLDOWN"]        = 4;
         EntityStates["FUNDING_ENDED"]   = 5;
         EntityStates["FAILED"]          = 6;
-        EntityStates["SUCCESSFUL"]      = 7;
-        EntityStates["FINAL"]           = 8;
+        EntityStates["FAILED_FINAL"]    = 7;
+        EntityStates["SUCCESSFUL"]      = 8;
+        EntityStates["SUCCESSFUL_FINAL"]= 9;
 
         // Funding Stage States
         RecordStates["__IGNORED__"]     = 0;
         RecordStates["NEW"]             = 1;
         RecordStates["IN_PROGRESS"]     = 2;
         RecordStates["FINAL"]           = 3;
-    }
-
-    function getRecordState(bytes32 name) public view returns (uint8) {
-        return RecordStates[name];
-    }
-
-    function getEntityState(bytes32 name) public view returns (uint8) {
-        return EntityStates[name];
     }
 
 
@@ -266,16 +254,12 @@ contract Funding is ApplicationAsset {
 
     function adjustFundingSettingsBasedOnNewFundingStage() internal {
 
-        uint256 local_AmountCapSoft;
-        uint256 local_AmountCapHard;
         uint8 local_TokenSellPercentage;
 
         for(uint8 i = 1; i <= FundingStageNum; i++) {
             FundingStage storage rec = Collection[i];
 
-            // cumulate soft and hard cap
-            local_AmountCapSoft+=rec.amount_cap_soft;
-            local_AmountCapHard+=rec.amount_cap_hard;
+            // cumulate sell percentages
             local_TokenSellPercentage+= rec.token_share_percentage;
 
             // first stage determines when we start receiving funds
@@ -288,9 +272,6 @@ contract Funding is ApplicationAsset {
             }
         }
 
-        // set globals
-        AmountCapSoft = local_AmountCapSoft;
-        AmountCapHard = local_AmountCapHard;
         TokenSellPercentage = local_TokenSellPercentage;
 
         // set cashback just in case
@@ -332,6 +313,7 @@ contract Funding is ApplicationAsset {
         public
         requireInitialised
         onlyInputPaymentMethod
+        noRequiredStateChangesAvailable
         returns(bool)
     {
         // check that msg.value is higher than 0, don't really want to have to deal with minus in case the network breaks this somehow
@@ -339,6 +321,7 @@ contract Funding is ApplicationAsset {
 
             // increase amount raised, we don't care about payment method here.
             Collection[currentFundingStage].amount_raised+= msg.value;
+            AmountRaised+= msg.value;
 
             EventFundingReceivedPayment(_sender, _payment_method, msg.value);
 
@@ -358,7 +341,11 @@ contract Funding is ApplicationAsset {
         _;
     }
 
-
+    // update tests for this
+    modifier noRequiredStateChangesAvailable() {
+        require(!hasRequiredStateChanges());
+        _;
+    }
 
 
     /*
@@ -375,6 +362,7 @@ contract Funding is ApplicationAsset {
     }
 
 
+    /*
     function canAcceptPayment(uint256 _amount) public view returns (bool) {
 
         // funding state should be IN_PROGRESS
@@ -383,19 +371,19 @@ contract Funding is ApplicationAsset {
             // get current record
             FundingStage memory record = Collection[currentFundingStage];
 
-            /*
-            soft cap is used to determine if funding is successful
-            hard cap is used to determine if payment can be accepted,
-                 each funding stage has it's own hard cap!
-                 so.. globals do nothing here
-            */
+
+            //soft cap is used to determine if funding is successful
+            //hard cap is used to determine if payment can be accepted,
+            //     each funding stage has it's own hard cap!
+            //     so.. globals do nothing here
+
 
             // check if _amount is higher than entry minimum
 
             // check if _amount is lower than remaining ( global maixmum - amount raised )
             // check if _amount is also lower than record.amount_cap_hard if amount_cap_hard > 0
 
-            // uint256 remainingGlobal = AmountCapHard - AmountRaised;
+            // uint256 remainingGlobal = GlobalAmountCapHard - GlobalAmountRaised;
             uint256 remaining = record.amount_cap_hard - record.amount_raised;
 
             if( _amount >= record.minimum_entry  && _amount <= remaining ) {
@@ -411,144 +399,9 @@ contract Funding is ApplicationAsset {
         }
         return false;
     }
-
-    function checkStateStartCashBack() public pure returns (bool) {
-        /*
-            Method should be able to override any internal state that failed for some reason.        
-        */
-        
-    }
-    
-    function checkStateAcceptsCashBack() public view returns (bool) {
-
-        /*
-        enum ThisEntityStates {
-            __IGNORED__,
-            NEW,
-            WAITING,
-            IN_PROGRESS,
-            COOLDOWN,
-            FUNDING_ENDED,
-            SUCCESSFUL,
-            FAILED,
-            CASHBACK_IN_PROGRESS,
-            CASHBACK_COMPLETE,
-            FINAL
-        }
-        */
-        
-        
-        // Funding_Setting_cashback_time_start
-    
-        if( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-            return true;
-        }
-        return false;
-    }
-
-
-
-
-    /*
-        * Next step cycle
-        *
-        * @param        bytes32 _name
-        * @param        bytes32 _description_hash
-        * @param        uint256 _duration
-        *
-        * @access       public
-        * @type         method
-        * @modifiers    onlyOwner, requireInitialised
-        *
-        * @return       uint8
-        */
-
-    function nextStepCycle() public requireInitialised returns (uint8) {
-
-        // fire event so we can check how many times this method runs.
-        LifeCycle();
-
-        // make sure we're in development state
-        if (getProjectCurrentState() == getProjectDevelopmentState()) {
-
-            saveRequiredStateChanges();
-            if( getRecordStateRequiredChanges() != getRecordState("__IGNORED__") ) {
-                nextStepCycle();
-            }
-
-            /*
-            uint8 recId = getFirstUsableFundingStageId();
-            if (recId > 0) {
-
-                // setRequirementsMet();
-
-                FundingStage storage rec = collection[recId];
-                uint8 nextState = rec.state + 1;
-                rec.time_start = getDevelopmentStartDate();
-                rec.time_end = rec.time_start + rec.duration;
-
-                // update state
-                updateFundingStage(rec.index, nextState);
-
-                return recId;
-            }
-            else {
-
-                return 0;
-            }
-            */
-        }
-
-        // no records left.. or project state not in development
-        // app should change project state to -> DELIVERED
-        return 0;
-
-    }
-
-    function saveRequiredStateChanges() public returns (bool) {
-        // getRequiredStateChanges();
-        var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
-
-        CurrentRecordState = 0;
-        EntityStateRequired = 0;
-
-        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
-
-            updateFundingStage( RecordStateRequired );
-            if( RecordStateRequired == getRecordState("FINAL") ) {
-                if(currentFundingStage == FundingStageNum) {
-                    // set funding complete by time!
-                } else {
-                    // jump to next stage if needed
-                    currentFundingStage++;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
-
-    /*
-    * Get first usable record ID
-    *
-    * @access       public
-    * @type         method
-    * @modifiers    onlyOwner, requireInitialised
-    *
-    * @return       uint8
     */
-    /*
-    function getFirstUsableFundingStageId() public view requireInitialised returns ( uint8 ) {
-        for(uint8 i = 1; i <= FundingStageNum; i++) {
-            FundingStage storage rec = Collection[i];
-            if(rec.state != getRecordState("FINAL")) {
-                return rec.index;
-            }
-        }
-        return 0;
-    }
-    */
+
+
     /*
     * Update Existing FundingStage
     *
@@ -563,17 +416,14 @@ contract Funding is ApplicationAsset {
     * @return       void
     */
 
-    function updateFundingStage(
-        uint8 _new_state
-    )
-    public
+    function updateFundingStage( uint8 _new_state )
+        internal
         requireInitialised
         FundingStageUpdateAllowed(_new_state)
-    returns (bool) {
-
+        returns (bool)
+    {
         FundingStage storage rec = Collection[currentFundingStage];
         rec.state       = _new_state;
-
         return true;
     }
 
@@ -633,12 +483,12 @@ contract Funding is ApplicationAsset {
      */
     function getRecordStateRequiredChanges() public view returns (uint8) {
 
-        // get FundingStage current state
-
         FundingStage memory record = Collection[currentFundingStage];
-        // uint8 CurrentRecordState = record.state;
         uint8 RecordStateRequired = getRecordState("__IGNORED__");
 
+        if(record.state == getRecordState("FINAL")) {
+            return getRecordState("__IGNORED__");
+        }
 
         /*
             If funding stage is not started and timestamp is after start time:
@@ -652,10 +502,9 @@ contract Funding is ApplicationAsset {
             This is where we're accepting payments unless we can change state to FINAL
 
             1. Check if timestamp is after record time_end
-            2. Check if AmountRaised equals AmountCapHard
-            3. Has (optional) Funding Phase HardCap
-                - Check if AmountRaised equals Funding Phase HardCap
-
+            2. if SCADA requires hard cap
+                2.a Check if AmountRaised equals GlobalAmountCapHard
+                2.b Check if AmountRaised equals Funding Phase HardCap
             All lead to state change => FINAL
         */
 
@@ -665,16 +514,20 @@ contract Funding is ApplicationAsset {
             return getRecordState("FINAL");
         }
 
-        // Global Hard Cap Check
-        if(AmountRaised == AmountCapHard) {
-            // hard cap reached
-            return getRecordState("FINAL");
-        }
-
-        // Has (optional) Funding Phase HardCap
-        if(record.amount_cap_hard > 0) {
-            // amount raised is Funding Phase HardCap
-            if(AmountRaised == record.amount_cap_hard) {
+        // if TokenSCADA requires hard cap, then we require it, otherwise we reject it if provided
+        if(TokenManagerEntity.getTokenSCADARequiresHardCap() == true)
+        {
+            // Has Funding Phase HardCap
+            if(record.amount_cap_hard > 0) {
+                // amount raised is Funding Phase HardCap
+                if(AmountRaised == record.amount_cap_hard) {
+                    return getRecordState("FINAL");
+                }
+            }
+        } else {
+            // Global Hard Cap Check
+            if(AmountRaised == GlobalAmountCapHard) {
+                // hard cap reached
                 return getRecordState("FINAL");
             }
         }
@@ -683,28 +536,13 @@ contract Funding is ApplicationAsset {
             - else we need to wait for funding stage to start..
         */
 
+        if( record.state == RecordStateRequired ) {
+            RecordStateRequired = getRecordState("__IGNORED__");
+        }
         return RecordStateRequired;
-
     }
 
 
-    function hasStateChanges() public view returns (bool) {
-        bool hasChanges = false;
-
-        var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
-
-        CurrentRecordState = 0;
-
-        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
-            hasChanges = true;
-        }
-
-        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-            hasChanges = true;
-        }
-
-        return hasChanges;
-    }
 
     function doStateChanges(bool recursive) public {
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
@@ -714,79 +552,108 @@ contract Funding is ApplicationAsset {
         DebugEntityRequiredChanges( CurrentEntityState, EntityStateRequired );
 
         if( RecordStateRequired != getRecordState("__IGNORED__") ) {
-            updateFundingStage( RecordStateRequired );
-            if( RecordStateRequired == getRecordState("FINAL") ) {
-                if(currentFundingStage < FundingStageNum) {
-                    // jump to next stage
-                    currentFundingStage++;
-                }
-            }
+            // process record changes.
+            RecordProcessor(CurrentRecordState, RecordStateRequired);
             DebugCallAgain(2);
             callAgain = true;
         }
 
         if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-            if(CurrentEntityState != EntityStateRequired) {
-                CurrentEntityState = EntityStateRequired;
-                DebugCallAgain(1);
-                callAgain = true;
-            }
+            // process entity changes.
+            // if(CurrentEntityState != EntityStateRequired) {
+            EntityProcessor(EntityStateRequired);
+            DebugCallAgain(1);
+            callAgain = true;
+            //}
         }
 
         if(recursive && callAgain) {
-            doStateChanges(recursive);
-        } else {
-            // call action processor
-            EntityProcessor(recursive);
+            if(hasRequiredStateChanges()) {
+                doStateChanges(recursive);
+            }
         }
     }
 
-    function EntityProcessor(bool recursive) internal {
+    function hasRequiredStateChanges() public view returns (bool) {
+        bool hasChanges = false;
 
-        EventEntityProcessor( CurrentEntityState );
+        var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
+        CurrentRecordState = 0;
 
-        if( CurrentEntityState == getEntityState("NEW") ) {
-            // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
-            // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-            // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("COOLDOWN") ) {
-            // nothing to do here
-        } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
+        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+            hasChanges = true;
+        }
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            hasChanges = true;
+        }
+        return hasChanges;
+    }
 
+    // view methods decide if changes are to be made
+    // in case of tasks, we do them in the Processors.
+
+    function RecordProcessor(uint8 CurrentRecordState, uint8 RecordStateRequired) internal {
+        EventRecordProcessor( CurrentRecordState, RecordStateRequired );
+        updateFundingStage( RecordStateRequired );
+        if( RecordStateRequired == getRecordState("FINAL") ) {
+            if(currentFundingStage < FundingStageNum) {
+                // jump to next stage
+                currentFundingStage++;
+            }
+        }
+    }
+
+    function EntityProcessor(uint8 EntityStateRequired) internal {
+        EventEntityProcessor( CurrentEntityState, EntityStateRequired );
+
+        // Update our Entity State
+        CurrentEntityState = EntityStateRequired;
+        // Do State Specific Updates
+
+        if ( EntityStateRequired == getEntityState("FUNDING_ENDED") ) {
             /*
-                process internals and determine if successful or failed
+                STATE: FUNDING_ENDED
+                @Processor hook
+                Action: Check if funding is successful or not, and move state to "FAILED" or "SUCCESSFUL"
             */
 
             // Global Hard Cap Check
-            if(AmountRaised == AmountCapHard) {
+            if(AmountRaised >= GlobalAmountCapSoft) {
                 // hard cap reached
-                CurrentEntityState = getEntityState("FINAL");
+                CurrentEntityState = getEntityState("SUCCESSFUL");
             } else {
                 CurrentEntityState = getEntityState("FAILED");
             }
 
-        } else if ( CurrentEntityState == getEntityState("SUCCESSFUL") ) {
+            // getFundingOutcome();
+            // CurrentEntityState = EntityStateRequired;
 
+        } else if ( EntityStateRequired == getEntityState("SUCCESSFUL") ) {
             /*
-                retrieve funds from vaults, allocate tokens
+                STATE: SUCCESSFUL
+                @Processor hook
+                Action: Run FundingManager Processor ( deliver tokens, deliver direct funding eth )
             */
 
-        } else if ( CurrentEntityState == getEntityState("FAILED") ) {
-            // nothing to do here, app needs to change state to CashBack!
+            // run funding manager processor
+            // CurrentEntityState = getEntityState("FINAL_SUCCESSFUL");
 
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_IN_PROGRESS") ) {
-            // nothing to do here, app needs to change state
+        } else if ( EntityStateRequired == getEntityState("FAILED") ) {
+            /*
+                STATE: FAILED
+                @Processor hook
+                Action: Run FundingManager Processor ( return tokens to owner (eth is released to investors automatically) )
+            */
 
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_COMPLETE") ) {
-            // nothing to do here, app needs to change state
-
-        } else if ( CurrentEntityState == getEntityState("FINAL") ) {
-
+            // run funding manager processor
+            // CurrentEntityState = getEntityState("FINAL_SUCCESSFUL");
         }
 
-        doStateChanges(recursive);
+
+    }
+
+    function getFundingOutcome() public {
+        // if()
     }
 
     /*
@@ -807,67 +674,11 @@ contract Funding is ApplicationAsset {
         uint8 RecordStateRequired = getRecordStateRequiredChanges();
         uint8 EntityStateRequired = getEntityState("__IGNORED__");
 
-        // just deployed
-        if( CurrentEntityState == getEntityState("NEW") ) {
-            /*
-                Entity processed, we move to waiting for funding start
-            */
-            EntityStateRequired = getEntityState("WAITING");
 
-        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
-            /*
-                Waiting for funding start
-            */
-
-        } else if ( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-            /*
-                We're accepting funding here
-            */
-
-        } else if ( CurrentEntityState == getEntityState("COOLDOWN") ) {
-
-            // doStateChanges action
-
-        } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
-
-            // Processor action
-
-        } else if ( CurrentEntityState == getEntityState("SUCCESSFUL") ) {
-            // Processor action
-
-        } else if ( CurrentEntityState == getEntityState("FAILED") ) {
-
-            EntityStateRequired = getEntityState("CASHBACK_IN_PROGRESS");
-
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_IN_PROGRESS") ) {
-            // nothing to do here, app needs to change state
-
-        } else if ( CurrentEntityState == getEntityState("CASHBACK_COMPLETE") ) {
-            // nothing to do here, app needs to change state
-
-        } else if ( CurrentEntityState == getEntityState("FINAL") ) {
-
-        }
-
-
-
-        /*
-            // so this is where we need to retrieve funding from Direct Wallet
-            // then generate tokens
-            // once that is complete we change to FINAL
-        if (NewRecordStateRequired == getRecordState("__IGNORED__)) {
-            // after cashback stage.. move to donate
-        } else if (record.state == getEntityState("FAILED)) {
-            // If records exist, allow them to be started
-            // else tell project to change state to development
-        }
-
-
-        */
-
-
-        if(CurrentRecordState != RecordStateRequired) {
-
+        // Funding Record State Overrides
+        // if(CurrentRecordState != RecordStateRequired) {
+        if(RecordStateRequired != getRecordState("__IGNORED__"))
+        {
             // direct state overrides by funding stage
             if(RecordStateRequired == getRecordState("IN_PROGRESS") ) {
                 // both funding stage and entity states need to move to IN_PROGRESS
@@ -885,8 +696,71 @@ contract Funding is ApplicationAsset {
                     EntityStateRequired = getEntityState("COOLDOWN");
                 }
             }
+
         } else {
-            RecordStateRequired = getRecordState("__IGNORED__");
+
+            // Records do not require any updates.
+            // Do Entity Checks
+
+            if( CurrentEntityState == getEntityState("NEW") ) {
+                /*
+                    STATE: NEW
+                    Processor Action: Update to WAITING
+                */
+                EntityStateRequired = getEntityState("WAITING");
+
+            } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
+                /*
+                    STATE: FUNDING_ENDED
+                    Processor Action: Check if funding is successful or not, and move state to "SUCCESSFUL" or "FAILED"
+                */
+            } else if ( CurrentEntityState == getEntityState("SUCCESSFUL") ) {
+                /*
+                    STATE: SUCCESSFUL
+                    Processor Action: none
+
+                    External Action:
+                    FundingManager - Run Internal Processor ( deliver tokens, deliver direct funding eth )
+                */
+
+                // check funding manager state, if FUNDING_SUCCESSFUL_PROCESSED
+                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROCESSED") ) {
+                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("FAILED") ) {
+                /*
+                    STATE: FAILED
+                    Processor Action: none
+
+                    External Action:
+                    FundingManager - Run Internal Processor (release tokens to owner) ( Cashback is available )
+                */
+
+                // check funding manager state, if FUNDING_NOT_PROCESSED -> getEntityState("__IGNORED__")
+                // if FUNDING_FAILED_PROCESSED
+
+                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_FAILED_PROCESSED") ) {
+                    EntityStateRequired = getEntityState("FAILED_FINAL");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("FINAL_SUCCESSFUL") ) {
+                /*
+                    STATE: FINAL_SUCCESSFUL
+                    Processor Action: none
+
+                    External Action:
+                    Application: Run Internal Processor ( Change State to IN_DEVELOPMENT )
+                */
+            } else if ( CurrentEntityState == getEntityState("FINAL_FAILED") ) {
+                /*
+                    STATE: FINAL_FAILED
+                    Processor Action: none
+
+                    External Action:
+                    Application: Run Internal Processor ( Change State to FUNDING_FAILED )
+                */
+            }
         }
 
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
