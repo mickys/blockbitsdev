@@ -11,7 +11,6 @@ fi
 
 testrpc_running() {
   nc -z localhost "$testrpc_port"
-
 }
 
 start_testrpc() {
@@ -22,12 +21,13 @@ start_testrpc() {
     node_modules/.bin/testrpc -a 25 -i 15 > /dev/null &
   fi
 
-  testrpc_pid=$!
-  echo $testrpc_pid > testrpc.pid
+  # testrpc_pid=$!
+  # echo $testrpc_pid > testrpc.pid
 }
 
 if testrpc_running; then
-    kill -9 $(<"testrpc.pid")
+    # kill -9 $( lsof -i -P | grep $testrpc_port | awk '{print $2}' )
+    echo "not killing anything";
 fi
 
 echo "Starting our own testrpc instance at port $testrpc_port"

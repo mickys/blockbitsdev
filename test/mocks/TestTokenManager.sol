@@ -1,6 +1,6 @@
 /*
 
- * @name        Test Token Contract
+ * @name        Test Token Manager Contract
  * @package     BlockBitsIO
  * @author      Micky Socaci <micky@nowlive.ro>
 

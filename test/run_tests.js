@@ -64,14 +64,22 @@ tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
 tests.push("4_Asset_TokenManager");
-tests.push("Algorithms/TokenSCADA1Market");
+// fix this shit first - 1 test .. add more - tests.push("Algorithms/TokenSCADA1Market");
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
 tests.push("4_Asset_Funding_Payments");
+tests.push("4_Asset_FundingManager");
 
 
 tests = [];
-tests.push("oneDeployTest");
+// tests.push("4_Asset_Funding");
+tests.push("4_Asset_FundingManager");
+// tests.push("4_Asset_Funding_Payments");
+
+// tests.push("4_FundingVault");
+// tests.push("4_Asset_TokenManager");
+
+// tests.push("oneDeployTest");
 // tests.push("4_Asset_Funding");
 // tests.push("4_Asset_Funding_Payments");
 // tests.push("1_GatewayInterface");
@@ -93,11 +101,48 @@ utils.toLog('\n  ---------------------------------------------------------------
 utils.toLog("  Running test collections ["+utils.colors.orange+tests.length+utils.colors.none+"]." );
 utils.toLog(' ----------------------------------------------------------------');
 
+
 tests.map( async (name) => {
     if(name.length > 0) {
+        // console.log("started running "+name);
         let filename = './tests/' + name + '.js';
         let runTest = require(filename);
         await runTest(setup);
+        // console.log("finished running "+name);
     }
 });
 
+
+/*
+
+let currentTest = 0;
+RecursiveTestLoop();
+
+async function RecursiveTestLoop() {
+    if(currentTest < tests.length) {
+        console.log("tests[currentTest]", tests[currentTest]);
+
+        let name = tests[currentTest];
+        console.log("started running " + name);
+        let filename = './tests/' + name + '.js';
+        let runTest = require(filename);
+        await runTest(setup);
+        console.log("finished running " + name);
+        currentTest++;
+        // setTimeout( function() { RecursiveTestLoop() }, 1000);
+        await RecursiveTestLoop()
+    }
+}
+*/
+
+/*
+
+for(i = 0; i < tests.length; i++) {
+    console.log("started running "+i);
+    let name =  tests[i];
+    let filename = './tests/' + name + '.js';
+    let runTest = require(filename);
+    runTest(setup);
+    console.log("finished running "+i);
+}
+*/

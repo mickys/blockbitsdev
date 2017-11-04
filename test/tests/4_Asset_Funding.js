@@ -26,8 +26,9 @@ module.exports = function (setup) {
 
         beforeEach(async () => {
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
-            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "Milestones"] );
+            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "FundingManager", "Milestones"] );
             await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
+            await TestBuildHelper.AddAssetSettingsAndLock("FundingManager");
             await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
         });
 
@@ -261,6 +262,14 @@ module.exports = function (setup) {
                     });
                 });
 
+                it('throws if caller is not funding asset', async () => {
+                    let FundingManager = await TestBuildHelper.getDeployedByName("FundingManager");
+                    let DirectPaymentValue = 1 * helpers.solidity.ether;
+                    helpers.assertInvalidOpcode(async () => {
+                        await FundingManager.receivePayment( investorWallet1, 1, {value: DirectPaymentValue, from: investorWallet1});
+                    });
+                });
+
                 it('throws if _payment_method is not allowed', async () => {
                     let PaymentValue = 0.1 * helpers.solidity.ether;
                     let FundingInputMock = await helpers.getContract('TestFundingInputMock').new();
@@ -315,11 +324,12 @@ module.exports = function (setup) {
                     it('accepts payments using fallback () method and stores in valut\'s direct pool', async () => {
                         let PaymentValue = 1 * helpers.solidity.ether;
                         let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
+
                         let paymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
 
                         let eventFilter = helpers.utils.hasEvent(
                             paymentTx,
-                            'EventFundingReceivedPayment(address,uint8,uint256)'
+                            'EventFundingManagerReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
@@ -333,7 +343,6 @@ module.exports = function (setup) {
                         assert.equal(VaultBalance, PaymentValueInEther, 'Vault Contract balance should be '+PaymentValueInEther);
 
                         let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
-
                         let amountDirect = await vaultContract.amount_direct.call();
                         let amountDirectInEther = helpers.web3util.fromWei(amountDirect, "ether");
                         assert.equal(amountDirectInEther, PaymentValueInEther, 'amount_direct is invalid.');
@@ -349,13 +358,13 @@ module.exports = function (setup) {
 
                         let eventFilter = helpers.utils.hasEvent(
                             paymentTx,
-                            'EventFundingReceivedPayment(address,uint8,uint256)'
+                            'EventFundingManagerReceivedPayment(address,uint8,uint256)'
                         );
                         let secondPaymentTx = await FundingInputDirect.sendTransaction({value: PaymentValue, from: investorWallet1});
 
                         eventFilter = helpers.utils.hasEvent(
                             secondPaymentTx,
-                            'EventFundingReceivedPayment(address,uint8,uint256)'
+                            'EventFundingManagerReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
@@ -392,13 +401,13 @@ module.exports = function (setup) {
                         // direct payment
                         let eventFilter = helpers.utils.hasEvent(
                             await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1}),
-                            'EventFundingReceivedPayment(address,uint8,uint256)'
+                            'EventFundingManagerReceivedPayment(address,uint8,uint256)'
                         );
 
                         // milestone payment
                         eventFilter = helpers.utils.hasEvent(
                             await FundingInputMilestone.sendTransaction({value: MilestonePaymentValue, from: investorWallet1}),
-                            'EventFundingReceivedPayment(address,uint8,uint256)'
+                            'EventFundingManagerReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
@@ -439,7 +448,7 @@ module.exports = function (setup) {
                         let paymentTx = await FundingInputMilestone.sendTransaction({value: PaymentValue, from: investorWallet1});
                         let eventFilter = helpers.utils.hasEvent(
                             paymentTx,
-                            'EventFundingReceivedPayment(address,uint8,uint256)'
+                            'EventFundingManagerReceivedPayment(address,uint8,uint256)'
                         );
 
                         let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );

@@ -78,6 +78,20 @@ TestBuildHelper.prototype.addFundingStage = async function ( id, overrides ) {
     );
 };
 
+
+TestBuildHelper.prototype.FundingProcessToEndState = async function (test) {
+    let FundingAsset = this.getDeployedByName("Funding");
+
+    if(test === true) {
+        // we use the mock test methods to force state
+        let state = await FundingAsset.getEntityState.call("FUNDING_ENDED");
+        await FundingAsset.setTestCurrentEntityState(state);
+    } else {
+        // follow required procedure to get to required state!
+    }
+    // run ticks and such till
+};
+
 TestBuildHelper.prototype.assignTeamWallets = async function () {
     for(i = 0; i < this.setup.settings.team_wallets.length; i++) {
         if(this.setup.settings.team_wallets[i].address === 0) {
@@ -87,8 +101,8 @@ TestBuildHelper.prototype.assignTeamWallets = async function () {
 };
 
 TestBuildHelper.prototype.getMyVaultAddress = async function (myAddress) {
-    let fundingAsset = this.getDeployedByName("Funding");
-    let VaultAddress = await fundingAsset.getMyVaultAddress.call(myAddress);
+    let FundingManager = this.getDeployedByName("FundingManager");
+    let VaultAddress = await FundingManager.getMyVaultAddress.call(myAddress);
     let contract = await this.getContract("TestFundingVault");
     return await contract.at(VaultAddress.toString());
 };

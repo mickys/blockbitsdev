@@ -27,11 +27,13 @@ module.exports = function (setup) {
 
         beforeEach(async () => {
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
-            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "Milestones"] );
+            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "FundingManager", "Milestones"] );
             await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
+            await TestBuildHelper.AddAssetSettingsAndLock("FundingManager");
             await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
             // apply and lock settings in funding
             await TestBuildHelper.AddAssetSettingsAndLock(assetName);
+
             // funding inputs
             let FundingInputDirectAddress = await assetContract.DirectInput.call();
             let FundingInputMilestoneAddress = await assetContract.MilestoneInput.call();

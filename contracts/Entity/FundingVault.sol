@@ -33,7 +33,7 @@ contract FundingVault {
         Addresses:
         vaultOwner - the address of the wallet that stores purchases in this vault ( investor address )
         outputAddress - address where funds go upon successful funding or successful milestone release
-        managerAddress - address of the "fund manager => funding contract"
+        managerAddress - address of the "FundingManager"
     */
     address public vaultOwner ;
     address public outputAddress;
@@ -44,6 +44,7 @@ contract FundingVault {
     */
     // ApplicationEntityABI public ApplicationEntity;
     Funding public FundingEntity;
+    FundingManager public FundingManagerEntity;
     Milestones public MilestonesEntity;
     TokenManager public TokenManagerEntity;
     TokenSCADAGeneric public TokenSCADAEntity;
@@ -92,6 +93,7 @@ contract FundingVault {
 
         // assets
         FundingEntity = Funding(_fundingAddress);
+        FundingManagerEntity = FundingManager(managerAddress);
         MilestonesEntity = Milestones(_milestoneAddress);
 
         address TokenManagerAddress = FundingEntity.getApplicationAssetAddressByName("TokenManager");
@@ -99,7 +101,6 @@ contract FundingVault {
 
         address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
         TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
-
 
         // address ApplicationEntityAddress = TokenManagerEntity.owner();
         // ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
@@ -119,10 +120,8 @@ contract FundingVault {
     )
         public
         payable
-
         requireInitialised
         onlyManager
-
         returns (bool)
     {
         if(msg.value > 0 && FundingEntity.allowedPaymentMethod(_payment_method)) {
@@ -160,11 +159,13 @@ contract FundingVault {
         view // remove this shit
         requireInitialised
         onlyManager
+        returns (bool)
     {
         // first make sure cashback is not possible
         if(!canCashBack()) {
             if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL") ) {
 
+                return true;
                 // step 0
                 // figure out how much ether we are releasing.
                 // based on application state
@@ -200,6 +201,7 @@ contract FundingVault {
             tokenContract.transfer from this => to my owner
             this.transfer(value) to output address
         */
+        return false;
     }
 
     /*

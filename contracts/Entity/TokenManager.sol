@@ -59,4 +59,37 @@ contract TokenManager is ApplicationAsset {
     function getTokenSCADARequiresHardCap() public view returns (bool) {
         return TokenSCADAEntity.requiresHardCap();
     }
+
+
+    struct TeamMember {
+        uint8 id;
+        address wallet;
+        uint8 fraction;
+    }
+
+    mapping (uint8 => TeamMember) TeamMembers;
+    uint8 TeamMembersNum = 0;
+
+    function addTeamMember(address _wallet, uint8 _fraction) public requireNotInitialised {
+
+        TeamMember storage member = TeamMembers[TeamMembersNum++];
+            member.id = TeamMembersNum;
+            member.wallet = _wallet;
+            member.fraction = _fraction;
+    }
+
+    function AllocateTokensToTeamMembers() public requireNotInitialised {
+        for(uint8 i = 0; i < TeamMembersNum; i++ ) {
+
+            TeamMember storage member = TeamMembers[i];
+            // member.id = TeamMembersNum;
+            // member.wallet = _wallet;
+            // member.fraction = _fraction;
+            member.id = i;
+        }
+        // create token vault
+        // allocate tokens
+    }
+
+
 }

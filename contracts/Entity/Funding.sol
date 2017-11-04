@@ -14,7 +14,7 @@
 pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
-import "./../Entity/FundingVault.sol";
+import "./../Entity/FundingManager.sol";
 import "./../Entity/TokenManager.sol";
 
 import "./../Inputs/FundingInputDirect.sol";
@@ -31,10 +31,6 @@ contract Funding is ApplicationAsset {
     mapping (bytes32 => uint8) public EntityStates;
     mapping (bytes32 => uint8) public RecordStates;
 
-    mapping  (address => address) public vaultList;
-    mapping  (uint256 => address) public vaultById;
-    uint256 vaultNum = 0;
-
     uint8 public CurrentEntityState;
 
     // mapping (bytes32 => uint8) public FundingMethods;
@@ -45,7 +41,8 @@ contract Funding is ApplicationAsset {
         DIRECT_AND_MILESTONE		//
     }
 
-    TokenManager public TokenManagerEntity ;
+    TokenManager public TokenManagerEntity;
+    FundingManager public FundingManagerEntity;
 
     event FundingStageCreated( uint8 indexed index, bytes32 indexed name );
 
@@ -102,7 +99,7 @@ contract Funding is ApplicationAsset {
     event DebugAction(bytes32 indexed _name, bool indexed _allowed);
 
 
-    event EventFundingReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
+    event EventFundingReceivedPayment(address indexed _sender, uint8 indexed _payment_method, uint256 indexed _amount );
 
 
     function Funding() ApplicationAsset public {
@@ -116,6 +113,7 @@ contract Funding is ApplicationAsset {
 
         // instantiate token manager, moved from runBeforeApplyingSettings
         TokenManagerEntity = TokenManager( getApplicationAssetAddressByName('TokenManager') );
+        FundingManagerEntity = FundingManager( getApplicationAssetAddressByName('FundingManager') );
 
         EventRunBeforeInit(assetName);
     }
@@ -301,18 +299,6 @@ contract Funding is ApplicationAsset {
         Funding_Setting_cashback_time_end = Funding_Setting_cashback_time_start + Funding_Setting_cashback_duration;
     }
 
-    function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
-        if(
-        _payment_method == uint8(FundingMethodIds.DIRECT_ONLY) ||
-        _payment_method == uint8(FundingMethodIds.MILESTONE_ONLY)
-        ){
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-
     function getFundingStageVariablesRequiredBySCADA(uint8 _id)
         public
         view
@@ -330,6 +316,17 @@ contract Funding is ApplicationAsset {
     }
 
 
+    function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
+        if(
+        _payment_method == uint8(FundingMethodIds.DIRECT_ONLY) ||
+        _payment_method == uint8(FundingMethodIds.MILESTONE_ONLY)
+        ){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     function receivePayment(address _sender, uint8 _payment_method)
         payable
         public
@@ -339,49 +336,23 @@ contract Funding is ApplicationAsset {
     {
         // check that msg.value is higher than 0, don't really want to have to deal with minus in case the network breaks this somehow
         if(allowedPaymentMethod(_payment_method) && msg.value > 0) {
-            FundingVault vault;
-
-            // no vault present
-            if(!hasVault(_sender)) {
-                // create and initialize a new one
-                vault = new FundingVault();
-
-                if(vault.initialize(
-                    _sender,
-                    multiSigOutputAddress,
-                    address(this),
-                    address(getApplicationAssetAddressByName('Milestones'))
-                )) {
-                    // store new vault address.
-                    vaultList[_sender] = vault;
-                    // increase internal vault number
-                    //vaultNum++;
-                    // assign vault to by int registry
-                    //vaultById[vaultNum] = vault;
-
-                } else {
-                    revert();
-                }
-            } else {
-                // use existing vault
-                vault = FundingVault(vaultList[_sender]);
-            }
 
             // increase amount raised, we don't care about payment method here.
             Collection[currentFundingStage].amount_raised+= msg.value;
 
-            // save in local mapping, emit event, send value to vault, return success or revert.
-            EventFundingReceivedPayment(vault, _payment_method, msg.value);
+            EventFundingReceivedPayment(_sender, _payment_method, msg.value);
 
-            if( vault.addPayment.value(msg.value)( _payment_method ) ) {
+            if( FundingManagerEntity.receivePayment.value(msg.value)( _sender, _payment_method ) ) {
                 return true;
             } else {
                 revert();
             }
+
         } else {
             revert();
         }
     }
+
     modifier onlyInputPaymentMethod() {
         require(msg.sender != 0x0 && ( msg.sender == address(DirectInput) || msg.sender == address(MilestoneInput) ));
         _;
@@ -389,75 +360,6 @@ contract Funding is ApplicationAsset {
 
 
 
-    function getMyVaultAddress(address _sender) public view returns (address) {
-        return vaultList[_sender];
-    }
-
-    function hasVault(address _sender) internal view returns(bool) {
-        if(vaultList[_sender] != address(0x0)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /*
-
-    uint256 lastProcessedVaultId = 1;
-
-    function FundingEndedProcessVaultList(uint8 length) public {
-        require(CurrentEntityState == getEntityState("FUNDING_ENDED"));
-
-        uint256 start = lastProcessedVaultId;
-        uint256 end = lastProcessedVaultId + length;
-
-        if(end > vaultNum) {
-            end = vaultNum;
-        }
-
-        for(uint256 i = start; i <= end; i++) {
-            address currentVault = vaultById[i];
-
-            lastProcessedVaultId++;
-        }
-
-        if(lastProcessedVaultId  == vaultNum + 1) {
-            // we finished
-            // change current state to next.. FINAL
-        }
-
-    }
-
-    struct TeamMember {
-        uint8 id;
-        address wallet;
-        uint8 fraction;
-    }
-
-    mapping (uint8 => TeamMember) TeamMembers;
-    uint8 TeamMembersNum = 0;
-
-    function addTeamMember(address _wallet, uint8 _fraction) public requireNotInitialised {
-
-        TeamMember storage member = TeamMembers[TeamMembersNum++];
-            member.id = TeamMembersNum;
-            member.wallet = _wallet;
-            member.fraction = _fraction;
-    }
-
-    function AllocateTokensToTeamMembers() public requireNotInitialised {
-        for(uint8 i = 0; i < TeamMembersNum; i++ ) {
-
-            TeamMember storage member = TeamMembers[i];
-            // member.id = TeamMembersNum;
-            // member.wallet = _wallet;
-            // member.fraction = _fraction;
-            // member.id = i;
-        }
-        // create token vault
-        // allocate tokens
-    }
-    */
 
     /*
         Hook into Project State

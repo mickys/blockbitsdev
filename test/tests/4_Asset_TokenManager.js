@@ -11,7 +11,7 @@ module.exports = function(setup) {
 
         beforeEach(async () => {
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
-            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["Funding"] );
+            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["FundingManager", "Funding"] );
             FundingContract = await TestBuildHelper.getDeployedByName("Funding");
         });
 

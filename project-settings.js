@@ -134,7 +134,7 @@ let team_wallets = [
         address: 0,
         address_rpc: 24,
         allocation: {
-            units: 25,
+            units: 20,
             numerator: 50
         }
 
@@ -144,7 +144,7 @@ let team_wallets = [
         address: 0,
         address_rpc: 23,
         allocation: {
-            units: 15,
+            units: 12,
             numerator: 50
         }
     },
@@ -153,7 +153,7 @@ let team_wallets = [
         address: 0,
         address_rpc: 22,
         allocation: {
-            units: 7,
+            units: 8,
             numerator: 50
         }
     },
