@@ -313,11 +313,10 @@ contract Funding is ApplicationAsset {
         public
         requireInitialised
         onlyInputPaymentMethod
-        noRequiredStateChangesAvailable
         returns(bool)
     {
         // check that msg.value is higher than 0, don't really want to have to deal with minus in case the network breaks this somehow
-        if(allowedPaymentMethod(_payment_method) && msg.value > 0) {
+        if(allowedPaymentMethod(_payment_method) && canAcceptPayment(msg.value) ) {
 
             // increase amount raised, we don't care about payment method here.
             Collection[currentFundingStage].amount_raised+= msg.value;
@@ -341,13 +340,6 @@ contract Funding is ApplicationAsset {
         _;
     }
 
-    // update tests for this
-    modifier noRequiredStateChangesAvailable() {
-        require(!hasRequiredStateChanges());
-        _;
-    }
-
-
     /*
         Hook into Project State
     */
@@ -362,44 +354,31 @@ contract Funding is ApplicationAsset {
     }
 
 
-    /*
     function canAcceptPayment(uint256 _amount) public view returns (bool) {
+        if( _amount > 0 ) {
+            // funding state should be IN_PROGRESS, no state changes should be required
+            if( CurrentEntityState == getEntityState("IN_PROGRESS") && hasRequiredStateChanges() == false) {
 
-        // funding state should be IN_PROGRESS
-        if( CurrentEntityState == getEntityState("IN_PROGRESS") ) {
-
-            // get current record
-            FundingStage memory record = Collection[currentFundingStage];
-
-
-            //soft cap is used to determine if funding is successful
-            //hard cap is used to determine if payment can be accepted,
-            //     each funding stage has it's own hard cap!
-            //     so.. globals do nothing here
-
-
-            // check if _amount is higher than entry minimum
-
-            // check if _amount is lower than remaining ( global maixmum - amount raised )
-            // check if _amount is also lower than record.amount_cap_hard if amount_cap_hard > 0
-
-            // uint256 remainingGlobal = GlobalAmountCapHard - GlobalAmountRaised;
-            uint256 remaining = record.amount_cap_hard - record.amount_raised;
-
-            if( _amount >= record.minimum_entry  && _amount <= remaining ) {
-
-                // we have a stage hard cap.
-                if(record.amount_cap_hard > 0) {
-
+                FundingStage memory record = Collection[currentFundingStage];
+                if(TokenManagerEntity.getTokenSCADARequiresHardCap() == false)
+                {
+                    // case 1 - SCADA1Market
+                    uint256 remaining = GlobalAmountCapHard - AmountRaised;
+                    if( _amount >= record.minimum_entry && _amount <= remaining ) {
+                        return true;
+                    }
+                } else {
+                    // case 2
+                    // soft cap is used to determine if funding is successful
+                    // hard cap is used to determine if payment can be accepted,
+                    //     based on SCADA each funding stage has it's own hard cap!
+                    //     so.. globals do nothing here
                 }
-                // && _amount <= remaining
-
-                return true;
             }
         }
         return false;
     }
-    */
+
 
 
     /*

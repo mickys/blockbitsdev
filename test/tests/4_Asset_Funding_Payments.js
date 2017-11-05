@@ -43,8 +43,11 @@ module.exports = function (setup) {
 
             FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
             FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
-        });
 
+            tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+            tx = await assetContract.doStateChanges(true);
+
+        });
 
         it('TokenSCADA provides the correct token stake for current funding phase', async () => {
             // 1 ether payment total from 1 account, results in owning total stage supply

@@ -179,7 +179,9 @@ module.exports = {
     async showCurrentState(helpers, assetContract) {
         await helpers.utils.showDebugSettings(helpers, assetContract);
         await helpers.utils.showDebugFundingStages(helpers, assetContract);
-        await helpers.utils.showDebugFundingStageStateRequiredChanges(helpers, assetContract);
+        // await helpers.utils.showDebugFundingStageStateRequiredChanges(helpers, assetContract);
+        await helpers.utils.showDebugRequiredStateChanges(helpers, assetContract);
+
     },
     async runStateChanger(helpers, assetContract) {
 

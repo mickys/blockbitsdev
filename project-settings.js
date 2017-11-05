@@ -43,17 +43,17 @@ let pre_ico_start = now + 10 * days;
 let pre_ico_end = pre_ico_start + pre_ico_duration;
 
 let pre_ico_settings = {
-    name: "PRE ICO",                        //  bytes32 _name,
-    description: "PRE ICO Funding Phase",   //  bytes32 _description,
-    start_time: pre_ico_start,              //  uint256 _time_start,
-    end_time: pre_ico_end,                  //  uint256 _time_end,
-    amount_cap_soft: 0,                     //  uint256 _amount_cap_soft,
-    amount_cap_hard: 0,                     //  uint256 _amount_cap_hard,
-    methods: 3,                             //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
-    minimum_entry: 1,                       //  uint256 _minimum_entry,
-    start_parity: 0,                        //  uint256 _start_parity,
-    use_parity_from_previous: false,        //  bool
-    token_share_percentage: 10,             //  uint8
+    name: "PRE ICO",                            //  bytes32 _name,
+    description: "PRE ICO Funding Phase",       //  bytes32 _description,
+    start_time: pre_ico_start,                  //  uint256 _time_start,
+    end_time: pre_ico_end,                      //  uint256 _time_end,
+    amount_cap_soft: 0,                         //  uint256 _amount_cap_soft,
+    amount_cap_hard: 0,                         //  uint256 _amount_cap_hard,
+    methods: 3,                                 //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
+    minimum_entry: new BigNumber(1).mul(ether), //  uint256 _minimum_entry,
+    start_parity: 0,                            //  uint256 _start_parity,
+    use_parity_from_previous: false,            //  bool
+    token_share_percentage: 10,                 //  uint8
 };
 
 let ico_duration = 30 * days;

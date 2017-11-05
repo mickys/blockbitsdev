@@ -190,7 +190,7 @@ module.exports = function (setup) {
             tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
-            let DirectPaymentValue = 0.01 * helpers.solidity.ether;
+            let DirectPaymentValue = 1 * helpers.solidity.ether;
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
@@ -221,7 +221,7 @@ module.exports = function (setup) {
                 tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
-                let DirectPaymentValue = 0.01 * helpers.solidity.ether;
+                let DirectPaymentValue = 1 * helpers.solidity.ether;
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
@@ -342,6 +342,26 @@ module.exports = function (setup) {
 
         });
 
+        context('misc for extra coverage', async () => {
+            let tx;
+            it('isFundingStageUpdateAllowed returns false if not allowed', async () => {
+
+                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await assetContract.doStateChanges(true);
+
+                let allowed = await assetContract.isFundingStageUpdateAllowed.call(
+                    helpers.utils.getFundingEntityStateIdByName("NEW")
+                );
+                assert.isFalse(allowed, 'isFundingStageUpdateAllowed should not allow invalid stage update');
+            });
+
+            it('should run doStateChanges even if no changes are required', async () => {
+                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await assetContract.doStateChanges(true);
+
+                tx = await assetContract.doStateChanges(true);
+            });
+        });
 
         // receive some payments and move to COOLDOWN by updating time to after pre_ico
         // receive payments over hard cap, should move to funding ended
