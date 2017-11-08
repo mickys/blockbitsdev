@@ -335,6 +335,28 @@ module.exports = {
 
         } else if(contractType === "FundingManager") {
 
+
+            let vaultNum = await assetContract.vaultNum.call();
+            let lastProcessedVaultId = await assetContract.lastProcessedVaultId.call();
+            let hasRequiredStateChanges = await assetContract.hasRequiredStateChanges.call();
+
+            helpers.utils.toLog(
+                logPre + "Number of Vaults:        " +
+                helpers.utils.colors.orange +
+                vaultNum
+            );
+            helpers.utils.toLog(
+                logPre + "Last Processed Vault ID  " +
+                helpers.utils.colors.orange +
+                lastProcessedVaultId
+            );
+            helpers.utils.toLog(
+                logPre + "Required State Changes   " +
+                helpers.utils.colors.green +
+                hasRequiredStateChanges
+            );
+
+
             let CurrentEntityStateID =  helpers.web3util.toDecimal(reqChanges[0]);
             let RequiredEntityStateID = helpers.web3util.toDecimal(reqChanges[1]);
 

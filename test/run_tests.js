@@ -85,8 +85,8 @@ tests.push("4_Asset_FundingManager");
 // tests.push("4_Asset_Funding_Payments");
 // tests.push("1_GatewayInterface");
 
-// tests = [];
-// tests.push("4_Asset_FundingManager");
+tests = [];
+tests.push("4_Asset_FundingManager");
 
 
 // tests = [];

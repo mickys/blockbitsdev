@@ -86,7 +86,6 @@ TestBuildHelper.prototype.timeTravelTo = async function (newtime) {
 };
 
 TestBuildHelper.prototype.FundingManagerProcessVaults = async function (iteration, debug) {
-
     let FundingManager = this.getDeployedByName("FundingManager");
     let tx = await FundingManager.doStateChanges(false);
 
@@ -95,20 +94,19 @@ TestBuildHelper.prototype.FundingManagerProcessVaults = async function (iteratio
         await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
     }
 
-    let vaultNum = await FundingManager.vaultNum.call();
-    let lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
+//    let vaultNum = await FundingManager.vaultNum.call();
+//    let lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
     let hasChanges = await this.requiresStateChanges("FundingManager");
 
-    if(vaultNum > lastProcessedVaultId && hasChanges === true) {
-        await this.FundingManagerProcessVaults(iteration+1);
+//    if(vaultNum >= lastProcessedVaultId && hasChanges === true) {
+    if(hasChanges === true) {
+        await this.FundingManagerProcessVaults(iteration+1, debug);
     }
 };
 
 TestBuildHelper.prototype.requiresStateChanges = async function (assetName) {
     let Asset = this.getDeployedByName(assetName);
-    let retVal = await Asset.hasRequiredStateChanges.call();
-    // console.log(assetName+" hasRequiredStateChanges: "+retVal);
-    return retVal;
+    return await Asset.hasRequiredStateChanges.call();
 };
 
 

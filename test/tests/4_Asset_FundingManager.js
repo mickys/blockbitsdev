@@ -74,7 +74,7 @@ module.exports = function (setup) {
                 tx = await FundingContract.doStateChanges(true);
 
                 let PaymentValue = 1 * helpers.solidity.ether; // 100 wei  //0.01 * helpers.solidity.ether;
-                paymentNum = 9;
+                paymentNum = 11;
 
                 let acc_start = 10;
                 let acc_end = 20;
@@ -117,8 +117,12 @@ module.exports = function (setup) {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await FundingContract.doStateChanges(true);
 
-                await helpers.utils.showCurrentState(helpers, FundingManager);
-                await TestBuildHelper.FundingManagerProcessVaults(0);
+                // await helpers.utils.showCurrentState(helpers, FundingManager);
+                await TestBuildHelper.FundingManagerProcessVaults(0, true);
+
+                let key = await FundingManager.getHash.call("FUNDING_FAILED_START", "");
+                let TaskValue = await FundingManager.taskByHash.call(key);
+                // console.log("Task hashkey value => ", TaskValue);
             });
 
             /*

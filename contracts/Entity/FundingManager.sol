@@ -54,6 +54,7 @@ contract FundingManager is ApplicationAsset {
 
         // Funding Stage States
         RecordStates["__IGNORED__"]     = 0;
+
     }
 
     function runBeforeApplyingSettings()
@@ -142,60 +143,94 @@ contract FundingManager is ApplicationAsset {
     bool public fundingProcessed = false;
     uint256 public lastProcessedVaultId = 0;
     uint8 public VaultCountPerProcess = 5;
+    bytes32 public currentTask = "";
+
+    mapping (bytes32 => bool) public taskByHash;
+
+    /*
+    function addTask(bytes32 actionType, bytes32 arg1) {
+        bytes32 thisHash = getHash( actionType, arg1 );
+        taskByHash[thisHash] = false;
+    }
+
+    function initTasks() {
+        // add original tasks, excluding milestones for now
+        currentTask = getHash("FUNDING_FAILED_START", "");
+        getHash("FUNDING_SUCCESSFUL_START", "");
+        getHash("MILESTONE_PROCESS_START", "");
+        getHash("COMPLETE_PROCESS_START", "");
+    }
+
+    */
+
+    function getHash(bytes32 actionType, bytes32 arg1) public pure returns ( bytes32 ) {
+        return keccak256(actionType, arg1);
+    }
 
     function ProcessVaultList(uint8 length) public {
 
-        if(fundingProcessed) {
-            revert();
-        }
+        if(taskByHash[currentTask] == false) {
+            if(
+                CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ||
+                CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ||
+                CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ||
+                CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")
+            ) {
 
-        if(
-            CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ||
-            CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ||
-            CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ||
-            CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")
-        ) {
+                uint256 start = lastProcessedVaultId + 1;
+                uint256 end = start + length - 1;
 
-            uint256 start = lastProcessedVaultId + 1;
-            uint256 end = start + length - 1;
+                if(end > vaultNum) {
+                    end = vaultNum;
+                }
 
-            if(end > vaultNum) {
-                end = vaultNum;
-            }
-
-            for(uint256 i = start; i <= end; i++) {
-                address currentVault = vaultById[i];
-
-                EventFundingManagerProcessedVault(currentVault, i);
-                ProcessFundingVault(currentVault);
-
-                lastProcessedVaultId++;
-            }
-
-            if(lastProcessedVaultId == vaultNum ) {
-                // we finished
-                lastProcessedVaultId = 0;
-                // reset and change state
-                // change funding state to FINAL
-                fundingProcessed = true;
+                for(uint256 i = start; i <= end; i++) {
+                    address currentVault = vaultById[i];
+                    EventFundingManagerProcessedVault(currentVault, i);
+                    ProcessFundingVault(currentVault);
+                    lastProcessedVaultId++;
+                }
+                if(lastProcessedVaultId >= vaultNum ) {
+                    // we finished
+                    lastProcessedVaultId = 0;
+                    // reset and change state
+                    // change funding state to FINAL
+                    fundingProcessed = true;
+                    taskByHash[currentTask] = true;
+                }
+            } else {
+                revert();
             }
         } else {
             revert();
         }
     }
 
-    function processFundingFinished() public view returns (bool) {
-        return fundingProcessed;
+    function processFundingFailedFinished() public view returns (bool) {
+        bytes32 thisHash = getHash("FUNDING_FAILED_START", "");
+        return taskByHash[thisHash];
     }
 
-    function processMilestoneFinished() public view returns (bool) {
-        return fundingProcessed;
+    function processFundingSuccessfulFinished() public view returns (bool) {
+        bytes32 thisHash = getHash("FUNDING_SUCCESSFUL_START", "");
+        return taskByHash[thisHash];
     }
 
     function processCompleteFinished() public view returns (bool) {
-        return fundingProcessed;
+        bytes32 thisHash = getHash("COMPLETE_PROCESS_START", "");
+        return taskByHash[thisHash];
     }
 
+    uint8 currentMilestoneId = 0;
+
+    function getCurrentMilestoneId() internal view returns (bytes32) {
+        return bytes32(currentMilestoneId);
+    }
+
+    function processMilestoneFinished() public view returns (bool) {
+        bytes32 thisHash = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneId());
+        return taskByHash[thisHash];
+    }
 
 
     function ProcessFundingVault(address vaultAddress ) internal {
@@ -230,10 +265,8 @@ contract FundingManager is ApplicationAsset {
             /*
                 not much to do here, except get vault to transfer black hole tokens to investors, or output address
             */
-        } else {
-            // should not get here unless something went terribly wrong :)
-            revert();
         }
+        // should never get here unless something went terribly wrong with the whole network :)
     }
 
     modifier onlyFundingAsset() {
@@ -279,27 +312,28 @@ contract FundingManager is ApplicationAsset {
 
 // Funding Failed
         if ( EntityStateRequired == getEntityState("FUNDING_FAILED_START") ) {
-            // fire processing start event
+            // set ProcessVaultList Task
+            currentTask = getHash("FUNDING_FAILED_START", "");
             CurrentEntityState = getEntityState("FUNDING_FAILED_PROGRESS");
         } else if ( EntityStateRequired == getEntityState("FUNDING_FAILED_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
 
 // Funding Successful
         } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_START") ) {
-            // fire processing start event
+            currentTask = getHash("FUNDING_SUCCESSFUL_START", "");
             CurrentEntityState = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
         } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
 // Milestones
         } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_START") ) {
-            // fire processing start event
+            currentTask = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneId() );
             CurrentEntityState = getEntityState("MILESTONE_PROCESS_PROGRESS");
         } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
 
 // Completion
         } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_START") ) {
-            // fire processing start event
+            currentTask = getHash("COMPLETE_PROCESS_START", "");
             CurrentEntityState = getEntityState("COMPLETE_PROCESS_PROGRESS");
         } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
@@ -350,7 +384,7 @@ contract FundingManager is ApplicationAsset {
 
         } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
             // still in progress? check if we should move to done
-            if ( processFundingFinished() ) {
+            if ( processFundingSuccessfulFinished() ) {
                 EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_DONE");
             } else {
                 EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
@@ -362,7 +396,7 @@ contract FundingManager is ApplicationAsset {
 // Funding Failed
         } else if ( CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ) {
             // still in progress? check if we should move to done
-            if ( processFundingFinished() ) {
+            if ( processFundingFailedFinished() ) {
                 EntityStateRequired = getEntityState("FUNDING_FAILED_DONE");
             } else {
                 EntityStateRequired = getEntityState("FUNDING_FAILED_PROGRESS");
@@ -371,11 +405,15 @@ contract FundingManager is ApplicationAsset {
 // Milestone process
         } else if ( CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
             // still in progress? check if we should move to done
+
+            /*
             if ( processMilestoneFinished() ) {
                 EntityStateRequired = getEntityState("MILESTONE_PROCESS_DONE");
             } else {
                 EntityStateRequired = getEntityState("MILESTONE_PROCESS_PROGRESS");
             }
+            */
+
 // Completion
         } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
             // still in progress? check if we should move to done
