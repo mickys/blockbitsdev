@@ -87,11 +87,11 @@ contract Funding is ApplicationAsset {
 
 
     event LifeCycle();
-    event DebugRecordRequiredChanges( uint8 indexed _current, uint8 indexed _required );
-    event DebugEntityRequiredChanges( uint8 indexed _current, uint8 indexed _required );
+    event DebugRecordRequiredChanges( bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required );
     event DebugCallAgain(uint8 indexed _who);
-    event EventEntityProcessor(uint8 indexed _current, uint8 indexed _required);
-    event EventRecordProcessor(uint8 indexed _current, uint8 indexed _required);
+
+    event EventEntityProcessor(bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required);
+    event EventRecordProcessor(bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required);
 
     event DebugAction(bytes32 indexed _name, bool indexed _allowed);
 
@@ -527,8 +527,8 @@ contract Funding is ApplicationAsset {
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
         bool callAgain = false;
 
-        DebugRecordRequiredChanges( CurrentRecordState, RecordStateRequired );
-        DebugEntityRequiredChanges( CurrentEntityState, EntityStateRequired );
+        DebugRecordRequiredChanges( assetName, CurrentRecordState, RecordStateRequired );
+        DebugEntityRequiredChanges( assetName, CurrentEntityState, EntityStateRequired );
 
         if( RecordStateRequired != getRecordState("__IGNORED__") ) {
             // process record changes.
@@ -572,7 +572,7 @@ contract Funding is ApplicationAsset {
     // in case of tasks, we do them in the Processors.
 
     function RecordProcessor(uint8 CurrentRecordState, uint8 RecordStateRequired) internal {
-        EventRecordProcessor( CurrentRecordState, RecordStateRequired );
+        EventRecordProcessor( assetName, CurrentRecordState, RecordStateRequired );
         updateFundingStage( RecordStateRequired );
         if( RecordStateRequired == getRecordState("FINAL") ) {
             if(currentFundingStage < FundingStageNum) {
@@ -583,7 +583,7 @@ contract Funding is ApplicationAsset {
     }
 
     function EntityProcessor(uint8 EntityStateRequired) internal {
-        EventEntityProcessor( CurrentEntityState, EntityStateRequired );
+        EventEntityProcessor( assetName, CurrentEntityState, EntityStateRequired );
 
         // Update our Entity State
         CurrentEntityState = EntityStateRequired;
@@ -702,8 +702,8 @@ contract Funding is ApplicationAsset {
                     FundingManager - Run Internal Processor ( deliver tokens, deliver direct funding eth )
                 */
 
-                // check funding manager state, if FUNDING_SUCCESSFUL_PROCESSED
-                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROCESSED") ) {
+                // check funding manager state, if FUNDING_SUCCESSFUL_DONE
+                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_DONE") ) {
                     EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
                 }
 
@@ -717,9 +717,9 @@ contract Funding is ApplicationAsset {
                 */
 
                 // check funding manager state, if FUNDING_NOT_PROCESSED -> getEntityState("__IGNORED__")
-                // if FUNDING_FAILED_PROCESSED
+                // if FUNDING_FAILED_DONE
 
-                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_FAILED_PROCESSED") ) {
+                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_FAILED_DONE") ) {
                     EntityStateRequired = getEntityState("FAILED_FINAL");
                 }
 
@@ -745,9 +745,5 @@ contract Funding is ApplicationAsset {
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
     }
 
-
-    function getTimestamp() view public returns (uint256) {
-        return now;
-    }
 
 }

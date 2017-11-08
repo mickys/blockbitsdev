@@ -34,4 +34,15 @@ contract TestApplicationEntity is ApplicationEntity {
         AssetCollectionNum++;
     }
 
+
+    uint256 _mockTime = now;
+    function getTimestamp() view public returns (uint256) {
+        if(_mockTime > 0) {
+            return _mockTime;
+        } else {
+            return now;
+        }
+    }
+    function setTestTimestamp(uint256 i) external { _mockTime = i; }
+
 }

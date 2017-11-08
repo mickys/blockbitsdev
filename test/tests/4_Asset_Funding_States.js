@@ -79,7 +79,7 @@ module.exports = function (setup) {
 
         it('handles ENTITY state change from NEW or WAITING to IN_PROGRESS when funding time start has passed', async () => {
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
             validation = await TestBuildHelper.ValidateFundingState(
                 helpers.utils.getFundingEntityStateIdByName("IN_PROGRESS").toString(),
@@ -92,14 +92,14 @@ module.exports = function (setup) {
 
         it('is in IN_PROGRESS, receives payments, pre_ico time passes, should Require change to COOLDOWN', async () => {
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             let DirectPaymentValue = 1 * helpers.solidity.ether;
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.end_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.end_time + 1 );
 
             validation = await TestBuildHelper.ValidateFundingState(
                 helpers.utils.getFundingEntityStateIdByName("IN_PROGRESS").toString(),
@@ -114,14 +114,14 @@ module.exports = function (setup) {
 
         it('handles ENTITY state change from IN_PROGRESS to COOLDOWN when funding period time start has passed', async () => {
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             let DirectPaymentValue = 1 * helpers.solidity.ether;
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.end_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.end_time + 1 );
 
             validation = await TestBuildHelper.ValidateFundingState(
                 helpers.utils.getFundingEntityStateIdByName("IN_PROGRESS").toString(),
@@ -135,18 +135,18 @@ module.exports = function (setup) {
 
         it('is in COOLDOWN, ico start time passes, should Require change to IN_PROGRESS', async () => {
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             let DirectPaymentValue = 1 * helpers.solidity.ether;
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.end_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.end_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
 
-            tx = await assetContract.setTestTimestamp( ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( ico_settings.start_time + 1 );
 
             validation = await TestBuildHelper.ValidateFundingState(
                 helpers.utils.getFundingEntityStateIdByName("COOLDOWN").toString(),
@@ -160,17 +160,17 @@ module.exports = function (setup) {
 
         it('handles ENTITY state change from COOLDOWN to IN_PROGRESS when next funding period time start has passed', async () => {
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             let DirectPaymentValue = 1 * helpers.solidity.ether;
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.end_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.end_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
-            tx = await assetContract.setTestTimestamp( ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             validation = await TestBuildHelper.ValidateFundingState(
@@ -187,23 +187,23 @@ module.exports = function (setup) {
 
         it('is IN_PROGRESS, ico end time passes, should Require change to FUNDING_ENDED', async () => {
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             let DirectPaymentValue = 1 * helpers.solidity.ether;
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-            tx = await assetContract.setTestTimestamp( pre_ico_settings.end_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.end_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
-            tx = await assetContract.setTestTimestamp( ico_settings.start_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
             tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-            tx = await assetContract.setTestTimestamp( ico_settings.end_time + 1 );
+            tx = await TestBuildHelper.timeTravelTo( ico_settings.end_time + 1 );
 
             validation = await TestBuildHelper.ValidateFundingState(
                 helpers.utils.getFundingEntityStateIdByName("IN_PROGRESS").toString(),
@@ -218,23 +218,23 @@ module.exports = function (setup) {
 
             it('to FAILED when payments did not reach soft cap', async () => {
 
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 let DirectPaymentValue = 1 * helpers.solidity.ether;
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.end_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
-                tx = await assetContract.setTestTimestamp(ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet1});
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet2});
 
-                tx = await assetContract.setTestTimestamp(ico_settings.end_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(false);
 
                 // await helpers.utils.showDebugRequiredStateChanges(helpers, assetContract);
@@ -251,23 +251,23 @@ module.exports = function (setup) {
 
             it('to SUCCESSFUL when payments reached soft cap', async () => {
 
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 let DirectPaymentValue = 5000 * helpers.solidity.ether;
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet3});
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet4});
 
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.end_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
-                tx = await assetContract.setTestTimestamp(ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet3});
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet4});
 
-                tx = await assetContract.setTestTimestamp(ico_settings.end_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(false);
 
                 validation = await TestBuildHelper.ValidateFundingState(
@@ -284,7 +284,7 @@ module.exports = function (setup) {
         context('handles ENTITY state change from IN_PROGRESS when Hard Cap is Reached', async () => {
 
             it('to SUCCESSFUL when payments reached hard cap in first funding stage (pre-ico)', async () => {
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 let DirectPaymentValue = 5000 * helpers.solidity.ether;
@@ -308,7 +308,7 @@ module.exports = function (setup) {
 
             it('to SUCCESSFUL when payments reached hard cap in last funding stage (ico)', async () => {
 
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 let DirectPaymentValue = 5000 * helpers.solidity.ether;
@@ -316,10 +316,10 @@ module.exports = function (setup) {
                 tx = await FundingInputDirect.sendTransaction({value: DirectPaymentValue, from: investorWallet4});
 
                 // not really required since we're going to end up there by using a recursive doStateChanges(true)
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.end_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
-                tx = await assetContract.setTestTimestamp(ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 DirectPaymentValue = 50000 * helpers.solidity.ether;
@@ -346,7 +346,7 @@ module.exports = function (setup) {
             let tx;
             it('isFundingStageUpdateAllowed returns false if not allowed', async () => {
 
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 let allowed = await assetContract.isFundingStageUpdateAllowed.call(
@@ -356,7 +356,7 @@ module.exports = function (setup) {
             });
 
             it('should run doStateChanges even if no changes are required', async () => {
-                tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await assetContract.doStateChanges(true);
 
                 tx = await assetContract.doStateChanges(true);

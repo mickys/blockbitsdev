@@ -289,7 +289,7 @@ module.exports = function (setup) {
                     // canAcceptPayment();
                     // hasRequiredStateChanges();
 
-                    // tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                    // tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                     // await helpers.utils.showDebugRequiredStateChanges(helpers, assetContract);
 
                     /*
@@ -306,7 +306,7 @@ module.exports = function (setup) {
                 context("CurrentEntityState is IN_PROGRESS", async () => {
 
                     beforeEach(async () => {
-                        let tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                        let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                         tx = await assetContract.doStateChanges(true);
                     });
 
@@ -321,7 +321,7 @@ module.exports = function (setup) {
                     });
 
                     it('returns false if any State changes are required', async () => {
-                        let tx = await assetContract.setTestTimestamp(pre_ico_settings.end_time + 1);
+                        let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.end_time + 1);
                         let changes = await assetContract.hasRequiredStateChanges.call();
                         assert.isTrue(changes, 'Changes should be required');
                         tx = await assetContract.canAcceptPayment.call(1);
@@ -370,7 +370,7 @@ module.exports = function (setup) {
                     context("Funding Input: Direct", async () => {
 
                         beforeEach(async () => {
-                            let tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                            let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                             tx = await assetContract.doStateChanges(true);
                         });
 
@@ -512,7 +512,7 @@ module.exports = function (setup) {
                     context("Funding Input: Milestone", async () => {
 
                         beforeEach(async () => {
-                            let tx = await assetContract.setTestTimestamp(pre_ico_settings.start_time + 1);
+                            let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                             tx = await assetContract.doStateChanges(true);
                         });
 

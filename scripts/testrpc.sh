@@ -28,9 +28,10 @@ start_testrpc() {
 }
 
 if testrpc_running; then
-    kill -9 $( lsof -i -P | grep $testrpc_port | awk '{print $2}' ) > /dev/null &
+    kill -9 $( lsof -i -P | grep $testrpc_port | awk '{print $2}' ) > /dev/null
     # echo "not killing anything";
 fi
 
+# sleep 2
 echo "Starting our own testrpc instance at port $testrpc_port"
 start_testrpc

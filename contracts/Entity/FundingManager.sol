@@ -24,7 +24,6 @@ contract FundingManager is ApplicationAsset {
     Funding FundingEntity;
 
     event EventFundingManagerReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
-
     event EventFundingManagerProcessedVault(address indexed _vault, uint256 indexed id );
 
     mapping  (address => address) public vaultList;
@@ -35,10 +34,23 @@ contract FundingManager is ApplicationAsset {
         // Asset States
         EntityStates["__IGNORED__"]                 = 0;
         EntityStates["NEW"]                         = 1;
-        EntityStates["FUNDING_SUCCESSFUL_START"]    = 7;
-        EntityStates["FUNDING_SUCCESSFUL_PROCESSED"]= 8;
-        EntityStates["FUNDING_FAILED_START"]        = 9;
-        EntityStates["FUNDING_FAILED_PROCESSED"]    = 10;
+        EntityStates["WAITING"]                     = 2;
+
+        EntityStates["FUNDING_FAILED_START"]        = 10;
+        EntityStates["FUNDING_FAILED_PROGRESS"]     = 11;
+        EntityStates["FUNDING_FAILED_DONE"]         = 12;
+
+        EntityStates["FUNDING_SUCCESSFUL_START"]    = 20;
+        EntityStates["FUNDING_SUCCESSFUL_PROGRESS"] = 21;
+        EntityStates["FUNDING_SUCCESSFUL_DONE"]     = 22;
+
+        EntityStates["MILESTONE_PROCESS_START"]     = 30;
+        EntityStates["MILESTONE_PROCESS_PROGRESS"]  = 31;
+        EntityStates["MILESTONE_PROCESS_DONE"]      = 32;
+
+        EntityStates["COMPLETE_PROCESS_START"]     = 100;
+        EntityStates["COMPLETE_PROCESS_PROGRESS"]  = 101;
+        EntityStates["COMPLETE_PROCESS_DONE"]      = 102;
 
         // Funding Stage States
         RecordStates["__IGNORED__"]     = 0;
@@ -116,14 +128,7 @@ contract FundingManager is ApplicationAsset {
         }
     }
 
-
     /*
-    function getFundingEntityState() public returns(uint8) {
-        return FundingEntity.CurrentEntityState();
-    }
-    */
-
-
     function doProcessVaultOne() public {
         address currentVault = vaultById[1];
         EventFundingManagerProcessedVault(currentVault, 1);
@@ -132,52 +137,255 @@ contract FundingManager is ApplicationAsset {
             revert();
         }
     }
+    */
 
     bool public fundingProcessed = false;
-
     uint256 public lastProcessedVaultId = 0;
+    uint8 public VaultCountPerProcess = 5;
 
-    function FundingEndedProcessVaultList(uint8 length) public {
-        require(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FUNDING_ENDED"));
+    function ProcessVaultList(uint8 length) public {
 
-        uint256 start = lastProcessedVaultId + 1;
-        uint256 end = start + length - 1;
-
-        if(end > vaultNum) {
-            end = vaultNum;
+        if(fundingProcessed) {
+            revert();
         }
 
-        for(uint256 i = start; i <= end; i++) {
-            address currentVault = vaultById[i];
+        if(
+            CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ||
+            CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ||
+            CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ||
+            CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")
+        ) {
 
-            EventFundingManagerProcessedVault(currentVault, i);
-            // FundingVault vault = FundingVault(currentVault);
+            uint256 start = lastProcessedVaultId + 1;
+            uint256 end = start + length - 1;
+
+            if(end > vaultNum) {
+                end = vaultNum;
+            }
+
+            for(uint256 i = start; i <= end; i++) {
+                address currentVault = vaultById[i];
+
+                EventFundingManagerProcessedVault(currentVault, i);
+                ProcessFundingVault(currentVault);
+
+                lastProcessedVaultId++;
+            }
+
+            if(lastProcessedVaultId == vaultNum ) {
+                // we finished
+                lastProcessedVaultId = 0;
+                // reset and change state
+                // change funding state to FINAL
+                fundingProcessed = true;
+            }
+        } else {
+            revert();
+        }
+    }
+
+    function processFundingFinished() public view returns (bool) {
+        return fundingProcessed;
+    }
+
+    function processMilestoneFinished() public view returns (bool) {
+        return fundingProcessed;
+    }
+
+    function processCompleteFinished() public view returns (bool) {
+        return fundingProcessed;
+    }
+
+
+
+    function ProcessFundingVault(address vaultAddress ) internal {
+        FundingVault vault = FundingVault(vaultAddress);
+
+        if(CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS")) {
 
             /*
+            // release tokens back to owner
             if(!vault.ReleaseFundsToOutputAddress()) {
                 revert();
             }
             */
 
-            lastProcessedVaultId++;
+        } else if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
+
+            /*
+            // release funds to owner / tokens to investor
+            if(!vault.ReleaseFundsToOutputAddress()) {
+                revert();
+            }
+            */
+
+        } else if(CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS")) {
+            /*
+            // release funds to owner / tokens to investor
+            if(!vault.ReleaseFundsToOutputAddress()) {
+                revert();
+            }
+            */
+        } else if(CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")) {
+            /*
+                not much to do here, except get vault to transfer black hole tokens to investors, or output address
+            */
+        } else {
+            // should not get here unless something went terribly wrong :)
+            revert();
         }
-
-        if(lastProcessedVaultId  == vaultNum + 1) {
-            // we finished
-            lastProcessedVaultId = 0;
-            // reset and change state
-            // change funding state to FINAL
-            fundingProcessed = true;
-            //
-
-        }
-
     }
-
 
     modifier onlyFundingAsset() {
         require( msg.sender == address(FundingEntity));
         _;
     }
 
+    function doStateChanges(bool recursive) public {
+
+        var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
+        bool callAgain = false;
+
+        DebugEntityRequiredChanges( assetName, returnedCurrentEntityState, EntityStateRequired );
+
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            EntityProcessor(EntityStateRequired);
+            callAgain = true;
+        }
+
+        if(recursive && callAgain) {
+            if(hasRequiredStateChanges()) {
+                doStateChanges(recursive);
+            }
+        }
+    }
+
+    function hasRequiredStateChanges() public view returns (bool) {
+        bool hasChanges = false;
+        var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            hasChanges = true;
+        }
+        return hasChanges;
+    }
+
+    function EntityProcessor(uint8 EntityStateRequired) internal {
+
+        EventEntityProcessor( assetName, CurrentEntityState, EntityStateRequired );
+
+        // Update our Entity State
+        CurrentEntityState = EntityStateRequired;
+        // Do State Specific Updates
+
+// Funding Failed
+        if ( EntityStateRequired == getEntityState("FUNDING_FAILED_START") ) {
+            // fire processing start event
+            CurrentEntityState = getEntityState("FUNDING_FAILED_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("FUNDING_FAILED_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+
+// Funding Successful
+        } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_START") ) {
+            // fire processing start event
+            CurrentEntityState = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+// Milestones
+        } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_START") ) {
+            // fire processing start event
+            CurrentEntityState = getEntityState("MILESTONE_PROCESS_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+
+// Completion
+        } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_START") ) {
+            // fire processing start event
+            CurrentEntityState = getEntityState("COMPLETE_PROCESS_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+        }
+
+    }
+
+    /*
+     * Method: Get Entity Required State Changes
+     *
+     * @access       public
+     * @type         method
+     * @modifiers    onlyOwner
+     *
+     * @return       ( uint8 CurrentEntityState, uint8 EntityStateRequired )
+     */
+    function getRequiredStateChanges() public view returns (uint8, uint8) {
+
+        uint8 EntityStateRequired = getEntityState("__IGNORED__");
+
+        if( CurrentEntityState == getEntityState("NEW") ) {
+            // general so we know we initialized
+            EntityStateRequired = getEntityState("WAITING");
+
+        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
+            /*
+                This is where we decide if we should process something
+            */
+
+            // For funding
+            if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED")) {
+                EntityStateRequired = getEntityState("FUNDING_FAILED_START");
+            }
+            else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL")) {
+                EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_START");
+            }
+            else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
+
+                // We can only process milestones, if Funding is successful, and has been processed.
+
+                // for milestones
+                // if we have a milestone that meets requirements, then we need to process it.
+                // EntityStateRequired = getEntityState("MILESTONE_PROCESS_START");
+
+                // else, check if all milestones have been processed and try finalising development process
+                // EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
+            }
+
+        } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
+            // still in progress? check if we should move to done
+            if ( processFundingFinished() ) {
+                EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_DONE");
+            } else {
+                EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
+            }
+
+        } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_DONE") ) {
+            EntityStateRequired = getEntityState("WAITING");
+
+// Funding Failed
+        } else if ( CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ) {
+            // still in progress? check if we should move to done
+            if ( processFundingFinished() ) {
+                EntityStateRequired = getEntityState("FUNDING_FAILED_DONE");
+            } else {
+                EntityStateRequired = getEntityState("FUNDING_FAILED_PROGRESS");
+            }
+
+// Milestone process
+        } else if ( CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
+            // still in progress? check if we should move to done
+            if ( processMilestoneFinished() ) {
+                EntityStateRequired = getEntityState("MILESTONE_PROCESS_DONE");
+            } else {
+                EntityStateRequired = getEntityState("MILESTONE_PROCESS_PROGRESS");
+            }
+// Completion
+        } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
+            // still in progress? check if we should move to done
+            if ( processCompleteFinished() ) {
+                EntityStateRequired = getEntityState("COMPLETE_PROCESS_DONE");
+            } else {
+                EntityStateRequired = getEntityState("COMPLETE_PROCESS_PROGRESS");
+            }
+        }
+
+        return (CurrentEntityState, EntityStateRequired);
+    }
 }

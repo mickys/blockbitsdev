@@ -77,19 +77,80 @@ TestBuildHelper.prototype.addFundingStage = async function ( id, overrides ) {
     );
 };
 
-
-TestBuildHelper.prototype.FundingProcessToEndState = async function (test) {
-    let FundingAsset = this.getDeployedByName("Funding");
-
-    if(test === true) {
-        // we use the mock test methods to force state
-        let state = await FundingAsset.getEntityState.call("FUNDING_ENDED");
-        await FundingAsset.setTestCurrentEntityState(state);
-    } else {
-        // follow required procedure to get to required state!
-    }
-    // run ticks and such till
+TestBuildHelper.prototype.timeTravelTo = async function (newtime) {
+    let DeployedApplication = this.getDeployedByName("ApplicationEntity");
+    let time = await DeployedApplication.getTimestamp.call();
+    await DeployedApplication.setTestTimestamp(newtime);
+    // console.log("Current Time: ", this.setup.helpers.utils.toDate(time));
+    // console.log("New Time:     ", this.setup.helpers.utils.toDate(newtime));
 };
+
+TestBuildHelper.prototype.FundingManagerProcessVaults = async function (iteration, debug) {
+
+    let FundingManager = this.getDeployedByName("FundingManager");
+    let tx = await FundingManager.doStateChanges(false);
+
+    if(debug) {
+        await this.setup.helpers.utils.showGasUsage(this.setup.helpers, tx, 'FundingManager State Change [' + iteration + ']');
+        await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
+    }
+
+    let vaultNum = await FundingManager.vaultNum.call();
+    let lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
+    let hasChanges = await this.requiresStateChanges("FundingManager");
+
+    if(vaultNum > lastProcessedVaultId && hasChanges === true) {
+        await this.FundingManagerProcessVaults(iteration+1);
+    }
+};
+
+TestBuildHelper.prototype.requiresStateChanges = async function (assetName) {
+    let Asset = this.getDeployedByName(assetName);
+    let retVal = await Asset.hasRequiredStateChanges.call();
+    // console.log(assetName+" hasRequiredStateChanges: "+retVal);
+    return retVal;
+};
+
+
+TestBuildHelper.prototype.FundingProcessAllVaults = async function (debug) {
+    let result = [];
+    let processPerCall = 5;
+    let FundingManager = this.getDeployedByName("FundingManager");
+    let lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
+
+    if(debug === true) {
+        console.log("lastProcessedVaultId: ", lastProcessedVaultId.toString());
+    }
+
+    let processTx = await FundingManager.ProcessVaultList(processPerCall);
+    result.push(processTx);
+    if(debug === true) {
+
+        let eventFilter = this.setup.helpers.utils.hasEvent(
+            processTx,
+            'EventFundingManagerProcessedVault(address,uint256)'
+        );
+
+        for (let i = 0; i < eventFilter.length; i++) {
+            let vaultAddress = this.setup.helpers.utils.topicToAddress(eventFilter[i].topics[1]);
+            let _cnt = this.setup.helpers.web3util.toDecimal(eventFilter[i].topics[2]);
+
+            console.log(vaultAddress, " cnt: ", _cnt);
+        }
+        await this.setup.helpers.utils.showGasUsage(this.setup.helpers, processTx, " Process Gas Usage");
+    }
+
+    let vaultNum = await FundingManager.vaultNum.call();
+    lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
+    if(vaultNum > lastProcessedVaultId) {
+        let res = await this.FundingProcessAllVaults(debug);
+        for(let i = 0; i < res.length; i++){
+            result.push(res[i]);
+        }
+    }
+    return result;
+};
+
 
 TestBuildHelper.prototype.ValidateFundingState = async function ( entity_start, entity_required, record_start, record_required ) {
 

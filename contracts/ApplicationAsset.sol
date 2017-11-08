@@ -22,8 +22,10 @@ contract ApplicationAsset {
     mapping (bytes32 => uint8) public RecordStates;
     uint8 public CurrentEntityState;
 
+    event EventEntityProcessor(bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required);
+    event DebugEntityRequiredChanges( bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required );
 
-    bytes32 assetName;
+    bytes32 public assetName;
 
     /* Asset records */
     uint8 public RecordNum = 0;
@@ -144,4 +146,9 @@ contract ApplicationAsset {
         require(msg.sender == _deployerAddress);
         _;
     }
+
+    function getTimestamp() view public returns (uint256) {
+        return now;
+    }
+
 }

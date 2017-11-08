@@ -65,6 +65,44 @@ let FundingMethodIds = [
 ];
 
 
+let StateArray = {
+
+    "Funding": [
+        { key: 0,  name: "NONE"},
+        { key: 1,  name: "NEW"},
+        { key: 2,  name: "WAITING"},
+        { key: 3,  name: "IN_PROGRESS"},
+        { key: 4,  name: "COOLDOWN"},
+        { key: 5,  name: "FUNDING_ENDED"},
+        { key: 6,  name: "FAILED"},
+        { key: 7,  name: "FAILED_FINAL"},
+        { key: 8,  name: "SUCCESSFUL"},
+        { key: 9,  name: "SUCCESSFUL_FINAL"},
+    ],
+    "FundingManager": [
+        {key: 0, name: "NONE"},
+        {key: 1, name: "NEW"},
+        {key: 2, name: "WAITING"},
+
+        {key: 10, name: "FUNDING_FAILED_START"},
+        {key: 11, name: "FUNDING_FAILED_PROGRESS"},
+        {key: 12, name: "FUNDING_FAILED_DONE"},
+
+        {key: 20, name: "FUNDING_SUCCESSFUL_START"},
+        {key: 21, name: "FUNDING_SUCCESSFUL_PROGRESS"},
+        {key: 22, name: "FUNDING_SUCCESSFUL_DONE"},
+
+
+        {key: 30, name: "MILESTONE_PROCESS_START"},
+        {key: 31, name: "MILESTONE_PROCESS_PROGRESS"},
+        {key: 32, name: "MILESTONE_PROCESS_DONE"},
+
+        {key: 100, name: "COMPLETE_PROCESS_START"},
+        {key: 101, name: "COMPLETE_PROCESS_PROGRESS"},
+        {key: 102, name: "COMPLETE_PROCESS_DONE"},
+    ],
+};
+
 
 
 module.exports = {
@@ -100,7 +138,36 @@ module.exports = {
         return solAccUtils.new().then(function(instance){ return instance.transferTo(_to, {value: _val, from: _from}) });
     },
 
+    /*
+        This is useless for testing.. time is going to really depend on testrpc internal time,
+        and we can't do anything about going back to test multiple things.
 
+        instead we mock time in both ApplicationEntity and Assets
+    */
+    /*
+    async timeTravelTo(helpers, time) {
+        console.log("timeTravelTo: ", helpers.utils.toDate(time) );
+        let now = new Date().getTime() / 1000; // seconds
+        let difference = parseInt(time).toFixed(0) - parseInt(now).toFixed(0);
+        if(difference > 0) {
+            return new Promise((resolve, reject) => {
+                helpers.web3.currentProvider.sendAsync({
+                    jsonrpc: "2.0",
+                    method: "evm_increaseTime",
+                    params: [difference],
+                    id: new Date().getTime()
+                }, (err, result) => {
+                    if (err) {
+                        return reject(err)
+                    }
+                    return resolve(result)
+                });
+            })
+        } else {
+            return ;
+        }
+    },
+    */
     async showContractDebug(helpers, assetContract) {
 
         helpers.utils.toLog("\n" + logPre + " Debug: ");
@@ -176,13 +243,130 @@ module.exports = {
             tx.receipt.cumulativeGasUsed
         );
     },
-    async showCurrentState(helpers, assetContract) {
+    async showFundingState(helpers, assetContract) {
         await helpers.utils.showDebugSettings(helpers, assetContract);
         await helpers.utils.showDebugFundingStages(helpers, assetContract);
         // await helpers.utils.showDebugFundingStageStateRequiredChanges(helpers, assetContract);
         await helpers.utils.showDebugRequiredStateChanges(helpers, assetContract);
 
     },
+    async showCurrentState(helpers, assetContract) {
+        await helpers.utils.showGeneralRequiredStateChanges(helpers, assetContract);
+    },
+    async showGeneralRequiredStateChanges(helpers, assetContract) {
+
+        helpers.utils.toLog("\n" + logPre + " Debug - Required State Changes: ");
+        helpers.utils.toLog(
+            logPre + "-----------------------------------------------------------"
+        );
+
+        let contractTimeStamp = await assetContract.getTimestamp.call();
+        let assetName = await assetContract.assetName.call();
+        let contractType = helpers.web3util.toUtf8(assetName);
+
+
+        helpers.utils.toLog(
+            logPre + "Asset Name:              " + contractType
+        );
+
+        helpers.utils.toLog(
+            logPre + "Contract Time and Date:  " + helpers.utils.toDate(contractTimeStamp)
+        );
+
+        let reqChanges = await assetContract.getRequiredStateChanges.call();
+
+        if(contractType === "Funding") {
+
+            let CurrentFundingStageState = helpers.utils.getFundingStageStateNameById(helpers.web3util.toDecimal(reqChanges[0]));
+            let FundingStageStateRequired = helpers.utils.getFundingStageStateNameById(helpers.web3util.toDecimal(reqChanges[1]));
+            let EntityStateRequired = helpers.utils.getFundingEntityStateNameById(helpers.web3util.toDecimal(reqChanges[2]));
+
+
+            let CurrentEntityStateReq = await assetContract.CurrentEntityState.call();
+            let CurrentEntityState = helpers.web3util.toDecimal(CurrentEntityStateReq);
+
+
+            let stageId = helpers.web3util.toDecimal(await assetContract.currentFundingStage.call());
+
+            helpers.utils.toLog(
+                logPre + "Current stage id:        " + stageId
+            );
+
+            helpers.utils.toLog(
+                logPre + "Received RECORD state:   " +
+                helpers.utils.colors.green +
+                "[" + reqChanges[0] + "] " +
+                CurrentFundingStageState
+            );
+
+            let color = helpers.utils.colors.red;
+
+            let stateChangeInt = helpers.web3util.toDecimal(reqChanges[1]);
+            if (stateChangeInt == 0) {
+                color = helpers.utils.colors.green;
+            }
+
+            helpers.utils.toLog(
+                logPre + "Required RECORD change:  " +
+                color +
+                "[" + stateChangeInt + "] " +
+                FundingStageStateRequired
+            );
+
+            color = helpers.utils.colors.red;
+
+
+            helpers.utils.toLog(
+                logPre + "Current ENTITY:          " +
+                helpers.utils.colors.green +
+                "[" + CurrentEntityState + "] " +
+                helpers.utils.getFundingEntityStateNameById(CurrentEntityState)
+            );
+
+            if (reqChanges[2] == 0) {
+                color = helpers.utils.colors.green;
+            }
+            helpers.utils.toLog(
+                logPre + "Required ENTITY change:  " +
+                color +
+                "[" + reqChanges[2] + "] " +
+                EntityStateRequired
+            );
+
+        } else if(contractType === "FundingManager") {
+
+            let CurrentEntityStateID =  helpers.web3util.toDecimal(reqChanges[0]);
+            let RequiredEntityStateID = helpers.web3util.toDecimal(reqChanges[1]);
+
+            let CurrentEntityStateName = helpers.utils.getEntityStateNameById(contractType, CurrentEntityStateID);
+            let RequiredEntityStateName = helpers.utils.getEntityStateNameById(contractType, RequiredEntityStateID);
+
+            if (CurrentEntityStateID === 0) {
+                color = helpers.utils.colors.green;
+            }
+
+            color = helpers.utils.colors.red;
+            helpers.utils.toLog(
+                logPre + "Current ENTITY:          " +
+                helpers.utils.colors.green +
+                "[" + CurrentEntityStateID + "] " +
+                CurrentEntityStateName
+            );
+
+            if (CurrentEntityStateID === 0) {
+                color = helpers.utils.colors.green;
+            }
+            helpers.utils.toLog(
+                logPre + "Required ENTITY change:  " +
+                color +
+                "[" + RequiredEntityStateID + "] " +
+                RequiredEntityStateName
+            );
+
+        }
+        helpers.utils.toLog("");
+    },
+
     async runStateChanger(helpers, assetContract) {
 
         let hasChanges = await assetContract.hasStateChanges.call();
@@ -505,6 +689,9 @@ module.exports = {
     },
     getFundingEntityStateIdByName(_name) {
         return FundingEntityStates.filter(x => x.name === _name)[0].key;
+    },
+    getEntityStateNameById(_type, _id) {
+        return StateArray[_type].filter(x => x.key === _id)[0].name;
     },
     async getContractBalance(helpers, address) {
         return await helpers.utils.getBalance(helpers.artifacts, address);
