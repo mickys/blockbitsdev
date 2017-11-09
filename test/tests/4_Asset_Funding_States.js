@@ -342,6 +342,69 @@ module.exports = function (setup) {
 
         });
 
+        context('FundingManager Tasks', async () => {
+
+            it('handles ENTITY state change from FAILED to FAILED_FINAL after FundingManager Task Process finished', async () => {
+
+                // insert payments, under soft cap.
+                await TestBuildHelper.insertPaymentsIntoFunding(false);
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await assetContract.doStateChanges(true);
+
+                validation = await TestBuildHelper.ValidateFundingState(
+                    helpers.utils.getFundingEntityStateIdByName("FAILED").toString(),
+                    helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                    helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                    helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                await TestBuildHelper.FundingManagerProcessVaults(0, false);
+
+                tx = await assetContract.doStateChanges(true);
+
+                validation = await TestBuildHelper.ValidateFundingState(
+                    helpers.utils.getFundingEntityStateIdByName("FAILED_FINAL").toString(),
+                    helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                    helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                    helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                );
+
+            });
+
+
+            it('handles ENTITY state change from SUCCESSFUL to SUCCESSFUL_FINAL after FundingManager Task Process finished', async () => {
+
+                // insert payments, under soft cap.
+                await TestBuildHelper.insertPaymentsIntoFunding(true);
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await assetContract.doStateChanges(true);
+
+                validation = await TestBuildHelper.ValidateFundingState(
+                    helpers.utils.getFundingEntityStateIdByName("SUCCESSFUL").toString(),
+                    helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                    helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                    helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                await TestBuildHelper.FundingManagerProcessVaults(0, false);
+
+                tx = await assetContract.doStateChanges(true);
+
+                validation = await TestBuildHelper.ValidateFundingState(
+                    helpers.utils.getFundingEntityStateIdByName("SUCCESSFUL_FINAL").toString(),
+                    helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                    helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                    helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                );
+
+            });
+        });
+
+
         context('misc for extra coverage', async () => {
             let tx;
             it('isFundingStageUpdateAllowed returns false if not allowed', async () => {

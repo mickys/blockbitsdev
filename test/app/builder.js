@@ -109,6 +109,51 @@ TestBuildHelper.prototype.requiresStateChanges = async function (assetName) {
     return await Asset.hasRequiredStateChanges.call();
 };
 
+TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft_cap) {
+
+    let FundingAsset = this.getDeployedByName("Funding");
+
+    // funding inputs
+    let FundingInputDirectAddress = await FundingAsset.DirectInput.call();
+    let FundingInputMilestoneAddress = await FundingAsset.MilestoneInput.call();
+
+    let FundingInputDirectContract = await this.setup.helpers.getContract('FundingInputDirect');
+    let FundingInputMilestoneContract = await this.setup.helpers.getContract('FundingInputMilestone');
+
+    let FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
+    let FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
+
+    let tx = await this.timeTravelTo(this.setup.settings.funding_periods[1].start_time + 1);
+    tx = await FundingAsset.doStateChanges(true);
+
+    let paymentNum = 9;
+    let PaymentValue = 1 * this.setup.helpers.solidity.ether; // 100 wei  //0.01 * helpers.solidity.ether;
+
+    if(reach_soft_cap) {
+        PaymentValue = new this.setup.helpers.BigNumber(5000).mul( 10 ** 18 );
+    }
+
+    let acc_start = 10;
+    let acc_end = 20;
+    let acc = acc_start;
+    let accNum = acc_end - acc_start + 1;
+    if (accNum > paymentNum) {
+        accNum = paymentNum;
+    }
+
+    for (let i = 0; i < paymentNum; i++) {
+        // console.log("Payment ["+i+"] from account["+acc+"]", accounts[acc]);
+        await FundingInputMilestone.sendTransaction({
+            value: PaymentValue.toString(),
+            from: this.accounts[acc] // starts at investorWallet1
+        });
+
+        acc++;
+        if (acc === acc_end + 1) {
+            acc = acc_start;
+        }
+    }
+};
 
 TestBuildHelper.prototype.FundingProcessAllVaults = async function (debug) {
     let result = [];
@@ -172,6 +217,25 @@ TestBuildHelper.prototype.ValidateFundingState = async function ( entity_start, 
         return false;
     }
     else if(RecordStateRequired.toString() !== record_required) {
+        return false;
+    }
+
+    return true;
+};
+
+
+TestBuildHelper.prototype.ValidateAssetState = async function ( assetName, entity_start, entity_required ) {
+
+    let Asset = this.getDeployedByName(assetName);
+
+    let States = await Asset.getRequiredStateChanges.call();
+    let CurrentEntityState = States[0];
+    let RequiredEntityState = States[1];
+
+    if(CurrentEntityState.toString() !== entity_start) {
+        return false;
+    }
+    else if(RequiredEntityState.toString() !== entity_required) {
         return false;
     }
 

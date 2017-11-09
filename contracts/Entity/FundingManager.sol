@@ -191,11 +191,8 @@ contract FundingManager is ApplicationAsset {
                     lastProcessedVaultId++;
                 }
                 if(lastProcessedVaultId >= vaultNum ) {
-                    // we finished
+                    // reset iterator and set task state to true so we can't call it again.
                     lastProcessedVaultId = 0;
-                    // reset and change state
-                    // change funding state to FINAL
-                    fundingProcessed = true;
                     taskByHash[currentTask] = true;
                 }
             } else {
@@ -368,7 +365,10 @@ contract FundingManager is ApplicationAsset {
                 EntityStateRequired = getEntityState("FUNDING_FAILED_START");
             }
             else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL")) {
-                EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_START");
+                // make sure we haven't processed this yet
+                if(taskByHash[ getHash("FUNDING_SUCCESSFUL_START", "") ] == false) {
+                    EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_START");
+                }
             }
             else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
 

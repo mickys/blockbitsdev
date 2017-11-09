@@ -53,6 +53,7 @@ module.exports = function (setup) {
 
         });
 
+        /*
 
         it('receivePayment() throws if caller is not funding asset', async () => {
 
@@ -118,44 +119,264 @@ module.exports = function (setup) {
                 tx = await FundingContract.doStateChanges(true);
 
                 // await helpers.utils.showCurrentState(helpers, FundingManager);
-                await TestBuildHelper.FundingManagerProcessVaults(0, true);
+//                await TestBuildHelper.FundingManagerProcessVaults(0, true);
+                await TestBuildHelper.FundingManagerProcessVaults(0, false);
 
-                let key = await FundingManager.getHash.call("FUNDING_FAILED_START", "");
-                let TaskValue = await FundingManager.taskByHash.call(key);
+                // let key = await FundingManager.getHash.call("FUNDING_FAILED_START", "");
+                // let TaskValue = await FundingManager.taskByHash.call(key);
                 // console.log("Task hashkey value => ", TaskValue);
             });
 
-            /*
-            it('receivePayment() throws if caller is not funding asset', async () => {
-                let PaymentValue = 1 * helpers.solidity.ether;
-                let PaymentValueInEther = helpers.web3util.fromWei(PaymentValue, 'ether');
-                let paymentTx = await FundingInputMilestone.sendTransaction({value: PaymentValue, from: investorWallet1});
-                let eventFilter = helpers.utils.hasEvent(
-                    paymentTx,
-                    'EventFundingManagerReceivedPayment(address,uint8,uint256)'
-                );
-
-                let vaultAddress = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
-                let _method = helpers.web3util.toDecimal( eventFilter[0].topics[2] );
-                let _value = helpers.web3util.fromWei( eventFilter[0].topics[3], "ether" );
-
-                assert.equal(_method, 2, '_payment_method should be 2');
-                assert.equal(_value, PaymentValueInEther, '_value should be '+PaymentValueInEther);
-
-                let VaultBalance = helpers.web3util.fromWei( await helpers.utils.getContractBalance(helpers, vaultAddress), "ether" );
-                assert.equal(VaultBalance, PaymentValueInEther, 'Vault Contract balance should be '+PaymentValueInEther);
-
-                let vaultContract = await helpers.getContract("TestFundingVault").at(vaultAddress);
-
-                let amountMilestone = await vaultContract.amount_milestone.call();
-                let amountMilestoneInEther = helpers.web3util.fromWei(amountMilestone, "ether");
-                assert.equal(amountMilestoneInEther, PaymentValueInEther, 'amount_milestone is invalid.');
-
-                await helpers.utils.showGasUsage(helpers, paymentTx, "     ↓ Milestone Payment:");
-            });
-            */
         });
 
+        */
+
+        /*
+
+         Contract: Funding Asset - States
+         ✓ starts with state as New and requires a change to WAITING if current time is before any funding stage (348ms)
+         ✓ handles ENTITY state change from NEW to WAITING when funding does not start yet (734ms)
+         ✓ handles ENTITY state change from NEW or WAITING to IN_PROGRESS when funding time start has passed (474ms)
+         ✓ is in IN_PROGRESS, receives payments, pre_ico time passes, should Require change to COOLDOWN (685ms)
+         ✓ handles ENTITY state change from IN_PROGRESS to COOLDOWN when funding period time start has passed (646ms)
+         ✓ is in COOLDOWN, ico start time passes, should Require change to IN_PROGRESS (822ms)
+         ✓ handles ENTITY state change from COOLDOWN to IN_PROGRESS when next funding period time start has passed (898ms)
+         ✓ is IN_PROGRESS, ico end time passes, should Require change to FUNDING_ENDED (1048ms)
+         handles ENTITY state change from IN_PROGRESS when last funding period time end has passed
+         ✓ to FAILED when payments did not reach soft cap (1119ms)
+         ✓ to SUCCESSFUL when payments reached soft cap (1104ms)
+         handles ENTITY state change from IN_PROGRESS when Hard Cap is Reached
+         ✓ to SUCCESSFUL when payments reached hard cap in first funding stage (pre-ico) (800ms)
+         ✓ to SUCCESSFUL when payments reached hard cap in last funding stage (ico) (1017ms)
+         misc for extra coverage
+         ✓ isFundingStageUpdateAllowed returns false if not allowed (426ms)
+         ✓ should run doStateChanges even if no changes are required (168ms)
+
+
+        */
+
+        context('states', async () => {
+
+            let validation;
+            beforeEach( async () => {
+
+                // TestBuildHelper.insertPaymentsIntoFunding(false);
+            });
+
+            /*
+            it("starts with state as New and requires a change to WAITING", async() => {
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "NEW").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+            });
+
+            it("handles ENTITY state change from NEW to WAITING", async() => {
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "NEW").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+                tx = await FundingManager.doStateChanges(true);
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+            });
+
+            */
+
+
+            /*
+            it("handles ENTITY state change from NEW or WAITING to FUNDING_FAILED_START when funding state is FAILED ", async() => {
+
+                // insert payments, but not enough to reach soft cap.
+                await TestBuildHelper.insertPaymentsIntoFunding(false);
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // validate funding state
+                validation = await TestBuildHelper.ValidateFundingState(
+                    helpers.utils.getFundingEntityStateIdByName("FAILED").toString(),
+                    helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                    helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                    helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                );
+                assert.isTrue(validation, 'Funding State validation failed..');
+
+
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "NEW").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                // await helpers.utils.showCurrentState(helpers, FundingManager);
+
+                tx = await FundingManager.doStateChanges(false);
+
+                // await helpers.utils.showCurrentState(helpers, FundingManager);
+
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "FUNDING_FAILED_START").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+            });
+
+
+
+            context('Funding has payments, but does not reach Soft Cap', async () => {
+
+                let validation;
+                beforeEach(async () => {
+
+                    // insert payments, but not enough to reach soft cap.
+                    await TestBuildHelper.insertPaymentsIntoFunding(false);
+                    // time travel to end of ICO, and change states
+                    tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                    tx = await FundingContract.doStateChanges(true);
+
+                });
+
+                it("handles ENTITY state change from FUNDING_FAILED_START to FUNDING_FAILED_PROGRESS", async () => {
+
+                    // validate funding state
+                    validation = await TestBuildHelper.ValidateFundingState(
+                        helpers.utils.getFundingEntityStateIdByName("FAILED").toString(),
+                        helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                        helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                        helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                    );
+                    assert.isTrue(validation, 'Funding State validation failed..');
+
+
+                    validation = await TestBuildHelper.ValidateAssetState(
+                        assetName,
+                        helpers.utils.getEntityStateIdByName(assetName, "NEW").toString(),
+                        helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString()
+                    );
+                    assert.isTrue(validation, 'State validation failed..');
+
+                    // funding manager state NEW to WAITING
+                    // await helpers.utils.showCurrentState(helpers, FundingManager);
+                    tx = await FundingManager.doStateChanges(false);
+
+                    // funding manager state WAITING to FUNDING_FAILED_START
+                    // await helpers.utils.showCurrentState(helpers, FundingManager);
+                    tx = await FundingManager.doStateChanges(false);
+
+                    // funding manager state FUNDING_FAILED_START to FUNDING_FAILED_PROGRESS
+                    // await helpers.utils.showCurrentState(helpers, FundingManager);
+
+                    validation = await TestBuildHelper.ValidateAssetState(
+                        assetName,
+                        helpers.utils.getEntityStateIdByName(assetName, "FUNDING_FAILED_PROGRESS").toString(),
+                        helpers.utils.getEntityStateIdByName(assetName, "FUNDING_FAILED_PROGRESS").toString()
+                    );
+                    assert.isTrue(validation, 'State validation failed..');
+
+                });
+
+                it("handles ENTITY state change from FUNDING_FAILED_PROGRESS to FUNDING_FAILED_DONE, and processes all vaults", async () => {
+
+                    // runs internal vault processor until all vaults are processed for current task
+                    // once that happens the state is changed to TASK DONE
+                    // this is the final state of the object in this case.
+                    await TestBuildHelper.FundingManagerProcessVaults(0, false);
+
+                    validation = await TestBuildHelper.ValidateAssetState(
+                        assetName,
+                        helpers.utils.getEntityStateIdByName(assetName, "FUNDING_FAILED_DONE").toString(),
+                        helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                    );
+                    assert.isTrue(validation, 'State validation failed..');
+
+                });
+
+            });
+            */
+
+            context('Funding has payments, and Soft Cap is reached', async () => {
+
+                let validation;
+                beforeEach(async () => {
+
+                    // insert payments, over soft cap.
+                    await TestBuildHelper.insertPaymentsIntoFunding(true);
+                    // time travel to end of ICO, and change states
+                    tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                    tx = await FundingContract.doStateChanges(true);
+
+                });
+
+                it("handles ENTITY state change from FUNDING_SUCCESSFUL_START to FUNDING_SUCCESSFUL_PROGRESS", async () => {
+
+                    // validate funding state
+                    validation = await TestBuildHelper.ValidateFundingState(
+                        helpers.utils.getFundingEntityStateIdByName("SUCCESSFUL").toString(),
+                        helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                        helpers.utils.getFundingStageStateIdByName("FINAL").toString(),
+                        helpers.utils.getFundingStageStateIdByName("NONE").toString()
+                    );
+                    assert.isTrue(validation, 'Funding State validation failed..');
+
+
+                    validation = await TestBuildHelper.ValidateAssetState(
+                        assetName,
+                        helpers.utils.getEntityStateIdByName(assetName, "NEW").toString(),
+                        helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString()
+                    );
+                    assert.isTrue(validation, 'State validation failed..');
+
+                    // funding manager state NEW to WAITING
+                    // await helpers.utils.showCurrentState(helpers, FundingManager);
+                    tx = await FundingManager.doStateChanges(false);
+
+                    // funding manager state WAITING to FUNDING_SUCCESSFUL_START
+                    // await helpers.utils.showCurrentState(helpers, FundingManager);
+                    tx = await FundingManager.doStateChanges(false);
+
+                    // funding manager state FUNDING_SUCCESSFUL_START to FUNDING_SUCCESSFUL_PROGRESS
+                    // await helpers.utils.showCurrentState(helpers, FundingManager);
+
+                    validation = await TestBuildHelper.ValidateAssetState(
+                        assetName,
+                        helpers.utils.getEntityStateIdByName(assetName, "FUNDING_SUCCESSFUL_PROGRESS").toString(),
+                        helpers.utils.getEntityStateIdByName(assetName, "FUNDING_SUCCESSFUL_PROGRESS").toString()
+                    );
+                    assert.isTrue(validation, 'State validation failed..');
+
+                });
+
+                it("handles ENTITY state change from FUNDING_SUCCESSFUL_PROGRESS to FUNDING_SUCCESSFUL_DONE, and processes all vaults", async () => {
+
+                    // runs internal vault processor until all vaults are processed for current task
+                    // once that happens the state is changed to TASK DONE
+                    // this will require a new state change to WAITING
+                    await TestBuildHelper.FundingManagerProcessVaults(0, false);
+
+                    validation = await TestBuildHelper.ValidateAssetState(
+                        assetName,
+                        helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                        helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                    );
+                    assert.isTrue(validation, 'State validation failed..');
+
+                });
+
+            });
+
+        });
 
     });
 };

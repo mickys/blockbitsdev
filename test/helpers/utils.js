@@ -715,6 +715,9 @@ module.exports = {
     getEntityStateNameById(_type, _id) {
         return StateArray[_type].filter(x => x.key === _id)[0].name;
     },
+    getEntityStateIdByName(_type, _name) {
+        return StateArray[_type].filter(x => x.name === _name)[0].key;
+    },
     async getContractBalance(helpers, address) {
         return await helpers.utils.getBalance(helpers.artifacts, address);
     }

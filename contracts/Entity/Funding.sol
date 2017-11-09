@@ -67,8 +67,6 @@ contract Funding is ApplicationAsset {
 
     // funding settings
     uint256 public AmountRaised = 0;
-    // uint256 public AmountCapSoft = 0;
-    // uint256 public AmountCapHard = 0;
 
     uint256 public GlobalAmountCapSoft = 0;
     uint256 public GlobalAmountCapHard = 0;
@@ -604,9 +602,6 @@ contract Funding is ApplicationAsset {
                 CurrentEntityState = getEntityState("FAILED");
             }
 
-            // getFundingOutcome();
-            // CurrentEntityState = EntityStateRequired;
-
         } else if ( EntityStateRequired == getEntityState("SUCCESSFUL") ) {
             /*
                 STATE: SUCCESSFUL
@@ -614,18 +609,12 @@ contract Funding is ApplicationAsset {
                 Action: Run FundingManager Processor ( deliver tokens, deliver direct funding eth )
             */
 
-            // run funding manager processor
-            // CurrentEntityState = getEntityState("FINAL_SUCCESSFUL");
-
         } else if ( EntityStateRequired == getEntityState("FAILED") ) {
             /*
                 STATE: FAILED
                 @Processor hook
                 Action: Run FundingManager Processor ( return tokens to owner (eth is released to investors automatically) )
             */
-
-            // run funding manager processor
-            // CurrentEntityState = getEntityState("FINAL_SUCCESSFUL");
         }
 
 
@@ -702,10 +691,15 @@ contract Funding is ApplicationAsset {
                     FundingManager - Run Internal Processor ( deliver tokens, deliver direct funding eth )
                 */
 
-                // check funding manager state, if FUNDING_SUCCESSFUL_DONE
+                // check funding manager has processed the FUNDING_SUCCESSFUL Task, if true => FUNDING_SUCCESSFUL_DONE
+                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
+                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                }
+                /*
                 if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_DONE") ) {
                     EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
                 }
+                */
 
             } else if ( CurrentEntityState == getEntityState("FAILED") ) {
                 /*
@@ -719,10 +713,9 @@ contract Funding is ApplicationAsset {
                 // check funding manager state, if FUNDING_NOT_PROCESSED -> getEntityState("__IGNORED__")
                 // if FUNDING_FAILED_DONE
 
-                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_FAILED_DONE") ) {
+                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_FAILED_START", "") ) == true) {
                     EntityStateRequired = getEntityState("FAILED_FINAL");
                 }
-
             } else if ( CurrentEntityState == getEntityState("FINAL_SUCCESSFUL") ) {
                 /*
                     STATE: FINAL_SUCCESSFUL
