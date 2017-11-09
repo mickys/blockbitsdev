@@ -61,6 +61,7 @@ contract FundingVault {
         uint256 unix_time;
         uint8 payment_method;
         uint256 amount;
+        uint8 funding_stage;
         uint16 index;
     }
 
@@ -113,10 +114,13 @@ contract FundingVault {
     /*
         The funding contract decides if a vault should receive payments or not, since it's the one that creates them,
         no point in creating one if you can't accept payments.
-
     */
+
+    mapping (uint8 => uint256) public stageAmounts;
+
     function addPayment(
-        uint8 _payment_method
+        uint8 _payment_method,
+        uint8 _funding_stage
     )
         public
         payable
@@ -131,10 +135,10 @@ contract FundingVault {
                 purchase.unix_time = now;
                 purchase.payment_method = _payment_method;
                 purchase.amount = msg.value;
+                purchase.funding_stage = _funding_stage;
                 purchase.index = purchaseRecordsNum;
 
             // assign payment to direct or milestone
-
             if(_payment_method == 1) {
                 amount_direct+= purchase.amount;
             }
@@ -143,11 +147,22 @@ contract FundingVault {
                 amount_milestone+= purchase.amount;
             }
 
+            // in order to not iterate through purchase records, we just increase funding stage amount.
+            // issue with iterating over them, while processing vaults, would be that someone could create a large
+            // number of payments, which would result in an "out of gas" / stack overflow issue, that would lock
+            // our contract, so we don't really want to do that.
+            // doing it this way also saves gas
+            stageAmounts[_funding_stage]+=purchase.amount;
+
             EventPaymentReceived( purchase.payment_method, purchase.amount, purchase.index );
             return true;
         } else {
             revert();
         }
+    }
+
+    function getTokenStakeInFundingForEther(uint8 _stage, uint256 _amount) public view returns (uint256) {
+        return TokenSCADAEntity.getTokenAmountByEtherForFundingStage(_stage, _amount);
     }
 
     function getMyTokenStakeInCurrentFunding() public view returns (uint256) {

@@ -113,6 +113,7 @@ contract Funding is ApplicationAsset {
     }
 
     function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied {
+        AllocateTokens();
         EventRunBeforeApplyingSettings(assetName);
     }
 
@@ -183,24 +184,31 @@ contract Funding is ApplicationAsset {
         }
 
         // if TokenSCADA requires hard cap, then we require it, otherwise we reject it if provided
+        /*
         if(TokenManagerEntity.getTokenSCADARequiresHardCap() == true)
         {
             // make sure hard cap exists!
             if(_amount_cap_hard == 0) {
                 revert();
             }
+
+            // make sure soft cap is not higher than hard cap
+            if(_amount_cap_soft > _amount_cap_hard) {
+                revert();
+            }
+
         } else {
-            // make sure hard cap is zero!
+        */
+            // make sure record hard cap and soft cap is zero!
             if(_amount_cap_hard != 0) {
                 revert();
             }
-        }
 
+            if(_amount_cap_soft != 0) {
+                revert();
+            }
+        //}
 
-        // make sure soft cap is not higher than hard cap
-        if(_amount_cap_soft > _amount_cap_hard) {
-            revert();
-        }
 
         // make sure we're not selling more than 100% of token share... as that's not possible
         if(_token_share_percentage > 100) {
@@ -294,6 +302,18 @@ contract Funding is ApplicationAsset {
         );
     }
 
+    event EventAllocateTokens(address _addr, uint8 _value);
+
+    function AllocateTokens() internal {
+
+        EventAllocateTokens(address(FundingManagerEntity), TokenSellPercentage);
+        TokenManagerEntity.AllocateInitialTokenBalances(TokenSellPercentage, address(FundingManagerEntity));
+        /*
+        if(!) {
+            revert();
+        }
+        */
+    }
 
     function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
         if(
@@ -322,7 +342,7 @@ contract Funding is ApplicationAsset {
 
             EventFundingReceivedPayment(_sender, _payment_method, msg.value);
 
-            if( FundingManagerEntity.receivePayment.value(msg.value)( _sender, _payment_method ) ) {
+            if( FundingManagerEntity.receivePayment.value(msg.value)( _sender, _payment_method, currentFundingStage ) ) {
                 return true;
             } else {
                 revert();
@@ -338,46 +358,32 @@ contract Funding is ApplicationAsset {
         _;
     }
 
-    /*
-        Hook into Project State
-    */
-    function getProjectCurrentState() public pure returns (uint8) {
-        return 5;
-    }
-    /*
-        Hook into Project State
-    */
-    function getProjectDevelopmentState() public pure returns (uint8) {
-        return 5; // IN DEVELOPMENT
-    }
-
-
     function canAcceptPayment(uint256 _amount) public view returns (bool) {
         if( _amount > 0 ) {
             // funding state should be IN_PROGRESS, no state changes should be required
             if( CurrentEntityState == getEntityState("IN_PROGRESS") && hasRequiredStateChanges() == false) {
 
                 FundingStage memory record = Collection[currentFundingStage];
-                if(TokenManagerEntity.getTokenSCADARequiresHardCap() == false)
+                /*
+                if(TokenManagerEntity.getTokenSCADARequiresHardCap() == true)
                 {
-                    // case 1 - SCADA1Market
-                    uint256 remaining = GlobalAmountCapHard - AmountRaised;
-                    if( _amount >= record.minimum_entry && _amount <= remaining ) {
-                        return true;
-                    }
-                } else {
-                    // case 2
+                    // case 1
                     // soft cap is used to determine if funding is successful
                     // hard cap is used to determine if payment can be accepted,
                     //     based on SCADA each funding stage has it's own hard cap!
                     //     so.. globals do nothing here
-                }
+                } else {
+                */
+                    // case 2 - SCADA1Market
+                    uint256 remaining = GlobalAmountCapHard - AmountRaised;
+                    if( _amount >= record.minimum_entry && _amount <= remaining ) {
+                        return true;
+                    }
+                // }
             }
         }
         return false;
     }
-
-
 
     /*
     * Update Existing FundingStage
@@ -446,7 +452,6 @@ contract Funding is ApplicationAsset {
         return false;
     }
 
-
     /*
      * Funding Phase changes
      *
@@ -492,6 +497,7 @@ contract Funding is ApplicationAsset {
         }
 
         // if TokenSCADA requires hard cap, then we require it, otherwise we reject it if provided
+        /*
         if(TokenManagerEntity.getTokenSCADARequiresHardCap() == true)
         {
             // Has Funding Phase HardCap
@@ -502,12 +508,13 @@ contract Funding is ApplicationAsset {
                 }
             }
         } else {
+        */
             // Global Hard Cap Check
             if(AmountRaised == GlobalAmountCapHard) {
                 // hard cap reached
                 return getRecordState("FINAL");
             }
-        }
+        // }
 
         /*
             - else we need to wait for funding stage to start..
@@ -518,8 +525,6 @@ contract Funding is ApplicationAsset {
         }
         return RecordStateRequired;
     }
-
-
 
     function doStateChanges(bool recursive) public {
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
@@ -583,9 +588,9 @@ contract Funding is ApplicationAsset {
     function EntityProcessor(uint8 EntityStateRequired) internal {
         EventEntityProcessor( assetName, CurrentEntityState, EntityStateRequired );
 
+        // Do State Specific Updates
         // Update our Entity State
         CurrentEntityState = EntityStateRequired;
-        // Do State Specific Updates
 
         if ( EntityStateRequired == getEntityState("FUNDING_ENDED") ) {
             /*
@@ -601,27 +606,9 @@ contract Funding is ApplicationAsset {
             } else {
                 CurrentEntityState = getEntityState("FAILED");
             }
-
-        } else if ( EntityStateRequired == getEntityState("SUCCESSFUL") ) {
-            /*
-                STATE: SUCCESSFUL
-                @Processor hook
-                Action: Run FundingManager Processor ( deliver tokens, deliver direct funding eth )
-            */
-
-        } else if ( EntityStateRequired == getEntityState("FAILED") ) {
-            /*
-                STATE: FAILED
-                @Processor hook
-                Action: Run FundingManager Processor ( return tokens to owner (eth is released to investors automatically) )
-            */
         }
 
 
-    }
-
-    function getFundingOutcome() public {
-        // if()
     }
 
     /*
@@ -673,10 +660,9 @@ contract Funding is ApplicationAsset {
             if( CurrentEntityState == getEntityState("NEW") ) {
                 /*
                     STATE: NEW
-                    Processor Action: Update to WAITING
+                    Processor Action: Allocate Tokens to Funding / Owners then Update to WAITING
                 */
                 EntityStateRequired = getEntityState("WAITING");
-
             } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
                 /*
                     STATE: FUNDING_ENDED

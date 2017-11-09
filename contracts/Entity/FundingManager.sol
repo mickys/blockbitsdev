@@ -17,11 +17,13 @@ import "./../ApplicationAsset.sol";
 import "./FundingVault.sol";
 import "./TokenManager.sol";
 import "./Funding.sol";
-
+import "./Token.sol";
 
 contract FundingManager is ApplicationAsset {
 
     Funding FundingEntity;
+    TokenManager TokenManagerEntity;
+    Token TokenEntity;
 
     event EventFundingManagerReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
     event EventFundingManagerProcessedVault(address indexed _vault, uint256 indexed id );
@@ -65,14 +67,19 @@ contract FundingManager is ApplicationAsset {
         address FundingAddress = getApplicationAssetAddressByName('Funding');
         FundingEntity = Funding(FundingAddress);
         EventRunBeforeApplyingSettings(assetName);
+
+        address TokenManagerAddress = getApplicationAssetAddressByName('TokenManager');
+        TokenManagerEntity = TokenManager(TokenManagerAddress);
+        TokenEntity = Token(TokenManagerEntity.TokenEntity());
     }
 
 
-    function receivePayment(address _sender, uint8 _payment_method)
+
+    function receivePayment(address _sender, uint8 _payment_method, uint8 _funding_stage)
         payable
         public
         requireInitialised
-        onlyFundingAsset
+        onlyAsset('Funding')
         returns(bool)
     {
         // check that msg.value is higher than 0, don't really want to have to deal with minus in case the network breaks this somehow
@@ -106,7 +113,7 @@ contract FundingManager is ApplicationAsset {
 
             EventFundingManagerReceivedPayment(vault, _payment_method, msg.value);
 
-            if( vault.addPayment.value(msg.value)( _payment_method ) ) {
+            if( vault.addPayment.value(msg.value)( _payment_method, _funding_stage ) ) {
                 return true;
             } else {
                 revert();
@@ -244,6 +251,15 @@ contract FundingManager is ApplicationAsset {
 
         } else if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
+            uint256 totalVaultTokens = 0;
+
+            // for stage amount, find out token stake and add them.
+            for( uint8 i = 0; i < FundingEntity.FundingStageNum(); i++) {
+                totalVaultTokens+= vault.getTokenStakeInFundingForEther(i, vault.stageAmounts(i+1));
+            }
+
+            TokenEntity.transfer( vaultAddress, totalVaultTokens );
+
             /*
             // release funds to owner / tokens to investor
             if(!vault.ReleaseFundsToOutputAddress()) {
@@ -264,11 +280,6 @@ contract FundingManager is ApplicationAsset {
             */
         }
         // should never get here unless something went terribly wrong with the whole network :)
-    }
-
-    modifier onlyFundingAsset() {
-        require( msg.sender == address(FundingEntity));
-        _;
     }
 
     function doStateChanges(bool recursive) public {

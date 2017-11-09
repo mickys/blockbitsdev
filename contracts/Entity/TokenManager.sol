@@ -21,6 +21,7 @@ contract TokenManager is ApplicationAsset {
     TokenSCADA1Market public TokenSCADAEntity;
     Token public TokenEntity;
 
+
     function addTokenSettingsAndInit(
         uint256 _tokenSupply,
         uint8 _tokenDecimals,
@@ -47,7 +48,6 @@ contract TokenManager is ApplicationAsset {
         requireInitialised
         requireSettingsNotApplied
     {
-
         // we need token address
         // we need funding contract address.. let's ask application entity ABI for it :D
         address fundingContractAddress = getApplicationAssetAddressByName('Funding');
@@ -60,36 +60,45 @@ contract TokenManager is ApplicationAsset {
         return TokenSCADAEntity.requiresHardCap();
     }
 
+    // Funding initialization complete, give funding manager tokens we're selling
+    event EventAllocatedInitialTokenBalances(address _addr, uint256 _value);
+    bool InitialTokenBalancesAllocated = false;
 
-    struct TeamMember {
-        uint8 id;
-        address wallet;
-        uint8 fraction;
+    function AllocateInitialTokenBalances(uint8 _sellPercentage, address _FundingManagerAddress)
+        public
+        onlyAsset('Funding')
+        returns (bool)
+    {
+        require(InitialTokenBalancesAllocated == false);
+        // TokenManager owns all tokens.
+
+        // calculate token value based on selling percentage
+        uint256 tokenValue = TokenEntity.balanceOf(address(this)) / 100 * _sellPercentage;
+
+        // Allocate the percentage we're selling to the FundingManager
+        // from this as ( msg.sender ) , to FundingManager, value
+        TokenEntity.transfer( _FundingManagerAddress, tokenValue );
+        EventAllocatedInitialTokenBalances(_FundingManagerAddress, tokenValue);
+
+        InitialTokenBalancesAllocated = true;
+        return true;
     }
 
-    mapping (uint8 => TeamMember) TeamMembers;
-    uint8 TeamMembersNum = 0;
+    // Development stage complete, release tokens to Project Owners
+    event EventOwnerTokenBalancesReleased(address _addr, uint256 _value);
+    bool OwnerTokenBalancesReleased = false;
 
-    function addTeamMember(address _wallet, uint8 _fraction) public requireNotInitialised {
-
-        TeamMember storage member = TeamMembers[TeamMembersNum++];
-            member.id = TeamMembersNum;
-            member.wallet = _wallet;
-            member.fraction = _fraction;
+    function ReleaseOwnersLockedTokens(address _multiSigOutputAddress)
+        public
+        onlyAsset('FundingManager')
+        returns (bool)
+    {
+        require(OwnerTokenBalancesReleased == false);
+        uint256 lockedBalance = TokenEntity.balanceOf(address(this));
+        TokenEntity.transfer( _multiSigOutputAddress, lockedBalance );
+        EventOwnerTokenBalancesReleased(_multiSigOutputAddress, lockedBalance);
+        OwnerTokenBalancesReleased = true;
+        return true;
     }
-
-    function AllocateTokensToTeamMembers() public requireNotInitialised {
-        for(uint8 i = 0; i < TeamMembersNum; i++ ) {
-
-            TeamMember storage member = TeamMembers[i];
-            // member.id = TeamMembersNum;
-            // member.wallet = _wallet;
-            // member.fraction = _fraction;
-            member.id = i;
-        }
-        // create token vault
-        // allocate tokens
-    }
-
 
 }

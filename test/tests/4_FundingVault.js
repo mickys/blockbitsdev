@@ -41,7 +41,7 @@ module.exports = function(setup) {
 
         it('addPayment throws if not initialized', async () => {
             return helpers.assertInvalidOpcode(async () => {
-                await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: 1, from: deploymentAddress})
+                await assetContract.addPayment(FUNDING_DIRECT_METHOD, 1, {value: 1, from: deploymentAddress})
             });
         });
 
@@ -93,6 +93,7 @@ module.exports = function(setup) {
 
 
         context('addPayment()', async () => {
+
             beforeEach(async () => {
                 await assetContract.initialize(
                     investorAddress,
@@ -110,7 +111,7 @@ module.exports = function(setup) {
             it('FUNDING_DIRECT_METHOD - works with correct settings and caller', async () => {
                 let sendAmount = 1 * helpers.solidity.ether;
                 let eventFilter = helpers.utils.hasEvent(
-                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: sendAmount, from: deploymentAddress}),
+                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, 1, {value: sendAmount, from: deploymentAddress}),
                     'EventPaymentReceived(uint8,uint256,uint16)'
                 );
                 assert.equal(eventFilter.length, 1, 'EventPaymentReceived event not received.');
@@ -135,7 +136,7 @@ module.exports = function(setup) {
             it('FUNDING_MILESTONE_METHOD - works with correct settings and caller', async () => {
                 let sendAmount = 1 * helpers.solidity.ether;
                 let eventFilter = helpers.utils.hasEvent(
-                    await assetContract.addPayment(FUNDING_MILESTONE_METHOD, {value: sendAmount, from: deploymentAddress}),
+                    await assetContract.addPayment(FUNDING_MILESTONE_METHOD, 1, {value: sendAmount, from: deploymentAddress}),
                     'EventPaymentReceived(uint8,uint256,uint16)'
                 );
                 assert.equal(eventFilter.length, 1, 'EventPaymentReceived event not received.');
@@ -159,33 +160,33 @@ module.exports = function(setup) {
 
             it('throws if msg.value is missing', async () => {
                 return helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addPayment(FUNDING_DIRECT_METHOD);
+                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, 1);
                 });
             });
 
             it('throws if payment method does not exist', async () => {
                 return helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addPayment(3, {value: 1 * helpers.solidity.ether});
+                    await assetContract.addPayment(3, 1, {value: 1 * helpers.solidity.ether});
                 });
             });
 
             it('throws if called by other address than manager (funding contract)', async () => {
                 let sendAmount = 1 * helpers.solidity.ether;
                 return helpers.assertInvalidOpcode(async () => {
-                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: sendAmount, from: accounts[1]})
+                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, 1, {value: sendAmount, from: accounts[1]})
                 });
             });
 
             it('handles multiple payments, irregardless of funding method provided', async () => {
                 let sendAmount = 1 * helpers.solidity.ether;
                 let eventFilter = helpers.utils.hasEvent(
-                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, {value: sendAmount, from: deploymentAddress}),
+                    await assetContract.addPayment(FUNDING_DIRECT_METHOD, 1,{value: sendAmount, from: deploymentAddress}),
                     'EventPaymentReceived(uint8,uint256,uint16)'
                 );
                 assert.equal(eventFilter.length, 1, 'Direct Payment: EventPaymentReceived event not received.');
 
                 eventFilter = helpers.utils.hasEvent(
-                    await assetContract.addPayment(FUNDING_MILESTONE_METHOD, {value: sendAmount * 5 , from: deploymentAddress}),
+                    await assetContract.addPayment(FUNDING_MILESTONE_METHOD, 1, {value: sendAmount * 5 , from: deploymentAddress}),
                     'EventPaymentReceived(uint8,uint256,uint16)'
                 );
                 assert.equal(eventFilter.length, 1, 'Milestone Payment: EventPaymentReceived event not received.');

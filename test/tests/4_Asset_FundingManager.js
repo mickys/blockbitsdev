@@ -53,7 +53,6 @@ module.exports = function (setup) {
 
         });
 
-        /*
 
         it('receivePayment() throws if caller is not funding asset', async () => {
 
@@ -62,7 +61,7 @@ module.exports = function (setup) {
 
             let DirectPaymentValue = 1 * helpers.solidity.ether;
             helpers.assertInvalidOpcode(async () => {
-                tx = await FundingManager.receivePayment( investorWallet1, 1, {value: DirectPaymentValue, from: investorWallet1});
+                tx = await FundingManager.receivePayment( investorWallet1, 1, 1, {value: DirectPaymentValue, from: investorWallet1});
             });
         });
 
@@ -129,7 +128,7 @@ module.exports = function (setup) {
 
         });
 
-        */
+
 
         /*
 
@@ -163,7 +162,7 @@ module.exports = function (setup) {
                 // TestBuildHelper.insertPaymentsIntoFunding(false);
             });
 
-            /*
+
             it("starts with state as New and requires a change to WAITING", async() => {
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -189,10 +188,10 @@ module.exports = function (setup) {
                 assert.isTrue(validation, 'State validation failed..');
             });
 
-            */
 
 
-            /*
+
+
             it("handles ENTITY state change from NEW or WAITING to FUNDING_FAILED_START when funding state is FAILED ", async() => {
 
                 // insert payments, but not enough to reach soft cap.
@@ -304,7 +303,6 @@ module.exports = function (setup) {
                 });
 
             });
-            */
 
             context('Funding has payments, and Soft Cap is reached', async () => {
 

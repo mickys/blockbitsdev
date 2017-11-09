@@ -120,20 +120,9 @@ module.exports = function (setup) {
                 assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
             });
 
-            it('throws if soft cap is higher than hard cap', async () => {
-                helpers.assertInvalidOpcode(async () => {
-
-                    await TestBuildHelper.addFundingStage(0, {
-                        amount_cap_soft: 101,
-                        amount_cap_hard: 100
-                    });
-                });
-                assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
-            });
-
             if(setup.settings.tokenSCADA.requires_global_hard_cap === true) {
 
-                context("SCADA Requires Hard Cap", async () => {
+                context("SCADA Requires Record Hard Cap", async () => {
 
                     it('throws if hard cap is 0', async () => {
                         helpers.assertInvalidOpcode(async () => {
@@ -144,8 +133,19 @@ module.exports = function (setup) {
                         assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
                     });
 
-                    it('works if hard cap is higher than 0', async () => {
+                    it('throws if record soft cap is higher than hard cap', async () => {
+                        helpers.assertInvalidOpcode(async () => {
+                            await TestBuildHelper.addFundingStage(0, {
+                                amount_cap_soft: 15,
+                                amount_cap_hard: 10
+                            });
+                        });
+                        assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
+                    });
+
+                    it('works if hard cap is higher than soft cap which is higher than 0', async () => {
                         await TestBuildHelper.addFundingStage(0, {
+                            amount_cap_soft: 5000,
                             amount_cap_hard: 10000
                         });
                         assert.equal(await assetContract.FundingStageNum.call(), 1, 'FundingStageNum is not 1!');
@@ -156,19 +156,30 @@ module.exports = function (setup) {
             else if(setup.settings.tokenSCADA.requires_global_hard_cap === false)
             {
 
-                context("SCADA Disallows Hard Cap", async () => {
+                context("SCADA Disallows Record Hard Cap, Requires Globals", async () => {
 
-                    it('throws if hard cap or soft cap exists', async () => {
+
+                    it('throws if soft cap exists', async () => {
                         helpers.assertInvalidOpcode(async () => {
                             await TestBuildHelper.addFundingStage(0, {
-                                amount_cap_soft: 101,
-                                amount_cap_hard: 100
+                                amount_cap_soft: 15,
+                                amount_cap_hard: 0
                             });
                         });
                         assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
                     });
 
-                    it('works if hard cap is 0', async () => {
+                    it('throws if hard cap exists', async () => {
+                        helpers.assertInvalidOpcode(async () => {
+                            await TestBuildHelper.addFundingStage(0, {
+                                amount_cap_soft: 0,
+                                amount_cap_hard: 15
+                            });
+                        });
+                        assert.equal(await assetContract.FundingStageNum.call(), 0, 'FundingStageNum is not 0!');
+                    });
+
+                    it('works if hard cap and soft cap is 0', async () => {
                         await TestBuildHelper.addFundingStage(0, {
                             amount_cap_soft: 0,
                             amount_cap_hard: 0
@@ -249,7 +260,6 @@ module.exports = function (setup) {
                 assert.isAddress(await assetContract.MilestoneInput.call(), 'MilestoneInput should be a valid address');
             });
 
-
             context("receivePayment()", async () => {
 
                 it('throws if called directly in the Funding contract', async () => {
@@ -263,17 +273,17 @@ module.exports = function (setup) {
                     let FundingManager = await TestBuildHelper.getDeployedByName("FundingManager");
                     let DirectPaymentValue = 1 * helpers.solidity.ether;
                     helpers.assertInvalidOpcode(async () => {
-                        await FundingManager.receivePayment( investorWallet1, 1, {value: DirectPaymentValue, from: investorWallet1});
+                        await FundingManager.receivePayment( investorWallet1, 1, 1, {value: DirectPaymentValue, from: investorWallet1});
                     });
                 });
 
                 it('throws if _payment_method is not allowed', async () => {
-                    let PaymentValue = 0.1 * helpers.solidity.ether;
+                    let PaymentValue = 1 * helpers.solidity.ether;
                     let FundingInputMock = await helpers.getContract('TestFundingInputMock').new();
                     await assetContract.setTestFundingInputDirect(FundingInputMock.address.toString());
                     await FundingInputMock.setTestFundingAssetAddress(assetContract.address.toString());
                     return helpers.assertInvalidOpcode(async () => {
-                        await FundingInputMock.sendTransaction({value: PaymentValue, from: investorWallet5});
+                        await FundingInputMock.sendTransaction({value: PaymentValue, from: investorWallet3});
                     });
                 });
             });

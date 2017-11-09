@@ -77,8 +77,30 @@ module.exports = function (setup) {
             assert.isTrue(validation, 'State validation failed..');
         });
 
-        it('handles ENTITY state change from NEW or WAITING to IN_PROGRESS when funding time start has passed', async () => {
+        it('starts with state as New and has correct Token Balance once in WAITING state', async () => {
+            tx = await assetContract.doStateChanges(true);
 
+            validation = await TestBuildHelper.ValidateFundingState(
+                helpers.utils.getFundingEntityStateIdByName("WAITING").toString(),
+                helpers.utils.getFundingEntityStateIdByName("NONE").toString(),
+                helpers.utils.getFundingStageStateIdByName("NEW").toString(),
+                helpers.utils.getFundingStageStateIdByName("NONE").toString()
+            );
+            assert.isTrue(validation, 'State validation failed..');
+
+            let TokenContract = await TestBuildHelper.getTokenContract();
+            let FundingManagerAddress = await assetContract.getApplicationAssetAddressByName.call('FundingManager');
+
+            let TokenSupply = await TokenContract.totalSupply.call();
+            let FundingSellTokenPercentage = await assetContract.TokenSellPercentage.call();
+
+            let FundingManagerBalance = await TokenContract.balanceOf.call( FundingManagerAddress );
+            let SellValue = TokenSupply / 100 * FundingSellTokenPercentage;
+
+            assert.equal(FundingManagerBalance.toNumber(), SellValue, 'Balances do not match..');
+        });
+
+        it('handles ENTITY state change from NEW or WAITING to IN_PROGRESS when funding time start has passed', async () => {
             tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
             validation = await TestBuildHelper.ValidateFundingState(
@@ -111,7 +133,6 @@ module.exports = function (setup) {
 
         });
 
-
         it('handles ENTITY state change from IN_PROGRESS to COOLDOWN when funding period time start has passed', async () => {
 
             tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
@@ -134,7 +155,6 @@ module.exports = function (setup) {
         });
 
         it('is in COOLDOWN, ico start time passes, should Require change to IN_PROGRESS', async () => {
-
             tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.start_time + 1 );
             tx = await assetContract.doStateChanges(true);
 
@@ -144,7 +164,6 @@ module.exports = function (setup) {
 
             tx = await TestBuildHelper.timeTravelTo( pre_ico_settings.end_time + 1 );
             tx = await assetContract.doStateChanges(true);
-
 
             tx = await TestBuildHelper.timeTravelTo( ico_settings.start_time + 1 );
 
@@ -156,7 +175,6 @@ module.exports = function (setup) {
             );
             assert.isTrue(validation, 'State validation failed..');
         });
-
 
         it('handles ENTITY state change from COOLDOWN to IN_PROGRESS when next funding period time start has passed', async () => {
 
@@ -181,7 +199,6 @@ module.exports = function (setup) {
             );
 
             assert.isTrue(validation, 'State validation failed..');
-
         });
 
 
@@ -425,6 +442,7 @@ module.exports = function (setup) {
                 tx = await assetContract.doStateChanges(true);
             });
         });
+
 
         // receive some payments and move to COOLDOWN by updating time to after pre_ico
         // receive payments over hard cap, should move to funding ended

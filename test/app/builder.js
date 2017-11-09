@@ -109,6 +109,13 @@ TestBuildHelper.prototype.requiresStateChanges = async function (assetName) {
     return await Asset.hasRequiredStateChanges.call();
 };
 
+TestBuildHelper.prototype.getTokenContract = async function () {
+    let TokenManager = await this.getDeployedByName("TokenManager");
+    let TokenContractAddress = await TokenManager.TokenEntity.call();
+    let TokenContract = await this.setup.helpers.getContract('TestToken');
+    return await TokenContract.at(TokenContractAddress);
+};
+
 TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft_cap) {
 
     let FundingAsset = this.getDeployedByName("Funding");

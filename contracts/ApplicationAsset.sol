@@ -147,6 +147,12 @@ contract ApplicationAsset {
         _;
     }
 
+    modifier onlyAsset(bytes32 _name) {
+        address AssetAddress = getApplicationAssetAddressByName(_name);
+        require( msg.sender == AssetAddress);
+        _;
+    }
+
     function getTimestamp() view public returns (uint256) {
         return now;
     }
