@@ -64,7 +64,6 @@ TestBuildHelper.prototype.addFundingStage = async function (id, overrides) {
 
     return await object.addFundingStage(
         settings.name,
-        settings.description,
         settings.start_time,
         settings.end_time,
         settings.amount_cap_soft,
@@ -72,7 +71,7 @@ TestBuildHelper.prototype.addFundingStage = async function (id, overrides) {
         settings.methods,
         settings.minimum_entry,
         settings.start_parity,
-        settings.use_parity_from_previous,
+        settings.price_addition_percentage,
         settings.token_share_percentage
     );
 };
@@ -121,7 +120,7 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
     let vaultNum = await FundingManager.vaultNum.call();
     for (let i = 1; i <= vaultNum; i++) {
         let vaultAddress = await FundingManager.vaultById.call(i);
-        await this.displayVaultDetails(i, vaultAddress);
+        await this.displayVaultDetails(vaultAddress, i);
     }
 
     let vaultAddress = await FundingManager.vaultById.call(1);
@@ -132,11 +131,8 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
     let SCADAAddress = await vault.TokenSCADAEntity.call();
     let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
 
-    let preIcoParity = await TokenSCADA.getStageParity.call(1);
-    let IcoParity = await TokenSCADA.getStageParity.call(2);
-
-    let UnsoldTokens = await TokenSCADA.getSecondStageUnsoldTokenBalance.call();
-    let UnsoldTokensIntegral = this.setup.helpers.web3util.fromWei(UnsoldTokens, "ether");
+    let preIcoParity = await TokenSCADA.getTokenParity.call(1);
+    let IcoParity = await TokenSCADA.getTokenParity.call(2);
 
     let usedParity = IcoParity;
     if (preIcoParity.toNumber() < IcoParity.toNumber()) {
@@ -144,12 +140,34 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
     }
 
     this.setup.helpers.utils.toLog("");
-    this.setup.helpers.utils.toLog(logPre + "PRE Parity:         " + preIcoParity);
-    this.setup.helpers.utils.toLog(logPre + "ICO Parity:         " + IcoParity);
-    this.setup.helpers.utils.toLog(logPre + "Distribution Parity:" + usedParity);
+    this.setup.helpers.utils.toLog(logPre + "PRE Parity:          " + preIcoParity);
+    this.setup.helpers.utils.toLog(logPre + "ICO Parity:          " + IcoParity);
+    this.setup.helpers.utils.toLog(logPre + "Distribution Parity: " + usedParity);
+
+    let unsoldTokenBalance = await TokenSCADA.getUnsoldTokenAmount.call();
+    let unsoldTokenBalanceInFull = this.setup.helpers.web3util.fromWei(unsoldTokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens Unsold:       " + unsoldTokenBalanceInFull);
 
 
-    this.setup.helpers.utils.toLog(logPre + "Unsold Tokens:      " + UnsoldTokensIntegral);
+    this.setup.helpers.utils.toLog("");
+
+    let total = new this.setup.helpers.BigNumber(0);
+    for (let i = 1; i <= vaultNum; i++) {
+        let vaultAddress = await FundingManager.vaultById.call(i);
+        let TokenBalance = await this.getTokenBalance(vaultAddress);
+        let TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
+        this.setup.helpers.utils.toLog(logPre + "Vault Balance ["+i+"]:   " + TokenBalanceInFull);
+        total.add( await new this.setup.helpers.BigNumber( TokenBalance.toString()) );
+        this.setup.helpers.utils.toLog(logPre + "Total Balance ["+i+"]:   " + total);
+    }
+
+    let totalInFull = this.setup.helpers.web3util.fromWei(total, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens ADDED:        " + total);
+
+    let FundingManagerTokenBalance = await this.getTokenBalance(FundingManager.address.toString());
+    let FundingManagerTokenBalanceInFull = this.setup.helpers.web3util.fromWei(FundingManagerTokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "FundingManager:      " + FundingManagerTokenBalanceInFull);
+
 
 };
 
@@ -166,35 +184,62 @@ TestBuildHelper.prototype.displayVaultDetails = async function (vaultAddress, id
     let balance = await this.setup.helpers.utils.getBalance(this.setup.helpers.artifacts, vaultAddress);
     let balanceInEth = this.setup.helpers.web3util.fromWei(balance, "ether");
 
-    this.setup.helpers.utils.toLog("\n" + logPre + "Vault Id:            " + "[" + id + "]");
-    this.setup.helpers.utils.toLog(logPre + "Address:            " + vaultAddress);
-    this.setup.helpers.utils.toLog(logPre + "Owner Address:      " + vaultOwner);
-    this.setup.helpers.utils.toLog(logPre + "Balance in eth:     " + balanceInEth);
-
-
-    let tokenBalance = await this.getTokenBalance(vaultAddress);
-    let tokenBalanceInFull = this.setup.helpers.web3util.fromWei(tokenBalance, "ether");
+    this.setup.helpers.utils.toLog("\n" + logPre + "Vault Id:             " + "[" + id + "]");
+    this.setup.helpers.utils.toLog(logPre + "Address:             " + vaultAddress);
+    this.setup.helpers.utils.toLog(logPre + "Owner Address:       " + vaultOwner);
+    this.setup.helpers.utils.toLog(logPre + "Balance in eth:      " + balanceInEth);
 
     for (let paymentId = 1; paymentId <= await vault.purchaseRecordsNum.call(); paymentId++) {
         let record = await vault.purchaseRecords.call(paymentId);
         let recordAmount = record[2];
         let recordAmountInEth = this.setup.helpers.web3util.fromWei(recordAmount, "ether");
-        this.setup.helpers.utils.toLog(logPre + "Record [" + (paymentId) + "] eth:     " + recordAmountInEth);
+        this.setup.helpers.utils.toLog(logPre + "Record [" + (paymentId) + "] eth:      " + recordAmountInEth);
     }
 
+    let PreTokens;
+    let IcoTokens;
     for (let stageId = 1; stageId <= this.setup.settings.funding_periods.length; stageId++) {
+        let stageTokens = 0;
         let stageAmount = await vault.stageAmounts.call(stageId);
 
-        let stageTokens = await TokenSCADA.getTokensInFundingStageForEther.call(stageId, stageAmount);
+        if(stageId === 1) {
+            stageTokens = await TokenSCADA.getMyTokensInFirstStage.call(vaultAddress);
+            PreTokens = stageTokens;
+        }
+        else if(stageId === 2) {
+            stageTokens = await TokenSCADA.getMyTokensInSecondStage.call(vaultAddress);
+            IcoTokens = stageTokens;
+        }
 
         let stageAmountInEth = this.setup.helpers.web3util.fromWei(stageAmount, "ether");
-        this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] eth:      " + stageAmountInEth);
+        this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] eth:       " + stageAmountInEth);
         let stageTokenIntegral = this.setup.helpers.web3util.fromWei(stageTokens, "ether");
-        this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] tokens:   " + stageTokenIntegral);
+        this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] tokens:    " + stageTokenIntegral);
+
     }
 
-    this.setup.helpers.utils.toLog(logPre + "Tokens (Integral):  " + tokenBalanceInFull);
+    let tokenBalance = await this.getTokenBalance(vaultAddress);
+    let tokenBalanceInFull = this.setup.helpers.web3util.fromWei(tokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens (Integral):   " + tokenBalanceInFull);
 
+
+
+    let PRETokenBalanceInFull = this.setup.helpers.web3util.fromWei(PreTokens, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens PRE:          " + PRETokenBalanceInFull);
+    let ICOTokenBalanceInFull = this.setup.helpers.web3util.fromWei(IcoTokens, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens ICO:          " + ICOTokenBalanceInFull);
+
+    let MyTokenBalance = PreTokens.add(IcoTokens);
+    let MyTokenBalanceInFull = this.setup.helpers.web3util.fromWei(MyTokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens ALL:          " + MyTokenBalanceInFull);
+
+    let unsoldTokenBalance = await TokenSCADA.getUnsoldTokenAmount.call();
+    let unsoldTokenBalanceInFull = this.setup.helpers.web3util.fromWei(unsoldTokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens Unsold:       " + unsoldTokenBalanceInFull);
+
+    let myUnsoldTokenBalance = await TokenSCADA.getUnsoldTokenFraction.call( unsoldTokenBalance, tokenBalance );
+    let myUnsoldTokenBalanceInFull = this.setup.helpers.web3util.fromWei(myUnsoldTokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "My Unsold Fraction:  " + myUnsoldTokenBalanceInFull);
 
 };
 

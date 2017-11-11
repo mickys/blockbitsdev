@@ -135,14 +135,14 @@ module.exports = function (setup) {
             tx = await FundingContract.doStateChanges(true);
 
             // insert payments, under soft cap.
-            await TestBuildHelper.insertPaymentsIntoFunding(true, 2);
+            await TestBuildHelper.insertPaymentsIntoFunding(true, 3);
 
             // time travel to start of ICO, and change states
             tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
             tx = await FundingContract.doStateChanges(true);
 
             // insert payments, over soft cap.
-            await TestBuildHelper.insertPaymentsIntoFunding(false, 2);
+            await TestBuildHelper.insertPaymentsIntoFunding(false, 3);
             // time travel to end of ICO, and change states
             tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
             tx = await FundingContract.doStateChanges(true);

@@ -44,7 +44,6 @@ contract Funding is ApplicationAsset {
 
     struct FundingStage {
         bytes32 name;
-        bytes32 description;                // will change to bytes32 hash pointer ( swarm / ipfs storage )
         uint8   state;
         uint256 time_start;
         uint256 time_end;
@@ -57,7 +56,6 @@ contract Funding is ApplicationAsset {
         // token settings
         uint256 start_parity;
         uint8   price_addition_percentage;  //
-        bool    use_parity_from_previous;   // enforces previous if available
         uint8   token_share_percentage;
         uint8   index;
     }
@@ -163,7 +161,6 @@ contract Funding is ApplicationAsset {
 
     function addFundingStage(
         bytes32 _name,
-        bytes32 _description,
         uint256 _time_start,
         uint256 _time_end,
         uint256 _amount_cap_soft,
@@ -172,7 +169,6 @@ contract Funding is ApplicationAsset {
         uint256 _minimum_entry,
         uint256 _start_parity,
         uint8   _price_addition_percentage,
-        bool    _use_parity_from_previous,
         uint8   _token_share_percentage
     )
         public
@@ -236,7 +232,6 @@ contract Funding is ApplicationAsset {
 
         FundingStage storage record = Collection[++FundingStageNum];
         record.name             = _name;
-        record.description      = _description;
         record.time_start       = _time_start;
         record.time_end         = _time_end;
         record.amount_cap_soft  = _amount_cap_soft;
@@ -249,7 +244,6 @@ contract Funding is ApplicationAsset {
         // token settings
         record.start_parity              = _start_parity;
         record.price_addition_percentage = _price_addition_percentage;
-        record.use_parity_from_previous  = _use_parity_from_previous;
         record.token_share_percentage    = _token_share_percentage;
 
         // state new

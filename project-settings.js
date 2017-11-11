@@ -44,7 +44,6 @@ let pre_ico_end = pre_ico_start + pre_ico_duration;
 
 let pre_ico_settings = {
     name: "PRE ICO",                            //  bytes32 _name,
-    description: "PRE ICO Funding Phase",       //  bytes32 _description,
     start_time: pre_ico_start,                  //  uint256 _time_start,
     end_time: pre_ico_end,                      //  uint256 _time_end,
     amount_cap_soft: 0,                         //  uint256 _amount_cap_soft,
@@ -53,7 +52,6 @@ let pre_ico_settings = {
     minimum_entry: new BigNumber(1).mul(ether), //  uint256 _minimum_entry,
     start_parity: 0,                            //  uint256 _start_parity,
     price_addition_percentage: 0,               //  uint8   _price_addition_percentage
-    use_parity_from_previous: false,            //  bool
     token_share_percentage: 10,                 //  uint8
 };
 
@@ -63,7 +61,6 @@ let ico_end = ico_start + ico_duration;
 
 let ico_settings = {
     name: "ICO",
-    description: "ICO Funding Phase",
     start_time: ico_start,
     end_time: ico_end,
     amount_cap_soft: 0,
@@ -71,7 +68,6 @@ let ico_settings = {
     methods: 3,
     minimum_entry: 0,
     start_parity: 0,
-    use_parity_from_previous: true,
     price_addition_percentage: 20,               //  add this many percentages to previous stage parity
     token_share_percentage: 40,
 };

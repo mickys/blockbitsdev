@@ -162,8 +162,8 @@ contract FundingVault {
     }
 
 
-    function getTokensForEther(uint8 _stage, uint256 _amount) public view returns (uint256) {
-        return 55; //TokenSCADAEntity.getTokensForEther(_stage, _amount);
+    function getBoughtTokens() public view returns (uint256) {
+        return TokenSCADAEntity.getBoughtTokens( address(this) );
     }
 
     /*

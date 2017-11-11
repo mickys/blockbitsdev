@@ -28,7 +28,7 @@ contract FundingManager is ApplicationAsset {
     // TokenSCADAGeneric TokenSCADAEntity;
 
     event EventFundingManagerReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
-    event EventFundingManagerProcessedVault(address indexed _vault, uint256 indexed id );
+    event EventFundingManagerProcessedVault(address _vault, uint256 id );
 
     mapping  (address => address) public vaultList;
     mapping  (uint256 => address) public vaultById;
@@ -256,18 +256,9 @@ contract FundingManager is ApplicationAsset {
 
         } else if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
-            /*
-            uint256 totalVaultTokens = 0;
+            uint256 VaultTokens = vault.getBoughtTokens();
+            TokenEntity.transfer( vaultAddress, VaultTokens );
 
-            // for stage amount, find out token stake and add them.
-            for( uint8 i = 1; i <= FundingEntity.FundingStageNum(); i++) {
-                totalVaultTokens+= 55;
-                //vault.getTokensForEther(i, vault.stageAmounts(i));
-            }
-
-            TokenEntity.transfer( vaultAddress, totalVaultTokens );
-
-            */
             /*
             // release funds to owner / tokens to investor
             if(!vault.ReleaseFundsToOutputAddress()) {
