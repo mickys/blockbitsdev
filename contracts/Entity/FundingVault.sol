@@ -161,13 +161,16 @@ contract FundingVault {
         }
     }
 
-    function getTokenStakeInFundingForEther(uint8 _stage, uint256 _amount) public view returns (uint256) {
-        return TokenSCADAEntity.getTokenAmountByEtherForFundingStage(_stage, _amount);
+
+    function getTokensForEther(uint8 _stage, uint256 _amount) public view returns (uint256) {
+        return 55; //TokenSCADAEntity.getTokensForEther(_stage, _amount);
     }
 
+    /*
     function getMyTokenStakeInCurrentFunding() public view returns (uint256) {
-        return TokenSCADAEntity.getTokenAmountByEtherForFundingStage(0, amount_direct);
+        return TokenSCADAEntity.getTokensForEther(0, amount_direct);
     }
+    */
 
     function ReleaseFundsToOutputAddress()
         public

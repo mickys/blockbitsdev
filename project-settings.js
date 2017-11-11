@@ -52,6 +52,7 @@ let pre_ico_settings = {
     methods: 3,                                 //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
     minimum_entry: new BigNumber(1).mul(ether), //  uint256 _minimum_entry,
     start_parity: 0,                            //  uint256 _start_parity,
+    price_addition_percentage: 0,               //  uint8   _price_addition_percentage
     use_parity_from_previous: false,            //  bool
     token_share_percentage: 10,                 //  uint8
 };
@@ -71,6 +72,7 @@ let ico_settings = {
     minimum_entry: 0,
     start_parity: 0,
     use_parity_from_previous: true,
+    price_addition_percentage: 20,               //  add this many percentages to previous stage parity
     token_share_percentage: 40,
 };
 
@@ -129,64 +131,6 @@ let project_bylaws = {
 
 };
 
-let team_wallets = [
-    {
-        name: "micky",
-        address: 0,
-        address_rpc: 24,
-        allocation: {
-            units: 20,
-            numerator: 50
-        }
-
-    },
-    {
-        name: "calin",
-        address: 0,
-        address_rpc: 23,
-        allocation: {
-            units: 12,
-            numerator: 50
-        }
-    },
-    {
-        name: "mitza",
-        address: 0,
-        address_rpc: 22,
-        allocation: {
-            units: 8,
-            numerator: 50
-        }
-    },
-    {
-        name: "vlad",
-        address: 0,
-        address_rpc: 21,
-        allocation: {
-            units: 1,
-            numerator: 50
-        }
-    },
-    {
-        name: "ionut",
-        address: 0,
-        address_rpc: 20,
-        allocation: {
-            units: 1,
-            numerator: 50
-        }
-    },
-    {
-        name: "radu",
-        address: 0,
-        address_rpc: 19,
-        allocation: {
-            units: 1,
-            numerator: 50
-        }
-    }
-];
-
 let application_settings = {
     bylaws:project_bylaws,
     funding_periods:funding_periods,
@@ -194,7 +138,6 @@ let application_settings = {
     token:token_settings,
     tokenSCADA:tokenSCADA,
     solidity:solidity,
-    team_wallets:team_wallets,
     doDeployments: false
 };
 

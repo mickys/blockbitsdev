@@ -1,12 +1,12 @@
+let logPre = "      ";
 
-function TestBuildHelper(setup, assert, accounts, platformWalletAddress){
+function TestBuildHelper(setup, assert, accounts, platformWalletAddress) {
     this.setup = setup;
     this.assert = assert;
     this.accounts = accounts;
     this.deployed = [];
     this.platformWalletAddress = platformWalletAddress;
 
-    this.assignTeamWallets();
 }
 
 TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, requiredAssets) {
@@ -21,14 +21,14 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     let assetContract = await this.deploy(assetName);
 
     // deploy and add requirement asset contracts
-    for(let i = 0; i < requiredAssets.length; i++) {
+    for (let i = 0; i < requiredAssets.length; i++) {
         let name = requiredAssets[i];
         let deployed = await this.deploy(name);
-        await app["addAsset"+name](await deployed.address);
+        await app["addAsset" + name](await deployed.address);
     }
 
     // add current asset
-    await app["addAsset"+assetName](await assetContract.address);
+    await app["addAsset" + assetName](await assetContract.address);
 
     // set gw address so we can initialize
     await app.setTestGatewayInterfaceEntity(this.accounts[0]);
@@ -43,12 +43,12 @@ TestBuildHelper.prototype.addBylawsIntoApp = async function () {
 
 };
 
-TestBuildHelper.prototype.addFundingStage = async function ( id, overrides ) {
+TestBuildHelper.prototype.addFundingStage = async function (id, overrides) {
 
     let settings = {};
     let target = this.setup.settings.funding_periods[id];
 
-    if(typeof overrides === 'object') {
+    if (typeof overrides === 'object') {
         for (let key in target) {
             if (overrides.hasOwnProperty(key)) {
                 settings[key] = overrides[key];
@@ -89,7 +89,7 @@ TestBuildHelper.prototype.FundingManagerProcessVaults = async function (iteratio
     let FundingManager = this.getDeployedByName("FundingManager");
     let tx = await FundingManager.doStateChanges(false);
 
-    if(debug) {
+    if (debug) {
         await this.setup.helpers.utils.showGasUsage(this.setup.helpers, tx, 'FundingManager State Change [' + iteration + ']');
         await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
     }
@@ -99,8 +99,8 @@ TestBuildHelper.prototype.FundingManagerProcessVaults = async function (iteratio
     let hasChanges = await this.requiresStateChanges("FundingManager");
 
 //    if(vaultNum >= lastProcessedVaultId && hasChanges === true) {
-    if(hasChanges === true) {
-        await this.FundingManagerProcessVaults(iteration+1, debug);
+    if (hasChanges === true) {
+        await this.FundingManagerProcessVaults(iteration + 1, debug);
     }
 };
 
@@ -116,7 +116,94 @@ TestBuildHelper.prototype.getTokenContract = async function () {
     return await TokenContract.at(TokenContractAddress);
 };
 
-TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft_cap) {
+TestBuildHelper.prototype.displayAllVaultDetails = async function () {
+    let FundingManager = await this.getDeployedByName("FundingManager");
+    let vaultNum = await FundingManager.vaultNum.call();
+    for (let i = 1; i <= vaultNum; i++) {
+        let vaultAddress = await FundingManager.vaultById.call(i);
+        await this.displayVaultDetails(i, vaultAddress);
+    }
+
+    let vaultAddress = await FundingManager.vaultById.call(1);
+    let FundingVault = await this.getContract("TestFundingVault");
+    let TokenSCADAContract = await this.getContract("TestTokenSCADA1Market");
+    // get vault contents and display
+    let vault = await FundingVault.at(vaultAddress);
+    let SCADAAddress = await vault.TokenSCADAEntity.call();
+    let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
+
+    let preIcoParity = await TokenSCADA.getStageParity.call(1);
+    let IcoParity = await TokenSCADA.getStageParity.call(2);
+
+    let UnsoldTokens = await TokenSCADA.getSecondStageUnsoldTokenBalance.call();
+    let UnsoldTokensIntegral = this.setup.helpers.web3util.fromWei(UnsoldTokens, "ether");
+
+    let usedParity = IcoParity;
+    if (preIcoParity.toNumber() < IcoParity.toNumber()) {
+        usedParity = preIcoParity;
+    }
+
+    this.setup.helpers.utils.toLog("");
+    this.setup.helpers.utils.toLog(logPre + "PRE Parity:         " + preIcoParity);
+    this.setup.helpers.utils.toLog(logPre + "ICO Parity:         " + IcoParity);
+    this.setup.helpers.utils.toLog(logPre + "Distribution Parity:" + usedParity);
+
+
+    this.setup.helpers.utils.toLog(logPre + "Unsold Tokens:      " + UnsoldTokensIntegral);
+
+};
+
+TestBuildHelper.prototype.displayVaultDetails = async function (vaultAddress, id) {
+
+    let FundingVault = await this.getContract("TestFundingVault");
+    let TokenSCADAContract = await this.getContract("TestTokenSCADA1Market");
+    // get vault contents and display
+    let vault = await FundingVault.at(vaultAddress);
+    let SCADAAddress = await vault.TokenSCADAEntity.call();
+    let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
+
+    let vaultOwner = await vault.vaultOwner.call();
+    let balance = await this.setup.helpers.utils.getBalance(this.setup.helpers.artifacts, vaultAddress);
+    let balanceInEth = this.setup.helpers.web3util.fromWei(balance, "ether");
+
+    this.setup.helpers.utils.toLog("\n" + logPre + "Vault Id:            " + "[" + id + "]");
+    this.setup.helpers.utils.toLog(logPre + "Address:            " + vaultAddress);
+    this.setup.helpers.utils.toLog(logPre + "Owner Address:      " + vaultOwner);
+    this.setup.helpers.utils.toLog(logPre + "Balance in eth:     " + balanceInEth);
+
+
+    let tokenBalance = await this.getTokenBalance(vaultAddress);
+    let tokenBalanceInFull = this.setup.helpers.web3util.fromWei(tokenBalance, "ether");
+
+    for (let paymentId = 1; paymentId <= await vault.purchaseRecordsNum.call(); paymentId++) {
+        let record = await vault.purchaseRecords.call(paymentId);
+        let recordAmount = record[2];
+        let recordAmountInEth = this.setup.helpers.web3util.fromWei(recordAmount, "ether");
+        this.setup.helpers.utils.toLog(logPre + "Record [" + (paymentId) + "] eth:     " + recordAmountInEth);
+    }
+
+    for (let stageId = 1; stageId <= this.setup.settings.funding_periods.length; stageId++) {
+        let stageAmount = await vault.stageAmounts.call(stageId);
+
+        let stageTokens = await TokenSCADA.getTokensInFundingStageForEther.call(stageId, stageAmount);
+
+        let stageAmountInEth = this.setup.helpers.web3util.fromWei(stageAmount, "ether");
+        this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] eth:      " + stageAmountInEth);
+        let stageTokenIntegral = this.setup.helpers.web3util.fromWei(stageTokens, "ether");
+        this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] tokens:   " + stageTokenIntegral);
+    }
+
+    this.setup.helpers.utils.toLog(logPre + "Tokens (Integral):  " + tokenBalanceInFull);
+
+
+};
+
+TestBuildHelper.prototype.getTokenBalance = async function (address) {
+    let TokenContract = await this.getTokenContract();
+    return await TokenContract.balanceOf.call(address);
+};
+
+TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft_cap, howMany) {
 
     let FundingAsset = this.getDeployedByName("Funding");
 
@@ -130,14 +217,18 @@ TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft
     let FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
     let FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
 
-    let tx = await this.timeTravelTo(this.setup.settings.funding_periods[1].start_time + 1);
-    tx = await FundingAsset.doStateChanges(true);
+    // let tx = await this.timeTravelTo(this.setup.settings.funding_periods[1].start_time + 1);
+    // tx = await FundingAsset.doStateChanges(true);
 
     let paymentNum = 9;
+    if (howMany > 0) {
+        paymentNum = howMany;
+    }
+
     let PaymentValue = 1 * this.setup.helpers.solidity.ether; // 100 wei  //0.01 * helpers.solidity.ether;
 
-    if(reach_soft_cap) {
-        PaymentValue = new this.setup.helpers.BigNumber(5000).mul( 10 ** 18 );
+    if (reach_soft_cap) {
+        PaymentValue = new this.setup.helpers.BigNumber(20000).div(paymentNum).mul(10 ** 18);
     }
 
     let acc_start = 10;
@@ -168,13 +259,13 @@ TestBuildHelper.prototype.FundingProcessAllVaults = async function (debug) {
     let FundingManager = this.getDeployedByName("FundingManager");
     let lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
 
-    if(debug === true) {
+    if (debug === true) {
         console.log("lastProcessedVaultId: ", lastProcessedVaultId.toString());
     }
 
     let processTx = await FundingManager.ProcessVaultList(processPerCall);
     result.push(processTx);
-    if(debug === true) {
+    if (debug === true) {
 
         let eventFilter = this.setup.helpers.utils.hasEvent(
             processTx,
@@ -192,9 +283,9 @@ TestBuildHelper.prototype.FundingProcessAllVaults = async function (debug) {
 
     let vaultNum = await FundingManager.vaultNum.call();
     lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
-    if(vaultNum > lastProcessedVaultId) {
+    if (vaultNum > lastProcessedVaultId) {
         let res = await this.FundingProcessAllVaults(debug);
-        for(let i = 0; i < res.length; i++){
+        for (let i = 0; i < res.length; i++) {
             result.push(res[i]);
         }
     }
@@ -202,7 +293,7 @@ TestBuildHelper.prototype.FundingProcessAllVaults = async function (debug) {
 };
 
 
-TestBuildHelper.prototype.ValidateFundingState = async function ( entity_start, entity_required, record_start, record_required ) {
+TestBuildHelper.prototype.ValidateFundingState = async function (entity_start, entity_required, record_start, record_required) {
 
     let FundingAsset = this.getDeployedByName("Funding");
 
@@ -214,16 +305,16 @@ TestBuildHelper.prototype.ValidateFundingState = async function ( entity_start, 
     CurrentEntityState = await FundingAsset.CurrentEntityState.call();
 
 
-    if(CurrentEntityState.toString() !== entity_start) {
+    if (CurrentEntityState.toString() !== entity_start) {
         return false;
     }
-    else if(EntityStateRequired.toString() !== entity_required) {
+    else if (EntityStateRequired.toString() !== entity_required) {
         return false;
     }
-    else if(CurrentRecordState.toString() !== record_start) {
+    else if (CurrentRecordState.toString() !== record_start) {
         return false;
     }
-    else if(RecordStateRequired.toString() !== record_required) {
+    else if (RecordStateRequired.toString() !== record_required) {
         return false;
     }
 
@@ -231,7 +322,7 @@ TestBuildHelper.prototype.ValidateFundingState = async function ( entity_start, 
 };
 
 
-TestBuildHelper.prototype.ValidateAssetState = async function ( assetName, entity_start, entity_required ) {
+TestBuildHelper.prototype.ValidateAssetState = async function (assetName, entity_start, entity_required) {
 
     let Asset = this.getDeployedByName(assetName);
 
@@ -239,24 +330,14 @@ TestBuildHelper.prototype.ValidateAssetState = async function ( assetName, entit
     let CurrentEntityState = States[0];
     let RequiredEntityState = States[1];
 
-    if(CurrentEntityState.toString() !== entity_start) {
+    if (CurrentEntityState.toString() !== entity_start) {
         return false;
     }
-    else if(RequiredEntityState.toString() !== entity_required) {
+    else if (RequiredEntityState.toString() !== entity_required) {
         return false;
     }
 
     return true;
-};
-
-
-
-TestBuildHelper.prototype.assignTeamWallets = async function () {
-    for(i = 0; i < this.setup.settings.team_wallets.length; i++) {
-        if(this.setup.settings.team_wallets[i].address === 0) {
-            this.setup.settings.team_wallets[i].address = this.accounts[this.setup.settings.team_wallets[i].address_rpc];
-        }
-    }
 };
 
 TestBuildHelper.prototype.getMyVaultAddress = async function (myAddress) {
@@ -286,23 +367,22 @@ TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (Funding
     let percentInSettings = this.setup.settings.funding_periods[FundingPeriodId].token_share_percentage.toString();
     let tokenSupplyInSettings = this.setup.settings.token.supply;
 
-    let raisedAmount = new this.setup.helpers.BigNumber( amount_raised.toString() );                  // should be paymentValue
-    let totalTokenSupply = new this.setup.helpers.BigNumber( tokenSupplyInSettings.toString() );      // 5 mil integral tokens
+    let raisedAmount = new this.setup.helpers.BigNumber(amount_raised.toString());                  // should be paymentValue
+    let totalTokenSupply = new this.setup.helpers.BigNumber(tokenSupplyInSettings.toString());      // 5 mil integral tokens
 
     let tokensInStage = totalTokenSupply.mul(percentInSettings).div(100);
 
-    let result = tokensInStage.mul( DirectPaymentValue ).div(raisedAmount);
-    if(result.toString() === "NaN") {
+    let result = tokensInStage.mul(DirectPaymentValue).div(raisedAmount);
+    if (result.toString() === "NaN") {
         result = new this.setup.helpers.BigNumber(0);
     }
     return result;
 };
 
 
-
 TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
     let object = this.getDeployedByName(name);
-    if(name === "TokenManager") {
+    if (name === "TokenManager") {
         // add token settings
         let token_settings = this.setup.settings.token;
 
@@ -314,10 +394,10 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
             token_settings.version
         );
 
-    } else if(name === "Funding") {
+    } else if (name === "Funding") {
         // add funding phases
 
-        for(let i = 0; i < this.setup.settings.funding_periods.length; i++) {
+        for (let i = 0; i < this.setup.settings.funding_periods.length; i++) {
             await this.addFundingStage(i);
         }
 
@@ -331,7 +411,7 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
 };
 
 TestBuildHelper.prototype.deploy = async function (name) {
-    let object = await this.getContract("Test"+name);
+    let object = await this.getContract("Test" + name);
     this.deployed[name] = await object.new();
     return this.deployed[name];
 };

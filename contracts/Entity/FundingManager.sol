@@ -18,12 +18,14 @@ import "./FundingVault.sol";
 import "./TokenManager.sol";
 import "./Funding.sol";
 import "./Token.sol";
+// import "./../Algorithms/TokenSCADA1Market.sol";
 
 contract FundingManager is ApplicationAsset {
 
     Funding FundingEntity;
     TokenManager TokenManagerEntity;
     Token TokenEntity;
+    // TokenSCADAGeneric TokenSCADAEntity;
 
     event EventFundingManagerReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
     event EventFundingManagerProcessedVault(address indexed _vault, uint256 indexed id );
@@ -71,6 +73,9 @@ contract FundingManager is ApplicationAsset {
         address TokenManagerAddress = getApplicationAssetAddressByName('TokenManager');
         TokenManagerEntity = TokenManager(TokenManagerAddress);
         TokenEntity = Token(TokenManagerEntity.TokenEntity());
+
+        // address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
+        // TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress) ;
     }
 
 
@@ -251,15 +256,18 @@ contract FundingManager is ApplicationAsset {
 
         } else if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
+            /*
             uint256 totalVaultTokens = 0;
 
             // for stage amount, find out token stake and add them.
-            for( uint8 i = 0; i < FundingEntity.FundingStageNum(); i++) {
-                totalVaultTokens+= vault.getTokenStakeInFundingForEther(i, vault.stageAmounts(i+1));
+            for( uint8 i = 1; i <= FundingEntity.FundingStageNum(); i++) {
+                totalVaultTokens+= 55;
+                //vault.getTokensForEther(i, vault.stageAmounts(i));
             }
 
             TokenEntity.transfer( vaultAddress, totalVaultTokens );
 
+            */
             /*
             // release funds to owner / tokens to investor
             if(!vault.ReleaseFundsToOutputAddress()) {

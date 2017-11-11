@@ -363,8 +363,12 @@ module.exports = function (setup) {
 
             it('handles ENTITY state change from FAILED to FAILED_FINAL after FundingManager Task Process finished', async () => {
 
+                // time travel to ico start time
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                tx = await assetContract.doStateChanges(true);
+
                 // insert payments, under soft cap.
-                await TestBuildHelper.insertPaymentsIntoFunding(false);
+                tx = await TestBuildHelper.insertPaymentsIntoFunding(false);
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(true);
@@ -393,8 +397,12 @@ module.exports = function (setup) {
 
             it('handles ENTITY state change from SUCCESSFUL to SUCCESSFUL_FINAL after FundingManager Task Process finished', async () => {
 
+                // time travel to ico start time
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                tx = await assetContract.doStateChanges(true);
+
                 // insert payments, under soft cap.
-                await TestBuildHelper.insertPaymentsIntoFunding(true);
+                tx = await TestBuildHelper.insertPaymentsIntoFunding(true);
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await assetContract.doStateChanges(true);

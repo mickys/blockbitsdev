@@ -56,6 +56,7 @@ contract Funding is ApplicationAsset {
         uint8   methods;                    // FundingMethodIds
         // token settings
         uint256 start_parity;
+        uint8   price_addition_percentage;  //
         bool    use_parity_from_previous;   // enforces previous if available
         uint8   token_share_percentage;
         uint8   index;
@@ -170,6 +171,7 @@ contract Funding is ApplicationAsset {
         uint8   _methods,
         uint256 _minimum_entry,
         uint256 _start_parity,
+        uint8   _price_addition_percentage,
         bool    _use_parity_from_previous,
         uint8   _token_share_percentage
     )
@@ -245,9 +247,10 @@ contract Funding is ApplicationAsset {
         record.minimum_entry    = _minimum_entry;
 
         // token settings
-        record.start_parity             = _start_parity;
-        record.use_parity_from_previous = _use_parity_from_previous;
-        record.token_share_percentage   = _token_share_percentage;
+        record.start_parity              = _start_parity;
+        record.price_addition_percentage = _price_addition_percentage;
+        record.use_parity_from_previous  = _use_parity_from_previous;
+        record.token_share_percentage    = _token_share_percentage;
 
         // state new
         record.state = getRecordState("NEW");
@@ -286,20 +289,16 @@ contract Funding is ApplicationAsset {
         Funding_Setting_cashback_time_end = Funding_Setting_cashback_time_start + Funding_Setting_cashback_duration;
     }
 
-    function getFundingStageVariablesRequiredBySCADA(uint8 _id)
-        public
-        view
-        returns (
-            uint8,   // token_share_percentage
-            uint256  // amount_raised
-        )
-    {
-        uint8 StageId = _id + 1;
+    function getStageTokenSharePercentage(uint8 StageId) public view returns ( uint8 ) {
+        return Collection[StageId].token_share_percentage;
+    }
 
-        return (
-            Collection[StageId].token_share_percentage,
-            Collection[StageId].amount_raised
-        );
+    function getStagePriceAdd(uint8 StageId) public view returns ( uint8 ) {
+        return Collection[StageId].price_addition_percentage;
+    }
+
+    function getStageAmountRaised(uint8 StageId) public view returns ( uint256 ) {
+        return Collection[StageId].amount_raised;
     }
 
     event EventAllocateTokens(address _addr, uint8 _value);

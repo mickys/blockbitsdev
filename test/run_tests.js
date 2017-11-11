@@ -71,30 +71,12 @@ tests.push("4_Asset_Funding");
 tests.push("4_Asset_Funding_Payments");
 tests.push("4_Asset_Funding_States");
 tests.push("4_Asset_FundingManager");
+tests.push("4_Asset_FundingManager_Successful");
 
-//tests = [];
+
+tests = [];
 //tests.push("4_Asset_Funding");
-// tests.push("4_Asset_FundingManager");
-
-
-// tests.push("4_FundingVault");
-// tests.push("4_Asset_TokenManager");
-
-// tests.push("oneDeployTest");
-// tests.push("4_Asset_Funding");
-// tests.push("4_Asset_Funding_Payments");
-// tests.push("1_GatewayInterface");
-
-// tests = [];
-// tests.push("4_Asset_FundingManager");
-// tests.push("4_Asset_Funding_States");
-
-
-// tests = [];
-// tests.push("4_Asset_Funding_States");
-
-// tests.push("4_Asset_Funding_Payments");
-//// tests.push("4_Asset_Funding_States");
+tests.push("4_Asset_FundingManager_Successful");
 
 
 
