@@ -150,7 +150,7 @@ module.exports = function (setup) {
             // runs internal vault processor until all vaults are processed for current task
             // once that happens the state is changed to TASK DONE
             // this will require a new state change to WAITING
-            await TestBuildHelper.FundingManagerProcessVaults(0, false);
+            await TestBuildHelper.FundingManagerProcessVaults(0, true);
 
             validation = await TestBuildHelper.ValidateAssetState(
                 assetName,
