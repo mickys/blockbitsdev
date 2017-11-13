@@ -1,4 +1,7 @@
 module.exports = function (setup) {
+    // obsolete
+    return;
+
     let helpers = setup.helpers;
     let contracts = setup.contracts;
     let settings = setup.settings;

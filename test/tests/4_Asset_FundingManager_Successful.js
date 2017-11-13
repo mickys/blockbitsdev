@@ -54,66 +54,24 @@ module.exports = function (setup) {
 
         });
 
-        /*
+        context('Successful funding - Token distribution', async () => {
 
-        it('Successful funding, soft cap reached in ico', async () => {
-
-            // time travel to pre ico start time
-            tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-            tx = await FundingContract.doStateChanges(true);
-
-            // insert payments, under soft cap.
-            await TestBuildHelper.insertPaymentsIntoFunding(false, 2);
-
-            // time travel to start of ICO, and change states
-            tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-            tx = await FundingContract.doStateChanges(true);
-
-            // insert payments, over soft cap.
-            await TestBuildHelper.insertPaymentsIntoFunding(true, 2);
-            // time travel to end of ICO, and change states
-            tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-            tx = await FundingContract.doStateChanges(true);
-
-            // runs internal vault processor until all vaults are processed for current task
-            // once that happens the state is changed to TASK DONE
-            // this will require a new state change to WAITING
-            await TestBuildHelper.FundingManagerProcessVaults(0, false);
-
-            validation = await TestBuildHelper.ValidateAssetState(
-                assetName,
-                helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
-                helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
-            );
-            assert.isTrue(validation, 'State validation failed..');
-
-            await TestBuildHelper.displayAllVaultDetails();
-
-        });
-
-        it('Successful funding, soft cap reached in pre-ico', async () => {
-
+            it('SoftCap reached in pre-ico, 1 payment, 1 payment in pre-ico, 0 payments in ico', async () => {
                 // time travel to pre ico start time
                 tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
                 tx = await FundingContract.doStateChanges(true);
 
-                // insert payments, under soft cap.
-                await TestBuildHelper.insertPaymentsIntoFunding(true, 2);
+                // insert 1 payment, at soft cap.
+                await FundingInputMilestone.sendTransaction({
+                    value: settings.bylaws["funding_global_soft_cap"],
+                    from: accounts[15]
+                });
 
-                // time travel to start of ICO, and change states
-                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                // insert payments, over soft cap.
-                await TestBuildHelper.insertPaymentsIntoFunding(false, 2);
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await FundingContract.doStateChanges(true);
 
-                // runs internal vault processor until all vaults are processed for current task
-                // once that happens the state is changed to TASK DONE
-                // this will require a new state change to WAITING
-                await TestBuildHelper.FundingManagerProcessVaults(0, false);
+                await TestBuildHelper.FundingManagerProcessVaults(false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -122,74 +80,32 @@ module.exports = function (setup) {
                 );
                 assert.isTrue(validation, 'State validation failed..');
 
-                await TestBuildHelper.displayAllVaultDetails();
+                // await TestBuildHelper.displayAllVaultDetails();
 
-        });
-
-        */
-
-        it('Successful funding, soft cap reached in pre-ico', async () => {
-
-            // time travel to pre ico start time
-            tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-            tx = await FundingContract.doStateChanges(true);
-
-            // insert payments, under soft cap.
-            await TestBuildHelper.insertPaymentsIntoFunding(true, 3);
-
-            // time travel to start of ICO, and change states
-            tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-            tx = await FundingContract.doStateChanges(true);
-
-            // insert payments, over soft cap.
-            await TestBuildHelper.insertPaymentsIntoFunding(false, 3);
-            // time travel to end of ICO, and change states
-            tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-            tx = await FundingContract.doStateChanges(true);
-
-            // runs internal vault processor until all vaults are processed for current task
-            // once that happens the state is changed to TASK DONE
-            // this will require a new state change to WAITING
-            await TestBuildHelper.FundingManagerProcessVaults(0, true);
-
-            validation = await TestBuildHelper.ValidateAssetState(
-                assetName,
-                helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
-                helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
-            );
-            assert.isTrue(validation, 'State validation failed..');
-
-            await TestBuildHelper.displayAllVaultDetails();
-
-        });
+                // validate investor vault has 50% of total tokens
+                let vaultAddress = await FundingManager.vaultById.call(1);
+                let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
+                let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
+            });
 
 
-        /*
-
-        it('Successful funding, soft cap reached in ico', async () => {
-
-                // time travel to pre ico start time
-                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                // insert payments, under soft cap.
-                await TestBuildHelper.insertPaymentsIntoFunding(true, 1);
-
+            it('SoftCap reached in ico, 1 payment, 1 account, 0 payments in pre-ico, 1 payment in ico', async () => {
                 // time travel to start of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
                 tx = await FundingContract.doStateChanges(true);
 
-                // insert payments, over soft cap.
-                await TestBuildHelper.insertPaymentsIntoFunding(false, 2);
+                // insert 1 payment, at soft cap.
+                await FundingInputMilestone.sendTransaction({
+                    value: settings.bylaws["funding_global_soft_cap"],
+                    from: accounts[15]
+                });
+
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await FundingContract.doStateChanges(true);
 
-
-                // runs internal vault processor until all vaults are processed for current task
-                // once that happens the state is changed to TASK DONE
-                // this will require a new state change to WAITING
-                await TestBuildHelper.FundingManagerProcessVaults(0, false);
+                await TestBuildHelper.FundingManagerProcessVaults(false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -197,9 +113,274 @@ module.exports = function (setup) {
                     helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
                 );
                 assert.isTrue(validation, 'State validation failed..');
-                await TestBuildHelper.displayAllVaultDetails();
+
+                // await TestBuildHelper.displayAllVaultDetails();
+
+                // validate investor vault has 50% of total tokens
+                let vaultAddress = await FundingManager.vaultById.call(1);
+                let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
+                let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
+            });
+
+
+            it('SoftCap reached in pre-ico, 2 payments, 1 account, 1 payment in pre-ico, 1 payment in ico', async () => {
+                // time travel to pre ico start time
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, at soft cap.
+                await FundingInputMilestone.sendTransaction({
+                    value: settings.bylaws["funding_global_soft_cap"],
+                    from: accounts[15]
+                });
+
+                // time travel to start of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, very low.
+                await FundingInputMilestone.sendTransaction({
+                    value: 1 * helpers.solidity.ether,
+                    from: accounts[15]
+                });
+
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults(false);
+
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                // await TestBuildHelper.displayAllVaultDetails();
+
+                // validate investor vault has 50% of total tokens
+                let vaultAddress = await FundingManager.vaultById.call(1);
+                let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
+                let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
+            });
+
+            it('SoftCap reached in ico, 2 payments, 1 account, 1 payment in pre-ico, 1 payment in ico', async () => {
+                // time travel to pre ico start time
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, very low.
+                await FundingInputMilestone.sendTransaction({
+                    value: 1 * helpers.solidity.ether,
+                    from: accounts[15]
+                });
+
+                // time travel to start of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, at soft cap.
+                await FundingInputMilestone.sendTransaction({
+                    value: settings.bylaws["funding_global_soft_cap"],
+                    from: accounts[15]
+                });
+
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults(false);
+
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                // await TestBuildHelper.displayAllVaultDetails();
+
+                // validate investor vault has 50% of total tokens
+                let vaultAddress = await FundingManager.vaultById.call(1);
+                let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
+                let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
+            });
+
+
+            it('SoftCap reached in pre-ico, 2 payments, 2 accounts, 1 payment in pre-ico (account 1), 1 payment in ico (account 2)', async () => {
+                // time travel to pre ico start time
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, very low.
+                await FundingInputMilestone.sendTransaction({
+                    value: settings.bylaws["funding_global_soft_cap"],
+                    from: accounts[16]
+                });
+
+                // time travel to start of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, at soft cap.
+                await FundingInputMilestone.sendTransaction({
+                    value: 1 * helpers.solidity.ether,
+                    from: accounts[17]
+                });
+
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults(false);
+
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                // await TestBuildHelper.displayAllVaultDetails();
+
+                // @TODO Validate result
+
+                // let vaultAddress1 = await FundingManager.vaultById.call(1);
+                // let vaultAddress2 = await FundingManager.vaultById.call(1);
+                // let balance1 = await TestBuildHelper.getTokenBalance(vaultAddress1);
+                // let balance2 = await TestBuildHelper.getTokenBalance(vaultAddress2);
+                // let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                // assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
+
+            });
+
+
+
+            it('SoftCap reached in ico, 2 payments, 2 accounts, 1 payment in pre-ico (account 1), 1 payment in ico (account 2)', async () => {
+                // time travel to pre ico start time
+                tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, very low.
+                await FundingInputMilestone.sendTransaction({
+                    value: 1 * helpers.solidity.ether,
+                    from: accounts[16]
+                });
+
+                // time travel to start of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                // insert 1 payment, at soft cap.
+                await FundingInputMilestone.sendTransaction({
+                    value: settings.bylaws["funding_global_soft_cap"],
+                    from: accounts[17]
+                });
+
+                // time travel to end of ICO, and change states
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults(false);
+
+                validation = await TestBuildHelper.ValidateAssetState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "WAITING").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                // await TestBuildHelper.displayAllVaultDetails();
+
+                let vaultAddress1 = await FundingManager.vaultById.call(1);
+                let vaultAddress2 = await FundingManager.vaultById.call(2);
+                let balance1 = await TestBuildHelper.getTokenBalance(vaultAddress1);
+                let balance2 = await TestBuildHelper.getTokenBalance(vaultAddress2);
+
+                // validate investor 1 vault has 10% of total tokens
+                let preTokens = token_settings.supply.mul(0.1);
+                assert.equal(balance1.toString(), preTokens.toString(), 'Token balance validation failed');
+
+                // validate investor 2 vault has 40% of total tokens
+                let icoTokens = token_settings.supply.mul(0.4);
+                assert.equal(balance2.toString(), icoTokens.toString(), 'Token balance validation failed');
+            });
         });
-        */
+
+
+        context('misc for extra coverage', async () => {
+            let tx;
+            it('should run doStateChanges even if no changes are required', async () => {
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                // tx = await assetContract.doStateChanges(false);
+                await TestBuildHelper.FundingManagerProcessVaults();
+                tx = await FundingManager.doStateChanges(false);
+            });
+
+            it('SCADA - getTokenFraction() should run 0 if my amount is 0', async () => {
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
+
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults();
+
+                let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
+                let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
+                let SCADAAddress = await TokenManager.TokenSCADAEntity.call();
+                let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
+
+                let TokenFraction = await TokenSCADA.getTokenFraction.call(10, 0, 0);
+
+                assert.equal(TokenFraction, 0, "Token Fraction is not ZERO ?!");
+            });
+
+            it('SCADA - getUnsoldTokenFraction() should run 0 if my amount is 0', async () => {
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
+
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults();
+
+                let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
+                let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
+                let SCADAAddress = await TokenManager.TokenSCADAEntity.call();
+                let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
+
+                let getUnsoldTokenFraction = await TokenSCADA.getUnsoldTokenFraction.call(100, 0);
+
+                assert.equal(getUnsoldTokenFraction, 0, "Unsold Token Fraction is not ZERO ?!");
+            });
+
+            it('SCADA - initCacheForVariables() throws if called by other than FundingManager', async () => {
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                tx = await FundingContract.doStateChanges(true);
+
+                await TestBuildHelper.FundingManagerProcessVaults();
+                let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
+                let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
+                let SCADAAddress = await TokenManager.TokenSCADAEntity.call();
+                let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
+                helpers.assertInvalidOpcode(async () => {
+                    tx = await TokenSCADA.initCacheForVariables();
+
+                });
+            });
+        });
     });
 };
 

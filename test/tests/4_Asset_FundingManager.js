@@ -53,6 +53,7 @@ module.exports = function (setup) {
 
         });
 
+
         it('receivePayment() throws if caller is not funding asset', async () => {
 
             let FundingAddress = await FundingManager.getApplicationAssetAddressByName.call('Funding');
@@ -112,16 +113,15 @@ module.exports = function (setup) {
             it('Funding State is "FUNDING_ENDED"', async () => {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 tx = await FundingContract.doStateChanges(true);
-                await TestBuildHelper.FundingManagerProcessVaults(0, false);
+                await TestBuildHelper.FundingManagerProcessVaults();
             });
 
         });
 
-
-
         context('states', async () => {
 
             let validation;
+
 
             it("starts with state as New and requires a change to WAITING", async() => {
                 validation = await TestBuildHelper.ValidateAssetState(
@@ -149,6 +149,9 @@ module.exports = function (setup) {
             });
 
             it("handles ENTITY state change from NEW or WAITING to FUNDING_FAILED_START when funding state is FAILED ", async() => {
+
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                tx = await FundingContract.doStateChanges(true);
 
                 // insert payments, but not enough to reach soft cap.
                 await TestBuildHelper.insertPaymentsIntoFunding(false);
@@ -228,7 +231,7 @@ module.exports = function (setup) {
                     // runs internal vault processor until all vaults are processed for current task
                     // once that happens the state is changed to TASK DONE
                     // this is the final state of the object in this case.
-                    await TestBuildHelper.FundingManagerProcessVaults(0, false);
+                    await TestBuildHelper.FundingManagerProcessVaults();
 
                     validation = await TestBuildHelper.ValidateAssetState(
                         assetName,
@@ -298,7 +301,7 @@ module.exports = function (setup) {
                     // runs internal vault processor until all vaults are processed for current task
                     // once that happens the state is changed to TASK DONE
                     // this is the final state of the object in this case.
-                    await TestBuildHelper.FundingManagerProcessVaults(0, false);
+                    await TestBuildHelper.FundingManagerProcessVaults();
 
                     validation = await TestBuildHelper.ValidateAssetState(
                         assetName,
@@ -311,19 +314,27 @@ module.exports = function (setup) {
 
             });
 
+
+
             context('Funding ends, has payments, and Soft Cap is reached', async () => {
 
                 let validation;
                 beforeEach(async () => {
                     // time travel to ico start time
+                    // tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                    // tx = await FundingContract.doStateChanges(true);
+                    // await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
+
+                    // time travel to ico start time
                     tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
                     tx = await FundingContract.doStateChanges(true);
                     // insert payments, over soft cap.
-                    await TestBuildHelper.insertPaymentsIntoFunding(true);
+                    await TestBuildHelper.insertPaymentsIntoFunding(true, 2);
                     // time travel to end of ICO, and change states
                     tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                     tx = await FundingContract.doStateChanges(true);
                 });
+
 
                 it("handles ENTITY state change from FUNDING_SUCCESSFUL_START to FUNDING_SUCCESSFUL_PROGRESS", async () => {
 
@@ -356,12 +367,13 @@ module.exports = function (setup) {
 
                 });
 
+
                 it("handles ENTITY state change from FUNDING_SUCCESSFUL_PROGRESS to FUNDING_SUCCESSFUL_DONE, and processes all vaults", async () => {
 
                     // runs internal vault processor until all vaults are processed for current task
                     // once that happens the state is changed to TASK DONE
                     // this will require a new state change to WAITING
-                    await TestBuildHelper.FundingManagerProcessVaults(0, false);
+                    await TestBuildHelper.FundingManagerProcessVaults();
 
                     validation = await TestBuildHelper.ValidateAssetState(
                         assetName,
@@ -370,7 +382,7 @@ module.exports = function (setup) {
                     );
                     assert.isTrue(validation, 'State validation failed..');
 
-                    await TestBuildHelper.displayAllVaultDetails();
+                    // await TestBuildHelper.displayAllVaultDetails();
                 });
             });
         });

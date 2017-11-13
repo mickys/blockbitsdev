@@ -166,13 +166,16 @@ contract FundingVault {
         return TokenSCADAEntity.getBoughtTokens( address(this) );
     }
 
-    /*
-    function getMyTokenStakeInCurrentFunding() public view returns (uint256) {
-        return TokenSCADAEntity.getTokensForEther(0, amount_direct);
-    }
-    */
+    function initMilestoneTokenAndEtherBalances() {
 
-    function ReleaseFundsToOutputAddress()
+        // add emergency as primary
+        // init emergency fund if available.
+
+        // iterate through milestones
+        // based on milestone percentage, create internal token and ether balances
+    }
+
+    function ReleaseFundsAndTokens(uint8 _managerState)
         public
         view // remove this shit
         requireInitialised
@@ -181,32 +184,30 @@ contract FundingVault {
     {
         // first make sure cashback is not possible
         if(!canCashBack()) {
-            if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL") ) {
 
-                return true;
-                // step 0
-                // figure out how much ether we are releasing.
-                // based on application state
-                // we want to have an internal state or something that does not let us run the same thing again
+            if(_managerState == FundingManager.getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
-                // step 1
-                // allocate tokens for direct funding.
+                // get tokens for direct and transfer to investor
 
-                // step 2
-                // allocate tokens for milestone funding.
+                // transfer direct amount to outputAddress
 
-                // step 3
-                // allocate tokens for emergency fund
+                // - release direct funding => direct_released = true
 
-                // step 4
-                // send ether to output address
+                initMilestoneTokenAndEtherBalances();
+            }
+            else if ( _managerState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
+
+                // get MilestonesEntity.CurrentRecord();
+                // get Record State == "AWAITING RELEASE"
+                // - release funding for said milestone => decrease available funding
 
             }
+
         }
 
 
         // IF Funding Contract is SUCCESSFUL
-        // - release direct funding => direct_released = true
+
 
         // check current milestone progress, if any of them is "AWAITING RELEASE"
         // - release funding for said milestone => decrease available funding
@@ -266,7 +267,9 @@ contract FundingVault {
             // get token balance
             uint256 myBalance = TokenEntity.balanceOf(address(this));
             // transfer all vault tokens to owner
-            TokenEntity.transferFrom(address(this), outputAddress, myBalance );
+            if(myBalance > 0) {
+                TokenEntity.transfer(outputAddress, myBalance );
+            }
 
             // now transfer all remaining ether back to investor address
             vaultOwner.transfer(this.balance);

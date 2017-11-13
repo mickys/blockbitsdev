@@ -84,22 +84,32 @@ TestBuildHelper.prototype.timeTravelTo = async function (newtime) {
     // console.log("New Time:     ", this.setup.helpers.utils.toDate(newtime));
 };
 
-TestBuildHelper.prototype.FundingManagerProcessVaults = async function (iteration, debug) {
+TestBuildHelper.prototype.FundingManagerProcessVaults = async function (debug, iteration) {
+
+    if(typeof debug === "undefined") {
+        debug = false;
+    }
+
+    if(typeof iteration === "undefined") {
+        iteration = 0;
+    }
+
     let FundingManager = this.getDeployedByName("FundingManager");
+    if (debug) {
+        console.log("FundingManagerProcessVaults _Before State:");
+        await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
+    }
     let tx = await FundingManager.doStateChanges(false);
 
     if (debug) {
+        console.log("FundingManagerProcessVaults _After State:");
         await this.setup.helpers.utils.showGasUsage(this.setup.helpers, tx, 'FundingManager State Change [' + iteration + ']');
         await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
     }
-
-//    let vaultNum = await FundingManager.vaultNum.call();
-//    let lastProcessedVaultId = await FundingManager.lastProcessedVaultId.call();
     let hasChanges = await this.requiresStateChanges("FundingManager");
 
-//    if(vaultNum >= lastProcessedVaultId && hasChanges === true) {
     if (hasChanges === true) {
-        await this.FundingManagerProcessVaults(iteration + 1, debug);
+        await this.FundingManagerProcessVaults(debug, iteration + 1);
     }
 };
 
@@ -148,9 +158,7 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
     let unsoldTokenBalanceInFull = this.setup.helpers.web3util.fromWei(unsoldTokenBalance, "ether");
     this.setup.helpers.utils.toLog(logPre + "Tokens Unsold:       " + unsoldTokenBalanceInFull);
 
-
     this.setup.helpers.utils.toLog("");
-
     let total = new this.setup.helpers.BigNumber(0);
 
     for (let i = 1; i <= vaultNum; i++) {
@@ -160,7 +168,6 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
         this.setup.helpers.utils.toLog(logPre + "Vault Balance ["+i+"]:   " + TokenBalanceInFull);
 
         total = total.add( this.setup.helpers.web3util.fromWei(TokenBalance, "wei") );
-
         // this.setup.helpers.utils.toLog(logPre + "Vault Distributed:   " + total.toString());
     }
 
@@ -177,9 +184,6 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
 
     let totalBalanceInFull = this.setup.helpers.web3util.fromWei(totalBalance, "ether");
     this.setup.helpers.utils.toLog(logPre + "Total Balance:       " + totalBalanceInFull);
-
-
-
 };
 
 TestBuildHelper.prototype.displayVaultDetails = async function (vaultAddress, id) {
@@ -226,14 +230,11 @@ TestBuildHelper.prototype.displayVaultDetails = async function (vaultAddress, id
         this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] eth:       " + stageAmountInEth);
         let stageTokenIntegral = this.setup.helpers.web3util.fromWei(stageTokens, "ether");
         this.setup.helpers.utils.toLog(logPre + "Stage [" + stageId + "] tokens:    " + stageTokenIntegral);
-
     }
 
     let tokenBalance = await this.getTokenBalance(vaultAddress);
     let tokenBalanceInFull = this.setup.helpers.web3util.fromWei(tokenBalance, "ether");
     this.setup.helpers.utils.toLog(logPre + "Tokens (Integral):   " + tokenBalanceInFull);
-
-
 
     let PRETokenBalanceInFull = this.setup.helpers.web3util.fromWei(PreTokens, "ether");
     this.setup.helpers.utils.toLog(logPre + "Tokens PRE:          " + PRETokenBalanceInFull);
@@ -273,8 +274,6 @@ TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft
     let FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
     let FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
 
-    // let tx = await this.timeTravelTo(this.setup.settings.funding_periods[1].start_time + 1);
-    // tx = await FundingAsset.doStateChanges(true);
 
     let paymentNum = 9;
     if (howMany > 0) {
@@ -284,7 +283,9 @@ TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft
     let PaymentValue = 1 * this.setup.helpers.solidity.ether; // 100 wei  //0.01 * helpers.solidity.ether;
 
     if (reach_soft_cap) {
-        PaymentValue = new this.setup.helpers.BigNumber(20000).div(paymentNum).mul(10 ** 18);
+        let cap = this.setup.settings.bylaws["funding_global_soft_cap"];
+        cap = cap.add( cap.div(10) );
+        PaymentValue = new this.setup.helpers.BigNumber(cap).div(paymentNum);
     }
 
     let acc_start = 10;
@@ -308,6 +309,7 @@ TestBuildHelper.prototype.insertPaymentsIntoFunding = async function (reach_soft
         }
     }
 };
+
 
 TestBuildHelper.prototype.FundingProcessAllVaults = async function (debug) {
     let result = [];

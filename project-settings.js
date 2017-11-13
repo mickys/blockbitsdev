@@ -89,22 +89,60 @@ if(tokenSCADA.requires_global_hard_cap === false) {
 */
 
 let project_milestones = [];
-/*
-let milestone_one = {
-    name: "ICO",
-    description: "ICO Funding Phase",
-    start_time: ico_start,
-    end_time: ico_end,
-    amount_cap_soft: 0,
-    amount_cap_hard: 0,
-    methods: 3,
-    minimum_entry: 0,
-    start_parity: 0,
-    use_parity_from_previous: true,
-    token_share_percentage: 40,
-};
-project_milestones.push(milestone_one);
-*/
+
+project_milestones.push(
+    {
+        name: "Milestone 1",            // string _name
+        description: "Description",     // bytes32 _description_hash
+        duration: 90,                   // uint256 _duration
+        funding_percentage: 20,         // uint8   _funding_percentage
+    }
+);
+
+project_milestones.push(
+    {
+        name: "Milestone 2",            // string _name
+        description: "2 Description",   // bytes32 _description_hash
+        duration: 90,                   // uint256 _duration
+        funding_percentage: 20,         // uint8   _funding_percentage
+    }
+);
+
+project_milestones.push(
+    {
+        name: "Milestone 3",            // string _name
+        description: "3 Description",   // bytes32 _description_hash
+        duration: 120,                  // uint256 _duration
+        funding_percentage: 20,         // uint8   _funding_percentage
+    }
+);
+
+project_milestones.push(
+    {
+        name: "Milestone 4",            // string _name
+        description: "4 Description",   // bytes32 _description_hash
+        duration: 120,                  // uint256 _duration
+        funding_percentage: 20,         // uint8   _funding_percentage
+    }
+);
+
+project_milestones.push(
+    {
+        name: "Milestone 5",            // string _name
+        description: "5 Description",   // bytes32 _description_hash
+        duration: 120,                  // uint256 _duration
+        funding_percentage: 20,         // uint8   _funding_percentage
+    }
+);
+
+let emergency_fund_percentage = 10;
+
+
+let token_sale_percentage = 0;
+for(let i = 0; i < funding_periods.length; i++) {
+    token_sale_percentage+=funding_periods[i].token_share_percentage;
+}
+
 
 let project_bylaws = {
     // funding bylaws
@@ -112,7 +150,12 @@ let project_bylaws = {
     "funding_global_soft_cap": funding_global_soft_cap,
     "funding_global_hard_cap": funding_global_hard_cap,
 
+    // if this is available, emergency fund will be crated out of total milestone funding amount.
+    // the rest gets then split up into milestone balances using their respective percentage settings
+    "emergency_fund_percentage": emergency_fund_percentage,
+
     // token bylaws
+    "token_sale_percentage": token_sale_percentage,
     "token_fixed_supply": true,
     "owner_token_locked_until_project_finished": true,
     "tokenSCADA": "TokenSCADA1Market",

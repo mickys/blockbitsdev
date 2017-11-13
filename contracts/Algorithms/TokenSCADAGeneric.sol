@@ -19,6 +19,7 @@ contract TokenSCADAGeneric {
     uint256 tokenSupply;
     Funding FundingEntity;
     Token TokenEntity;
+    address FundingManagerAddress;
 
     bool public SCADA_requires_hard_cap = true;
 
@@ -28,6 +29,9 @@ contract TokenSCADAGeneric {
 
         // these never change once initialized!
         tokenSupply = TokenEntity.totalSupply();
+
+        // save FundingManagerAddress for modifier usage
+        FundingManagerAddress = FundingEntity.getApplicationAssetAddressByName('FundingManager');
     }
 
     function requiresHardCap() public view returns (bool) {
@@ -35,83 +39,109 @@ contract TokenSCADAGeneric {
     }
 
     function getBoughtTokens( address _vaultAddress ) public view returns (uint256) {
-
+        // second stage
+        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress );
         // first stage
         uint256 myPRETokens = getMyTokensInFirstStage( _vaultAddress );
 
-        // second stage
-        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress );
-
-        // distribute unsold
-        uint256 myUnsoldTokenShare = getUnsoldTokenFraction(
-            getUnsoldTokenAmount(), (myPRETokens + myIcoTokens)
-        );
-//        return myPRETokens + myIcoTokens + myUnsoldTokenShare;
-        return myPRETokens + myIcoTokens + myUnsoldTokenShare;
-    }
-
-    /*
-    function getTokensForEther(uint8 _fundingStage, uint256 _ether_amount) public view returns (uint256) {
-
-
-        if(_fundingStage == 1) {
-            percentInStage = FundingEntity.getStageTokenSharePercentage(_fundingStage);
-            raisedAmount = FundingEntity.getStageAmountRaised(_fundingStage);
-            return getTokenFraction( percentInStage, raisedAmount, _ether_amount );
+        if(UnsoldTokenAmountCacheValue == 0) {
+            return myPRETokens + myIcoTokens;
         } else {
-
-            percentInStage = FundingEntity.getStageTokenSharePercentage(1);
-            raisedAmount = FundingEntity.getStageAmountRaised(1);
-            uint256 myPRETokens = getTokenFraction( percentInStage, raisedAmount, _ether_amount );
-            uint256 myIcoTokens = getMyTokensInSecondStage(_ether_amount);
-
-            uint256 totalUnsoldAmount = getUnsoldTokenAmount();
-            uint256 myUnsoldTokenShare = getUnsoldTokenFraction(totalUnsoldAmount, (myPRETokens + myIcoTokens)) ;
-
-            return myPRETokens;
+            // also distribute unsold token share based on how many this vault bought
+            uint256 myUnsoldTokenShare = getUnsoldTokenFraction(
+                UnsoldTokenAmountCacheValue, (myPRETokens + myIcoTokens)
+            );
+            return myPRETokens + myIcoTokens + myUnsoldTokenShare;
         }
     }
-    */
 
     function getMyTokensInFirstStage(address _vaultAddress) public view returns(uint256) {
         FundingVault vault = FundingVault(_vaultAddress);
         uint8 PREpercentInStage = FundingEntity.getStageTokenSharePercentage(1);
         uint256 PREraisedAmount = FundingEntity.getStageAmountRaised(1);
-        return getTokenFraction( PREpercentInStage, PREraisedAmount, vault.stageAmounts(1) );
+        // make sure we're not dividing by 0
+        if(PREraisedAmount > 0) {
+            return getTokenFraction( PREpercentInStage, PREraisedAmount, vault.stageAmounts(1) );
+        } else {
+            // pre ico raised 0 eth, so we distribute tokens based on stake in ICO
+            return getPRETokensBasedOnStakeInICO(_vaultAddress);
+        }
+    }
+
+    function getPRETokensBasedOnStakeInICO(address _vaultAddress) view internal returns(uint256) {
+        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress );
+        uint8 PREpercentInStage = FundingEntity.getStageTokenSharePercentage(1);
+        uint8 ICOpercentInStage = FundingEntity.getStageTokenSharePercentage(2);
+        uint256 ICOtokensInStage = tokenSupply * ICOpercentInStage / 100;
+        uint256 precision = 18;
+        uint256 preIcoUnsoldSupply = tokenSupply * PREpercentInStage / 100;
+        uint256 myFraction = getFraction(myIcoTokens, ICOtokensInStage, precision);
+        return (preIcoUnsoldSupply * myFraction) / ( 10 ** precision );
     }
 
     function getMyTokensInSecondStage(address _vaultAddress) public view returns(uint256) {
         FundingVault vault = FundingVault(_vaultAddress);
-        return vault.stageAmounts(2) * getStageTwoParity();
+        if(UnsoldTokenAmountCacheValue == 0) {
+            // all tokens got sold, no need to redistribute, we use fraction here
+            uint8 percentInStage = FundingEntity.getStageTokenSharePercentage(2);
+            uint256 raisedAmount = FundingEntity.getStageAmountRaised(2);
+            if(raisedAmount > 0) {
+                return getTokenFraction( percentInStage, raisedAmount, vault.stageAmounts(2) );
+            } else {
+                // ico raised 0 eth, so we distribute tokens based on stake in PRE
+                return getICOTokensBasedOnStakeInPRE(_vaultAddress);
+            }
+        }
+        else {
+            // ico has unsold tokens, we use parity
+            return vault.stageAmounts(2) * stageTwoParityCacheValue;
+        }
+    }
+
+    function getICOTokensBasedOnStakeInPRE(address _vaultAddress) view internal returns(uint256) {
+        uint8 PREpercentInStage = FundingEntity.getStageTokenSharePercentage(1);
+        uint8 ICOpercentInStage = FundingEntity.getStageTokenSharePercentage(2);
+        uint256 myPreTokens = getMyTokensInFirstStage( _vaultAddress );
+        uint256 PREtokensInStage = tokenSupply * PREpercentInStage / 100;
+        uint256 precision = 18;
+        uint256 IcoUnsoldSupply = tokenSupply * ICOpercentInStage / 100;
+        uint256 myFraction = getFraction(myPreTokens, PREtokensInStage, precision);
+        return (IcoUnsoldSupply * myFraction) / ( 10 ** precision );
     }
 
     function getStageTwoParity() public view returns(uint256) {
-        uint256 parityPRE = getTokenParity(1);
-        uint256 parityICO = getTokenParity(2);
-        if(parityPRE < parityICO) {
+        uint256 parityPRE = TokenParityCacheValue[1];
+        uint256 parityICO = TokenParityCacheValue[2];
+        if(parityPRE > 0 && parityPRE < parityICO) {
             return parityPRE;
         } else {
             return parityICO;
         }
     }
 
-
-
     function getTokenFraction(uint8 _percentInStage, uint256 _raisedAmount, uint256 _my_ether_amount )
         public view returns(uint256)
     {
-        return ((tokenSupply * _percentInStage / 100) * _my_ether_amount) / _raisedAmount;
+        // make sure we're not dividing by 0
+        if(_raisedAmount > 0) {
+            return ((tokenSupply * _percentInStage / 100) * _my_ether_amount) / _raisedAmount;
+        } else {
+            return 0;
+        }
     }
 
-    function getUnsoldTokenFraction(uint256 _unsold_supply, uint256 my_amount )
-        public view returns(uint256)
-    {
+    function getUnsoldTokenFraction(uint256 _unsold_supply, uint256 my_amount ) public view returns(uint256) {
         uint256 precision = 18;
-        uint256 fraction = getFraction(my_amount, getSoldTokenAmount(), precision);
-        return (_unsold_supply * fraction) / ( 10 ** precision );
+        // make sure we're not dividing by 0
+        if(my_amount > 0) {
+            uint256 fraction = getFraction(my_amount, getSoldTokenAmount(), precision);
+            return (_unsold_supply * fraction) / ( 10 ** precision );
+        } else {
+            return 0;
+        }
     }
 
-    function getFraction(uint256 numerator, uint256 denominator, uint256 precision) public view returns(uint256) {
+    function getFraction(uint256 numerator, uint256 denominator, uint256 precision) public pure returns(uint256) {
         // caution, check safe-to-multiply here
         uint _numerator  = numerator * 10 ** (precision+1);
         // with rounding of last digit
@@ -122,12 +152,12 @@ contract TokenSCADAGeneric {
     function getSoldTokenAmount() public view returns(uint256) {
         uint8 TokenSellPercentage = FundingEntity.TokenSellPercentage();
         uint256 TokensForSale = tokenSupply * TokenSellPercentage / 100;
-        return TokensForSale - getUnsoldTokenAmount();
+        return TokensForSale - UnsoldTokenAmountCacheValue;
     }
 
     function getUnsoldTokenAmount() public view returns(uint256) {
-        uint256 parity = getStageTwoParity();
-        uint256 parityPRE = getTokenParity(1);
+        uint256 parity = stageTwoParityCacheValue;
+        uint256 parityPRE = TokenParityCacheValue[1];
         if(parity == parityPRE) {
             // case 1, we receive a lot in pre, we need to sell ico tokens at partiy + added price,
             // and redistribute the ones left
@@ -145,65 +175,66 @@ contract TokenSCADAGeneric {
         }
     }
 
-
     function getTokenParity(uint8 stageId) public view returns (uint256) {
-
         uint8 percentInStage = FundingEntity.getStageTokenSharePercentage(stageId);
         uint256 raisedAmount = FundingEntity.getStageAmountRaised(stageId);
-        uint256 tokensInStage = tokenSupply * percentInStage / 100;
-        uint256 parity = tokensInStage / raisedAmount;
-
-        if(stageId == 1) {
-            uint8 priceAdd = FundingEntity.getStagePriceAdd(2);
-            if(priceAdd > 0) {
-                parity = parity - ( parity * priceAdd / 100 );
-            }
-        }
-        return parity;
-    }
-
-    /*
-    function getTokensInSecondStage(uint256 _ether_amount) public view returns(uint256) {
-
-        uint8 percentInStage = FundingEntity.getStageTokenSharePercentage(2);
-        uint256 raisedAmount = FundingEntity.getStageAmountRaised(2);
-
-        uint256 parityPRE = getTokenParity(1);
-        uint256 parityICO = getTokenParity(2);
-        uint256 parity = 0;
-        uint256 unsoldTokens = 0;
-
-        if(parityPRE < parityICO) {
-            // case 1, we receive a lot in pre, we need to sell ico tokens at partiy + added price,
-            // and redistribute the ones left
-            parity = parityPRE;
-
-
+        // make sure we're not dividing by 0
+        if(raisedAmount > 0) {
             uint256 tokensInStage = tokenSupply * percentInStage / 100;
-            uint256 tokensSold = raisedAmount * parity;
-            uint256 myTokensInIco = _ether_amount * parity;
-
-
-            unsoldTokens = tokensInStage - tokensSold ;
-
+            uint256 parity = tokensInStage / raisedAmount;
+            if(stageId == 1) {
+                uint8 priceAdd = FundingEntity.getStagePriceAdd(2);
+                if(priceAdd > 0) {
+                    parity = parity - ( parity * priceAdd / 100 );
+                }
+            }
+            return parity;
         } else {
-            // case 2, pre ico sold some tokens but did not reach 10% parity fraction of total,
-            // this means pre ico 1 distribution is OK and has a pretty large discount
-            // also that ICO sold all remaining tokens allocated to it... this means we should have 0 unsold tokens
-            // parity = parityICO;
+            return 0;
         }
-
-        // uint256 myTokensInPRE = _ether_amount * parityPRE;
-        // calculate token fraction based on current owned balance.
-        // uint256 myTokensInICO = 99; // unsoldTokens;
-        // myTokensInStage = _ether_amount * parity;
-        // return myTokensInPRE + myTokensInICO;
-        return unsoldTokens;
     }
+
+    function initCacheForVariables() public onlyFundingManager returns(bool) {
+        setTokenParityInCache(1);
+        setTokenParityInCache(2);
+        setStageTwoParityInCache();
+        setUnsoldTokenAmountInCache();
+        return true;
+    }
+    /*
+        Caching reused variables in order to decrease gas usage in vault processing.
+        resulting in a drop of about 70%
     */
+    mapping ( uint8 => bool ) TokenParityCacheState;
+    mapping ( uint8 => uint256 ) TokenParityCacheValue;
+    function setTokenParityInCache(uint8 stageId) internal {
+        if(TokenParityCacheState[stageId] == false) {
+            TokenParityCacheValue[stageId] = getTokenParity(stageId);
+            TokenParityCacheState[stageId] = true;
+        }
+    }
 
+    bool public stageTwoParityCachedState = false;
+    uint256 public stageTwoParityCacheValue;
+    function setStageTwoParityInCache() internal {
+        if(stageTwoParityCachedState == false) {
+            stageTwoParityCacheValue = getStageTwoParity();
+            stageTwoParityCachedState = true;
+        }
+    }
 
+    bool public UnsoldTokenAmountCachedState = false;
+    uint256 public UnsoldTokenAmountCacheValue;
+    function setUnsoldTokenAmountInCache() internal {
+        if(UnsoldTokenAmountCachedState == false) {
+            UnsoldTokenAmountCacheValue = getUnsoldTokenAmount();
+            UnsoldTokenAmountCachedState = true;
+        }
+    }
 
-
+    modifier onlyFundingManager() {
+        require(msg.sender == address(FundingManagerAddress));
+        _;
+    }
 
 }

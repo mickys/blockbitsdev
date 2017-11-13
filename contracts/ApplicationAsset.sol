@@ -23,7 +23,7 @@ contract ApplicationAsset {
     uint8 public CurrentEntityState;
 
     event EventEntityProcessor(bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required);
-    event DebugEntityRequiredChanges( bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required );
+    event DebugEntityRequiredChanges( bytes32 _assetName, uint8 indexed _current, uint8 indexed _required );
 
     bytes32 public assetName;
 

@@ -57,6 +57,10 @@ const setup = {
     ]
 };
 
+// fix this shit first - 1 test .. add more - tests.push("Algorithms/TokenSCADA1Market");
+// - obsolete - tests.push("4_Asset_Funding_Payments");
+
+
 let tests = [];
 tests.push("ERC20Token");
 tests.push("external/SafeMath");
@@ -65,20 +69,23 @@ tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("integration_Gateway_and_ApplicationEntity");
 tests.push("4_Asset_TokenManager");
-// fix this shit first - 1 test .. add more - tests.push("Algorithms/TokenSCADA1Market");
 tests.push("4_FundingVault");
 tests.push("4_Asset_Funding");
-tests.push("4_Asset_Funding_Payments");
 tests.push("4_Asset_Funding_States");
 tests.push("4_Asset_FundingManager");
 tests.push("4_Asset_FundingManager_Successful");
 
 
-tests = [];
+// tests.push("4_FundingVault");
+// tests.push("4_Asset_Funding_Payments");
 //tests.push("4_Asset_Funding");
+// tests.push("4_Asset_FundingManager_Successful");
+
+tests = [];
 tests.push("4_Asset_FundingManager_Successful");
 
-
+// tests.push("4_Asset_FundingManager");
+// tests.push("4_Asset_Funding_States");
 
 if(! process.env.SOLIDITY_COVERAGE ) {
 

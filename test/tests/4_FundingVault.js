@@ -75,23 +75,6 @@ module.exports = function(setup) {
             });
         });
 
-        it('TokenSCADA provides 0 tokens when no payments are registered yet', async () => {
-            await assetContract.initialize(
-                investorAddress,
-                platformWalletAddress,
-                await FundingContract.address,
-                await MilestonesContract.address,
-                {from: deploymentAddress}
-            );
-
-            // no payment
-            let FundingPeriodId = 0;
-            let TokenStake = await assetContract.getMyTokenStakeInCurrentFunding.call({from: accounts[5]});
-            let expectedTokens = await TestBuildHelper.getTokenStakeInFundingPeriod(FundingPeriodId, 0);
-            assert.equal(TokenStake.toString(), expectedTokens.toString(), "Token stake value mismatch!");
-        });
-
-
         context('addPayment()', async () => {
 
             beforeEach(async () => {
