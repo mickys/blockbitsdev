@@ -100,6 +100,47 @@ module.exports = function(setup) {
             });
         });
 
+        context('application bylaws validation', async () => {
+
+            it('sets and returns all string and uint256 bylaws', async () => {
+
+                let TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
+                // link to real gateway
+                await TestBuildHelper.linkToRealGateway();
+
+                let assetContract = await TestBuildHelper.deployAndInitializeAsset( "Milestones" );
+
+                // application is initialized and should have all bylaws set
+                let application = await TestBuildHelper.getDeployedByName("ApplicationEntity");
+
+                assert.isTrue(await application._initialized.call(), '_initialized should be true');
+
+                for (let key in settings.bylaws) {
+                    let returnedValue;
+                    let value = settings.bylaws[key];
+
+                    // string bylaw
+                    if(typeof value === "string") {
+                        returnedValue = await application.getBylawString.call(key);
+                    } else {
+                        // uints and booleans
+                        // convert booleans to 1 / 0
+                        if(typeof value === "boolean") {
+                            if(value === true) {
+                                value = 1;
+                            } else {
+                                value = 0;
+                            }
+                        }
+                        returnedValue = await application.getBylawUint256.call(key);
+                    }
+
+                    // validate returned value
+                    assert.equal(returnedValue.toString(), value.toString(), 'Value should match');
+                }
+            });
+        });
+
         context('getBylawUint256()', async () => {
             let bylaw_name = "test_bylaw";
             let bylaw_value = 12345;

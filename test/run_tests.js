@@ -90,6 +90,10 @@ tests.push("4_Asset_FundingManager_Successful");
 // tests.push("4_Asset_FundingManager_Successful");
 
 // tests = [];
+// tests.push("4_Asset_Milestones");
+// tests.push("3_ApplicationEntity");
+
+
 
 // tests.push("1_GatewayInterface");
 // tests.push("2_ApplicationAsset");

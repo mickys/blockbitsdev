@@ -146,7 +146,6 @@ for(let i = 0; i < funding_periods.length; i++) {
 
 let project_bylaws = {
     // funding bylaws
-    "funding_next_phase_price_increase": funding_next_phase_price_increase,
     "funding_global_soft_cap": funding_global_soft_cap,
     "funding_global_hard_cap": funding_global_hard_cap,
 
@@ -157,14 +156,14 @@ let project_bylaws = {
     // token bylaws
     "token_sale_percentage": token_sale_percentage,
     "token_fixed_supply": true,
-    "owner_token_locked_until_project_finished": true,
+    "owner_tokens_locked": true,
     "tokenSCADA": "TokenSCADA1Market",
 
     // proposals
     "proposal_duration": 7 * days,
 
     // meetings
-    "meeting_time_set_before_time": 7 * days,
+    "meeting_time_set_before": 7 * days,
 
     // cashback
 

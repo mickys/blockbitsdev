@@ -7,7 +7,13 @@ function TestBuildHelper(setup, assert, accounts, platformWalletAddress) {
     this.deployed = [];
     this.platformWalletAddress = platformWalletAddress;
 
+    this.gatewayAddress = this.accounts[0];
 }
+
+TestBuildHelper.prototype.linkToRealGateway = async function () {
+    let gateway = await this.deploy("GatewayInterface");
+    this.gatewayAddress = await gateway.address;
+};
 
 TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, requiredAssets) {
 
@@ -36,17 +42,48 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     // add current asset
     await app["addAsset" + assetName](await assetContract.address);
 
-    // set gw address so we can initialize
-    await app.setTestGatewayInterfaceEntity(this.accounts[0]);
+    if(this.gatewayAddress === this.accounts[0]) {
 
-    // grab ownership of the assets so we can do tests
-    await app.initializeAssetsToThisApplication();
+        // set gw address so we can initialize
+        await app.setTestGatewayInterfaceEntity(this.accounts[0]);
+
+        // grab ownership of the assets so we can do tests
+        await app.initializeAssetsToThisApplication();
+
+    } else {
+        // link to real gateway contract
+        await app.linkToGateway(this.gatewayAddress, this.setup.settings.sourceCodeUrl);
+    }
 
     return assetContract;
 };
 
 TestBuildHelper.prototype.addBylawsIntoApp = async function () {
 
+    let application = await this.getDeployedByName("ApplicationEntity");
+    for (let key in this.setup.settings.bylaws) {
+
+        if(key.length > 32) {
+            throw "TestBuildHelper.addBylawsIntoApp: ["+key+"] Bylaws key length higher than allowed 32 bytes!";
+        }
+        let value = this.setup.settings.bylaws[key];
+        // store string bylaw
+
+        if(typeof value === "string") {
+            await application.setBylawString(key, value);
+        } else {
+            // uints and booleans
+            // convert booleans to 1 / 0
+            if(typeof value === "boolean") {
+                if(value === true) {
+                    value = 1;
+                } else {
+                    value = 0;
+                }
+            }
+            await application.setBylawUint256(key, value.toString());
+        }
+    }
 };
 
 TestBuildHelper.prototype.addFundingStage = async function (id, overrides) {
