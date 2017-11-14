@@ -81,7 +81,7 @@ contract Milestones is ApplicationAsset {
     }
     mapping (bytes32 => Requirement) public requirements;
 
-    function Milestones() ApplicationAsset public {
+    function Milestones() ApplicationAsset() public {
         setApplicationStates();
         CurrentEntityState = getEntityState("NEW");
     }

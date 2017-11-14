@@ -29,6 +29,7 @@ module.exports = function(setup) {
 
             beforeEach(async () => {
                 proposals = await contracts.Proposals.new();
+                await proposals.setInitialApplicationAddress(app.address);
                 await app.addAssetProposals(proposals.address);
                 await app.linkToGateway(gateway.address, settings.sourceCodeUrl);
             });

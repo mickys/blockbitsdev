@@ -5,19 +5,23 @@ module.exports = function(setup) {
     let assetContractNames = setup.assetContractNames;
 
     contract('Application Assets', accounts => {
-        let app = {};
+        let app, assetContract = {};
+        let assetName = "NewsContract";
+
         beforeEach(async () => {
             app = await contracts.ApplicationEntity.new();
+            assetContract = await helpers.getContract("Test"+assetName).new();
+
         });
 
         context("setInitialOwnerAndName()", async () => {
-            let assetContract, assetName = {};
+
             beforeEach(async () => {
-                assetName = assetContractNames[0];
-                assetContract = await helpers.getContract("Test" + assetName).new();
+                await assetContract.setInitialApplicationAddress(accounts[0]);
             });
 
             it('works if linking an asset for the first time', async () => {
+
                 let eventFilter = helpers.utils.hasEvent(
                     await assetContract.setInitialOwnerAndName(assetName),
                     'EventAppAssetOwnerSet(bytes32,address)'
@@ -28,6 +32,7 @@ module.exports = function(setup) {
             });
 
             it('throws if already owned', async () => {
+
                 await assetContract.setInitialOwnerAndName(assetName);
                 return helpers.assertInvalidOpcode(async () => {
                     await assetContract.setInitialOwnerAndName(assetName);
@@ -36,20 +41,20 @@ module.exports = function(setup) {
         });
 
         context("applyAndLockSettings()", async () => {
-            let assetContract, assetName = {};
 
             beforeEach(async () => {
-                app = await contracts.ApplicationEntity.new();
-                assetName = assetContractNames[0];
-                assetContract = await helpers.getContract("Test" + assetName).new();
+                await assetContract.setInitialApplicationAddress(accounts[0]);
             });
 
             it('works if called by deployer account and asset is not locked already', async () => {
+
                 await assetContract.setInitialOwnerAndName(assetName);
+
                 let eventFilter = helpers.utils.hasEvent(
                     await assetContract.applyAndLockSettings(),
                     'EventRunBeforeApplyingSettings(bytes32)'
                 );
+
                 assert.equal(eventFilter.length, 1, 'EventRunBeforeApplyingSettings event not received.');
                 assert.isTrue(await assetContract._settingsApplied.call(), '_settingsApplied not true.');
             });
@@ -78,14 +83,10 @@ module.exports = function(setup) {
         });
 
         context("getApplicationAssetAddressByName()", async () => {
-            let assetContract, assetName = {};
 
             beforeEach(async () => {
-                assetName = assetContractNames[0];
-
-                app = await contracts.ApplicationEntity.new();
-                assetContract = await helpers.getContract("Test"+assetName).new();
                 await app["addAsset"+assetName](assetContract.address);
+                await assetContract.setInitialApplicationAddress(app.address);
 
                 // set gw address so we can initialize
                 await app.setTestGatewayInterfaceEntity(accounts[0]);
@@ -113,18 +114,6 @@ module.exports = function(setup) {
                 assert.equal(address, assetContract.address, 'Asset address mismatch!');
             });
 
-            /*
-
-            we can't throw here because funding needs to have token manager already internally initialized in order
-            to accept settings.
-
-            it('throws if asset is not initialized', async () => {
-                return helpers.assertInvalidOpcode(async () => {
-                    await assetContract.getApplicationAssetAddressByName.call('Milestones');
-                });
-            });
-            */
-
             it('throws if asset name does not exist in the app\'s mapping', async () => {
                 // grab ownership of the assets so we can do tests
                 await app.initializeAssetsToThisApplication();
@@ -136,12 +125,9 @@ module.exports = function(setup) {
         });
 
         context("transferToNewOwner()", async () => {
-            let assetContract, assetName = {};
 
             beforeEach(async () => {
-                app = await contracts.ApplicationEntity.new();
-                assetName = assetContractNames[0];
-                assetContract = await helpers.getContract("Test" + assetName).new();
+                await assetContract.setInitialApplicationAddress(accounts[0]);
             });
 
             it('works if current caller is owner and requested address is not 0x0', async () => {

@@ -21,7 +21,6 @@ contract TokenManager is ApplicationAsset {
     TokenSCADA1Market public TokenSCADAEntity;
     Token public TokenEntity;
 
-
     function addTokenSettingsAndInit(
         uint256 _tokenSupply,
         uint8 _tokenDecimals,
@@ -32,7 +31,7 @@ contract TokenManager is ApplicationAsset {
         public
         requireInitialised
         requireSettingsNotApplied
-        onlyDeployer
+        // onlyDeployer
     {
         TokenEntity = new Token(
             _tokenSupply,

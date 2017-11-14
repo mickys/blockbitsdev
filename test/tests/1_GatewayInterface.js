@@ -58,7 +58,7 @@ module.exports = function(setup) {
             it('links Application if valid', async () => {
                 await testapp.setTestGatewayInterfaceEntity(gateway.address);
                 const eventFilter = helpers.utils.hasEvent(
-                    await gateway.requestCodeUpgrade(testapp.address, settings.sourceCodeUrl),
+                    await testapp.callTestRequestCodeUpgrade(testapp.address, settings.sourceCodeUrl),
                     'EventGatewayNewAddress(address)'
                 );
                 assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.')
@@ -66,12 +66,13 @@ module.exports = function(setup) {
 
             it('creates "Upgrade Proposal" if a previous Application is already linked', async () => {
                 let proposals = await contracts.Proposals.new();
+                await proposals.setInitialApplicationAddress(testapp.address);
                 await testapp.addAssetProposals(proposals.address);
                 await testapp.linkToGateway(gateway.address, settings.sourceCodeUrl);
                 testapp2 = await contracts.ApplicationEntity.new();
                 await testapp2.setTestGatewayInterfaceEntity(gateway.address);
                 const eventFilter = helpers.utils.hasEvent(
-                    await gateway.requestCodeUpgrade(testapp2.address, settings.sourceCodeUrl),
+                    await testapp2.callTestRequestCodeUpgrade(testapp2.address, settings.sourceCodeUrl),
                     'EventProposalsCodeUpgradeNew(bytes32,uint256)'
                 );
                 assert.equal(eventFilter.length, 1, 'EventProposalsCodeUpgradeNew event not received.')
@@ -95,6 +96,7 @@ module.exports = function(setup) {
 
             it('works if sender is current Application', async () => {
                 let proposals = await contracts.Proposals.new();
+                await proposals.setInitialApplicationAddress(testapp.address);
                 await testapp.addAssetProposals(proposals.address);
                 await testapp.linkToGateway(gateway.address, settings.sourceCodeUrl);
                 let testapp2 = await contracts.ApplicationEntity.new();
@@ -116,6 +118,7 @@ module.exports = function(setup) {
             it('throws if current Application cannot transfer assets to new application', async () => {
                 let appBad = await helpers.getContract("TestApplicationEntityBad").new();
                 let proposals = await contracts.Proposals.new();
+                await proposals.setInitialApplicationAddress(appBad.address);
                 await appBad.addAssetProposals(proposals.address);
                 await appBad.setTestInitializeAssetsResponse(true);
                 await appBad.setTestTransferResponse(false);
@@ -131,6 +134,7 @@ module.exports = function(setup) {
 
                 let proposals = await contracts.Proposals.new();
                 let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                await proposals.setInitialApplicationAddress(appBad.address);
                 await appBad.addAssetProposals(proposals.address);
                 await appBad.setTestInitializeAssetsResponse(true);
                 await appBad.setTestTransferResponse(true);
@@ -150,6 +154,7 @@ module.exports = function(setup) {
 
                 let proposals = await contracts.Proposals.new();
                 let appBad = await helpers.getContract("TestApplicationEntityBad").new();
+                await proposals.setInitialApplicationAddress(appBad.address);
                 await appBad.addAssetProposals(proposals.address);
                 await appBad.setTestInitializeAssetsResponse(true);
                 await appBad.setTestTransferResponse(true);

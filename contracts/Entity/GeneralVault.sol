@@ -13,7 +13,7 @@ import "./../ApplicationAsset.sol";
 
 contract GeneralVault is ApplicationAsset {
 
-    function GeneralVault() ApplicationAsset public {
+    function GeneralVault() ApplicationAsset() public {
 
     }
 }

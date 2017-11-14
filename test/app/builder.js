@@ -20,13 +20,19 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     // deploy asset contract
     let assetContract = await this.deploy(assetName);
 
-    // deploy and add requirement asset contracts
-    for (let i = 0; i < requiredAssets.length; i++) {
-        let name = requiredAssets[i];
-        let deployed = await this.deploy(name);
-        await app["addAsset" + name](await deployed.address);
-    }
+    // as deployer, set asset owner, so we make sure noone else can initialize except app.
+    await assetContract.setInitialApplicationAddress(app.address);
 
+    // if requiredAssets exists
+    if(typeof requiredAssets !== "undefined") {
+        // deploy and add requirement asset contracts
+        for (let i = 0; i < requiredAssets.length; i++) {
+            let name = requiredAssets[i];
+            let deployed = await this.deploy(name);
+            await deployed.setInitialApplicationAddress(app.address);
+            await app["addAsset" + name](await deployed.address);
+        }
+    }
     // add current asset
     await app["addAsset" + assetName](await assetContract.address);
 
@@ -440,6 +446,7 @@ TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (Funding
 
 TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
     let object = this.getDeployedByName(name);
+
     if (name === "TokenManager") {
         // add token settings
         let token_settings = this.setup.settings.token;

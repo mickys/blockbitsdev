@@ -15,4 +15,8 @@ contract TestProposals is Proposals, TestApplicationAsset {
     function callTestAcceptCodeUpgrade(uint256 recordId) external {
         acceptCodeUpgrade(recordId);
     }
+
+    function callTestListingContractDelistChild(uint256 _childId ) external {
+        ListingContractEntity.delistChild( _childId );
+    }
 }

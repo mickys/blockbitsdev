@@ -19,6 +19,7 @@ import "./Entity/GeneralVault.sol";
 import "./Entity/TokenManager.sol";
 import "./Entity/FundingManager.sol";
 import "./Entity/ListingContract.sol";
+import "./Entity/NewsContract.sol";
 
 contract ApplicationEntity {
 
@@ -38,14 +39,15 @@ contract ApplicationEntity {
     GatewayInterface GatewayInterfaceEntity;
 
     /* Asset Entities */
-    Proposals ProposalsEntity;
-    Funding FundingEntity;
-    Milestones MilestonesEntity;
-    Meetings MeetingsEntity;
-    GeneralVault GeneralVaultEntity;
-    TokenManager TokenManagerEntity;
-    ListingContract ListingContractEntity;
-    FundingManager FundingManagerEntity;
+    Proposals public ProposalsEntity;
+    Funding public FundingEntity;
+    Milestones public MilestonesEntity;
+    Meetings public MeetingsEntity;
+    GeneralVault public GeneralVaultEntity;
+    TokenManager public TokenManagerEntity;
+    ListingContract public ListingContractEntity;
+    FundingManager public FundingManagerEntity;
+    NewsContract public NewsContractEntity;
 
     /* Asset Collection */
     mapping (bytes32 => address) public AssetCollection;
@@ -61,11 +63,10 @@ contract ApplicationEntity {
     event EventAppEntityAssetsToNewApplication ( address indexed _address );
     event EventAppEntityLocked ( address indexed _address );
 
-    /*
-        Empty Constructor
-    */
-    function ApplicationEntity() public {
+    address public deployerAddress;
 
+    function ApplicationEntity() public {
+        deployerAddress = msg.sender;
     }
 
     /*
@@ -85,6 +86,7 @@ contract ApplicationEntity {
         external
         requireNoParent
         requireNotInitialised
+        onlyDeployer
     {
         GatewayInterfaceAddress = _GatewayInterfaceAddress;
         sourceCodeUrl = _sourceCodeUrl;
@@ -99,44 +101,49 @@ contract ApplicationEntity {
         For the sake of simplicity, and solidity warnings about "unknown gas usage" do this.. instead of sending
         an array of addresses
     */
-    function addAssetProposals(address _assetAddresses) external requireNotInitialised {
+    function addAssetProposals(address _assetAddresses) external requireNotInitialised onlyDeployer {
         ProposalsEntity = Proposals(_assetAddresses);
         assetInitialized("Proposals", _assetAddresses);
     }
 
-    function addAssetFunding(address _assetAddresses) external requireNotInitialised {
+    function addAssetFunding(address _assetAddresses) external requireNotInitialised onlyDeployer {
         FundingEntity = Funding(_assetAddresses);
         assetInitialized("Funding", _assetAddresses);
     }
 
-    function addAssetMilestones(address _assetAddresses) external requireNotInitialised {
+    function addAssetMilestones(address _assetAddresses) external requireNotInitialised onlyDeployer {
         MilestonesEntity = Milestones(_assetAddresses);
         assetInitialized("Milestones", _assetAddresses);
     }
 
-    function addAssetMeetings(address _assetAddresses) external requireNotInitialised {
+    function addAssetMeetings(address _assetAddresses) external requireNotInitialised onlyDeployer {
         MeetingsEntity = Meetings(_assetAddresses);
         assetInitialized("Meetings", _assetAddresses);
     }
 
-    function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised {
+    function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised onlyDeployer {
         GeneralVaultEntity = GeneralVault(_assetAddresses);
         assetInitialized("GeneralVault", _assetAddresses);
     }
 
-    function addAssetTokenManager(address _assetAddresses) external requireNotInitialised {
+    function addAssetTokenManager(address _assetAddresses) external requireNotInitialised onlyDeployer {
         TokenManagerEntity = TokenManager(_assetAddresses);
         assetInitialized("TokenManager", _assetAddresses);
     }
 
-    function addAssetFundingManager(address _assetAddresses) external requireNotInitialised {
+    function addAssetFundingManager(address _assetAddresses) external requireNotInitialised onlyDeployer {
         FundingManagerEntity = FundingManager(_assetAddresses);
         assetInitialized("FundingManager", _assetAddresses);
     }
 
-    function addAssetListingContract(address _assetAddresses) external requireNotInitialised {
+    function addAssetListingContract(address _assetAddresses) external requireNotInitialised onlyDeployer {
         ListingContractEntity = ListingContract(_assetAddresses);
         assetInitialized("ListingContract", _assetAddresses);
+    }
+
+    function addAssetNewsContract(address _assetAddresses) external requireNotInitialised onlyDeployer {
+        NewsContractEntity = NewsContract(_assetAddresses);
+        assetInitialized("NewsContract", _assetAddresses);
     }
 
     function assetInitialized(bytes32 name, address _assetAddresses) internal {
@@ -154,7 +161,7 @@ contract ApplicationEntity {
     mapping (bytes32 => string) public BylawsString;
 
 
-    function setBylawUint256(bytes32 name, uint256 value) public requireNotInitialised {
+    function setBylawUint256(bytes32 name, uint256 value) public requireNotInitialised onlyDeployer {
         BylawsUint256[name] = value;
     }
 
@@ -162,7 +169,7 @@ contract ApplicationEntity {
         return BylawsUint256[name];
     }
 
-    function setBylawString(bytes32 name, string value) public requireNotInitialised {
+    function setBylawString(bytes32 name, string value) public requireNotInitialised onlyDeployer {
         BylawsString[name] = value;
     }
 
@@ -245,6 +252,16 @@ contract ApplicationEntity {
     }
 
     /*
+        DUMMY METHOD, to be replaced in a future Code Upgrade with a check to determine if sender CAN initiate a code upgrade
+    */
+    function canInitiateCodeUpgrade(address _sender) public view returns(bool) {
+        // suppress warning
+        _sender = 0;
+        if(_initialized) { }
+        return false;
+    }
+
+    /*
     * Throws if called by any other entity except GatewayInterface
     */
     modifier onlyGatewayInterface() {
@@ -272,6 +289,11 @@ contract ApplicationEntity {
 
     modifier requireInitialised() {
         require(_initialized == true && _locked == false);
+        _;
+    }
+
+    modifier onlyDeployer() {
+        require(msg.sender == deployerAddress);
         _;
     }
 

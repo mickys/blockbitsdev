@@ -17,6 +17,11 @@ module.exports = function(setup) {
             assert.isFalse(await app._initialized.call(), false, '_initialized should be false');
         });
 
+        it('initializes with deployer address properly', async () => {
+            let app2 = await contracts.ApplicationEntity.new({from: accounts[5]});
+            assert.equal(await app2.deployerAddress.call(), accounts[5], 'deployerAddress address should be accounts[5]');
+        });
+
         context('setBylawString()', async () => {
             let bylaw_name = "test_bylaw";
             let bylaw_value = "value";
@@ -197,6 +202,7 @@ module.exports = function(setup) {
 
             it('will emit EventProposalsCodeUpgradeNew if a previous ApplicationEntity is already linked', async () => {
                 let proposals = await contracts.Proposals.new();
+                await proposals.setInitialApplicationAddress(app.address);
                 await app.addAssetProposals(proposals.address);
                 await app.linkToGateway(gateway.address, settings.sourceCodeUrl);
                 app2 = await contracts.ApplicationEntity.new();

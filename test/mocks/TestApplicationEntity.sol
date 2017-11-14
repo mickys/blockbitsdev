@@ -34,6 +34,19 @@ contract TestApplicationEntity is ApplicationEntity {
         AssetCollectionNum++;
     }
 
+    function callTestRequestCodeUpgrade(address _address, bytes32 _source) external {
+        GatewayInterfaceEntity.requestCodeUpgrade(_address, _source);
+    }
+
+    function callTestListingContractAddItem(bytes32 _name, address _address) external {
+        ListingContractEntity.addItem(_name, _address);
+    }
+
+    function callTestNewsContractAddInternalMessage(uint8 state) external {
+        NewsContractEntity.addInternalMessage(state);
+    }
+
+
 
     uint256 _mockTime = now;
     function getTimestamp() view public returns (uint256) {

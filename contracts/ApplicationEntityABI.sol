@@ -14,11 +14,24 @@ pragma solidity 0.4.17;
 
 contract ApplicationEntityABI {
 
+    address public ProposalsEntity;
+    address public FundingEntity;
+    address public MilestonesEntity;
+    address public MeetingsEntity;
+    address public GeneralVaultEntity;
+    address public TokenManagerEntity;
+    address public ListingContractEntity;
+    address public FundingManagerEntity;
+    address public NewsContractEntity;
+
+    address public deployerAddress;
+
     mapping (bytes32 => address) public AssetCollection;
     mapping (uint8 => bytes32) public AssetCollectionIdToName;
 
     function getBylawUint256(bytes32 name) public view returns (uint256);
     function getBylawString(bytes32 name) public view returns (string);
 
+    function canInitiateCodeUpgrade(address _sender) public view returns(bool);
 
 }

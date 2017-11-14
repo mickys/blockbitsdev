@@ -166,7 +166,9 @@ contract FundingVault {
         return TokenSCADAEntity.getBoughtTokens( address(this) );
     }
 
-    function initMilestoneTokenAndEtherBalances() {
+    function initMilestoneTokenAndEtherBalances() internal
+        pure // remove this shit
+    {
 
         // add emergency as primary
         // init emergency fund if available.
@@ -185,7 +187,7 @@ contract FundingVault {
         // first make sure cashback is not possible
         if(!canCashBack()) {
 
-            if(_managerState == FundingManager.getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
+            if(_managerState == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
                 // get tokens for direct and transfer to investor
 
@@ -194,14 +196,15 @@ contract FundingVault {
                 // - release direct funding => direct_released = true
 
                 initMilestoneTokenAndEtherBalances();
+                return true;
             }
-            else if ( _managerState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
+            // else if ( _managerState == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
 
                 // get MilestonesEntity.CurrentRecord();
                 // get Record State == "AWAITING RELEASE"
                 // - release funding for said milestone => decrease available funding
 
-            }
+            // }
 
         }
 

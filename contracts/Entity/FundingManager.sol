@@ -308,7 +308,7 @@ contract FundingManager is ApplicationAsset {
         bool hasChanges = false;
         var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
         // suppress unused local variable warning
-        // returnedCurrentEntityState = 0;
+         returnedCurrentEntityState = 0;
         if(EntityStateRequired != getEntityState("__IGNORED__") ) {
             hasChanges = true;
         }

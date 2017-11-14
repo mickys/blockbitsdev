@@ -24,9 +24,12 @@ contract GatewayInterface {
     address public currentApplicationEntityAddress;     // currently linked ApplicationEntity address
     ApplicationEntity private currentApp;
 
+    address public deployerAddress;
+    //
+
     // constructor
     function GatewayInterface() public {
-
+        deployerAddress = msg.sender;
     }
 
     /*
@@ -44,7 +47,11 @@ contract GatewayInterface {
     * @param        address _newAddress
     * @param        bytes32 _sourceCodeUrl
     */
-    function requestCodeUpgrade( address _newAddress, bytes32 _sourceCodeUrl ) external returns (bool) {
+    function requestCodeUpgrade( address _newAddress, bytes32 _sourceCodeUrl )
+        external
+        validCodeUpgradeInitiator
+        returns (bool)
+    {
         require(_newAddress != address(0));
 
         EventGatewayNewLinkRequest ( _newAddress );
@@ -75,6 +82,7 @@ contract GatewayInterface {
             currentApp.createCodeUpgradeProposal(_newAddress, _sourceCodeUrl);
         }
     }
+
 
     /*
     * ApplicationEntity Contract approves code Upgrade
@@ -119,4 +127,20 @@ contract GatewayInterface {
         return true;
     }
 
+
+    /*
+    * Get current News Contract address
+    *
+    * @return       address NewsContractEntity
+    */
+    function getNewsContractAddress() external view returns (address) {
+        return currentApp.NewsContractEntity();
+    }
+
+    modifier validCodeUpgradeInitiator() {
+        ApplicationEntity newDeployedApp = ApplicationEntity(msg.sender);
+        address newDeployer = newDeployedApp.deployerAddress();
+        require(newDeployer == deployerAddress || newDeployedApp.canInitiateCodeUpgrade(newDeployer) == true);
+        _;
+    }
 }

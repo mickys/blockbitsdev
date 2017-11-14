@@ -8,7 +8,8 @@
 pragma solidity ^0.4.17;
 
 import "../../contracts/Entity/FundingManager.sol";
+import "./TestApplicationAsset.sol";
 
-contract TestFundingManager is FundingManager  {
+contract TestFundingManager is FundingManager, TestApplicationAsset {
 
 }

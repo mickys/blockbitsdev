@@ -38,21 +38,21 @@ contract ApplicationAsset {
 
     /* Asset owner ( ApplicationEntity address ) */
     address public owner = address(0x0) ;
-    address public _deployerAddress = address(0x0) ;
-
+    address public deployerAddress;
 
     function ApplicationAsset() public {
-        _deployerAddress = msg.sender;
+        deployerAddress = msg.sender;
     }
 
-    function setInitialOwnerAndName(bytes32 _name) external requireNotInitialised returns (bool){
+    function setInitialApplicationAddress(address _ownerAddress) public onlyDeployer requireNotInitialised {
+        owner = _ownerAddress;
+    }
+
+    function setInitialOwnerAndName(bytes32 _name) external requireNotInitialised onlyOwner returns (bool){
         // init states
         setAssetStates();
         // set initial state
         CurrentEntityState = getEntityState("NEW");
-        address _newOwner = msg.sender;
-        require(owner == address(0x0) && _newOwner != address(0x0));
-        owner = _newOwner;
         assetName = _name;
         runBeforeInitialization();
         _initialized = true;
@@ -76,15 +76,15 @@ contract ApplicationAsset {
         return EntityStates[name];
     }
 
-    function runBeforeInitialization() internal requireNotInitialised {
+    function runBeforeInitialization() internal requireNotInitialised  {
         EventRunBeforeInit(assetName);
     }
 
     function applyAndLockSettings()
         public
+        onlyDeployer
         requireInitialised
         requireSettingsNotApplied
-        onlyDeployer
         returns(bool)
     {
         runBeforeApplyingSettings();
@@ -92,7 +92,7 @@ contract ApplicationAsset {
         return true;
     }
 
-    function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied {
+    function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied  {
         EventRunBeforeApplyingSettings(assetName);
     }
 
@@ -143,7 +143,7 @@ contract ApplicationAsset {
     }
 
     modifier onlyDeployer() {
-        require(msg.sender == _deployerAddress);
+        require(msg.sender == deployerAddress);
         _;
     }
 
