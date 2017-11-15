@@ -31,7 +31,7 @@ contract TokenManager is ApplicationAsset {
         public
         requireInitialised
         requireSettingsNotApplied
-        // onlyDeployer
+        onlyDeployer
     {
         TokenEntity = new Token(
             _tokenSupply,

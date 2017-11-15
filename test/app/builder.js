@@ -15,6 +15,53 @@ TestBuildHelper.prototype.linkToRealGateway = async function () {
     this.gatewayAddress = await gateway.address;
 };
 
+TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
+
+    // deploy application
+    let app = await this.deploy("ApplicationEntity");
+
+    // add bylaws into app
+    await this.addBylawsIntoApp();
+
+    // deploy and add requirement asset contracts
+    for (let i = 0; i < this.setup.assetContractNames.length; i++) {
+        let name = this.setup.assetContractNames[i];
+        let deployed = await this.deploy(name);
+        await deployed.setInitialApplicationAddress(app.address);
+        await app["addAsset" + name](await deployed.address);
+    }
+
+    if(this.gatewayAddress === this.accounts[0]) {
+
+        // set gw address so we can initialize
+        await app.setTestGatewayInterfaceEntity(this.accounts[0]);
+
+        // grab ownership of the assets so we can do tests
+        await app.initializeAssetsToThisApplication();
+
+    } else {
+
+        // link to real gateway contract
+        await app.linkToGateway(this.gatewayAddress, this.setup.settings.sourceCodeUrl);
+    }
+    return app;
+};
+
+
+TestBuildHelper.prototype.AddAllAssetSettingsAndLockExcept = async function (except) {
+    for (let i = 0; i < this.setup.assetContractNames.length; i++) {
+        let name = this.setup.assetContractNames[i];
+        if(typeof except !== "undefined") {
+            if(name !== except) {
+                await this.AddAssetSettingsAndLock(name);
+            }
+        } else {
+            await this.AddAssetSettingsAndLock(name);
+        }
+    }
+};
+
+
 TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, requiredAssets) {
 
     // deploy application
@@ -70,7 +117,7 @@ TestBuildHelper.prototype.addBylawsIntoApp = async function () {
         // store string bylaw
 
         if(typeof value === "string") {
-            await application.setBylawString(key, value);
+            await application.setBylawBytes32(key, value);
         } else {
             // uints and booleans
             // convert booleans to 1 / 0
@@ -119,6 +166,35 @@ TestBuildHelper.prototype.addFundingStage = async function (id, overrides) {
     );
 };
 
+TestBuildHelper.prototype.addMilestoneRecord = async function (id, overrides) {
+
+    let settings = {};
+    let target = this.setup.settings.milestones[id];
+
+    if (typeof overrides === 'object') {
+        for (let key in target) {
+            if (overrides.hasOwnProperty(key)) {
+                settings[key] = overrides[key];
+            } else {
+                settings[key] = target[key];
+            }
+        }
+    } else {
+        settings = target;
+    }
+
+    let object = this.getDeployedByName("Milestones");
+
+    return await object.addRecord(
+        settings.name,
+        settings.description,
+        settings.duration,
+        settings.funding_percentage,
+    );
+};
+
+
+
 TestBuildHelper.prototype.timeTravelTo = async function (newtime) {
     let DeployedApplication = this.getDeployedByName("ApplicationEntity");
     let time = await DeployedApplication.getTimestamp.call();
@@ -149,6 +225,7 @@ TestBuildHelper.prototype.FundingManagerProcessVaults = async function (debug, i
         await this.setup.helpers.utils.showGasUsage(this.setup.helpers, tx, 'FundingManager State Change [' + iteration + ']');
         await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
     }
+
     let hasChanges = await this.requiresStateChanges("FundingManager");
 
     if (hasChanges === true) {
@@ -455,7 +532,6 @@ TestBuildHelper.prototype.addFundingSettings = async function () {
         this.setup.settings.bylaws["funding_global_soft_cap"],
         this.setup.settings.bylaws["funding_global_hard_cap"]
     );
-
 };
 
 TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (FundingPeriodId, DirectPaymentValue) {
@@ -505,6 +581,12 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
 
         // add global funding settings like hard cap and such
         await this.addFundingSettings();
+
+    } else if (name === "Milestones") {
+
+        for (let i = 0; i < this.setup.settings.milestones.length; i++) {
+            await this.addMilestoneRecord(i);
+        }
     }
 
     // lock contract settings and apply them

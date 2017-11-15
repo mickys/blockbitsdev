@@ -15,7 +15,7 @@ contract ApplicationAsset {
 
     event EventAppAssetOwnerSet(bytes32 indexed _name, address indexed _owner);
     event EventRunBeforeInit(bytes32 indexed _name);
-    event EventRunBeforeApplyingSettings(bytes32 indexed _name);
+    event EventRunBeforeApplyingSettings(bytes32 _name);
 
 
     mapping (bytes32 => uint8) public EntityStates;
@@ -106,15 +106,32 @@ contract ApplicationAsset {
     function getApplicationAssetAddressByName(bytes32 _name)
         public
         view
-    //    requireInitialised // no longer.. we need this for funding, as token manager needs to be internally instantiated
         returns(address)
     {
-        address asset = ApplicationEntityABI(owner).AssetCollection(_name);
+        address asset = ApplicationEntityABI(owner).getAssetAddressByName(_name);
         if( asset != address(0x0) ) {
             return asset;
         } else {
             revert();
         }
+    }
+
+    function getApplicationState() public view returns (uint8) {
+        return ApplicationEntityABI(owner).CurrentEntityState();
+    }
+
+    function getApplicationEntityState(bytes32 name) public view returns (uint8) {
+        return ApplicationEntityABI(owner).getEntityState(name);
+    }
+
+    function getAppBylawUint256(bytes32 name) public view requireInitialised returns (uint256) {
+        ApplicationEntityABI CurrentApp = ApplicationEntityABI(owner);
+        return CurrentApp.getBylawUint256(name);
+    }
+
+    function getAppBylawBytes32(bytes32 name) public view requireInitialised returns (bytes32) {
+        ApplicationEntityABI CurrentApp = ApplicationEntityABI(owner);
+        return CurrentApp.getBylawBytes32(name);
     }
 
     modifier onlyOwner() {
@@ -156,5 +173,6 @@ contract ApplicationAsset {
     function getTimestamp() view public returns (uint256) {
         return now;
     }
+
 
 }

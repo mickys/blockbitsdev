@@ -47,14 +47,15 @@ const setup = {
     },
     settings:settings,
     assetContractNames: [
+        'ListingContract',
+        'NewsContract',
         'Proposals',
+        'TokenManager',
         'FundingManager',
         'Funding',
         'Milestones',
         'Meetings',
         'GeneralVault',
-        'ListingContract',
-        'NewsContract'
     ]
 };
 
@@ -93,7 +94,10 @@ tests.push("4_Asset_FundingManager_Successful");
 // tests.push("4_Asset_Milestones");
 // tests.push("3_ApplicationEntity");
 
-
+// tests = [];
+// tests.push("4_Asset_Funding_States");
+//tests.push("4_Asset_FundingManager");
+// tests.push("4_Asset_FundingManager_Successful");
 
 // tests.push("1_GatewayInterface");
 // tests.push("2_ApplicationAsset");

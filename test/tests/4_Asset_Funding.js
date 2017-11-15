@@ -26,10 +26,10 @@ module.exports = function (setup) {
 
         beforeEach(async () => {
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
-            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "FundingManager", "Milestones"] );
-            await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
-            await TestBuildHelper.AddAssetSettingsAndLock("FundingManager");
-            await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
+            await TestBuildHelper.deployAndInitializeApplication();
+            await TestBuildHelper.AddAllAssetSettingsAndLockExcept("Funding");
+
+            assetContract = await TestBuildHelper.getDeployedByName("Funding");
         });
 
         it('deploys with no Funding Stages', async () => {

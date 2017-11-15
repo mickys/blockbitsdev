@@ -20,16 +20,14 @@ module.exports = function(setup) {
         let platformWalletAddress = accounts[8];
 
         beforeEach(async () => {
-
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
-            FundingContract = await TestBuildHelper.deployAndInitializeAsset( "Funding", ["TokenManager", "FundingManager", "Milestones"] );
-            await TestBuildHelper.AddAssetSettingsAndLock("TokenManager");
-            await TestBuildHelper.AddAssetSettingsAndLock("FundingManager");
-            await TestBuildHelper.AddAssetSettingsAndLock("Funding");
+            await TestBuildHelper.deployAndInitializeApplication();
+            await TestBuildHelper.AddAllAssetSettingsAndLockExcept();
+
+            FundingContract = await TestBuildHelper.getDeployedByName("Funding");
             MilestonesContract = await TestBuildHelper.getDeployedByName("Milestones");
             TokenManagerContract = await TestBuildHelper.getDeployedByName("TokenManager");
             assetContract = await helpers.getContract("Test" + assetName).new();
-
         });
 
         it('initializes with empty properties', async () => {
@@ -178,12 +176,3 @@ module.exports = function(setup) {
         });
     });
 };
-
-/*
- await helpers.utils.showAccountBalances(helpers, accounts);
- await helpers.utils.transferTo(artifacts, 99.5 * helpers.solidity.ether, accounts[9], accounts[0]);
- await helpers.utils.showContractDebug(helpers, assetContract);
- await helpers.utils.showAccountBalances(helpers, accounts);
- await helpers.utils.showContractBalance(helpers, assetContract);
-
-*/

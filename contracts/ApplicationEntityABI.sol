@@ -26,11 +26,15 @@ contract ApplicationEntityABI {
 
     address public deployerAddress;
 
-    mapping (bytes32 => address) public AssetCollection;
-    mapping (uint8 => bytes32) public AssetCollectionIdToName;
+
+    uint8 public CurrentEntityState;
+
+    function getAssetAddressByName(bytes32 _name) public view returns (address);
 
     function getBylawUint256(bytes32 name) public view returns (uint256);
-    function getBylawString(bytes32 name) public view returns (string);
+    function getBylawBytes32(bytes32 name) public view returns (bytes32);
+
+    function getEntityState(bytes32 name) public view returns (uint8);
 
     function canInitiateCodeUpgrade(address _sender) public view returns(bool);
 

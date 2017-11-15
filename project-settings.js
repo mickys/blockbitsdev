@@ -145,27 +145,43 @@ for(let i = 0; i < funding_periods.length; i++) {
 
 
 let project_bylaws = {
-    // funding bylaws
+
+    // Token bylaws
+    // (0 to 100) what percentage of the whole token supply is to be sold in the funding process
+    "token_sale_percentage": token_sale_percentage,
+    // Can the application mint new tokens after initial supply is created? ( true / false )
+    "token_fixed_supply": true,
+    // Are the project owner's tokens locked until project state == COMPLETED
+    "owner_tokens_locked": true,
+    // token sale calculation and distribution algorithm
+    "tokenSCADA": "TokenSCADA1Market",
+
+    // Funding bylaws
+    // SCADA requires global soft and hard caps
     "funding_global_soft_cap": funding_global_soft_cap,
     "funding_global_hard_cap": funding_global_hard_cap,
+
+
+    // Proposal Bylaws
+    // (X days) proposal voting duration
+    "proposal_voting_duration": 7 * days,
+
+    // Meeting Bylaws
+    // (X days) how many days a meeting needs to be created in advance
+    "meeting_time_set_req": 7 * days,
+
+    // Milestone Bylaws
+    // (unixtime) milestone development starts 14 days after ico ends
+    "development_start": ico_end + 14 * days,
 
     // if this is available, emergency fund will be crated out of total milestone funding amount.
     // the rest gets then split up into milestone balances using their respective percentage settings
     "emergency_fund_percentage": emergency_fund_percentage,
 
-    // token bylaws
-    "token_sale_percentage": token_sale_percentage,
-    "token_fixed_supply": true,
-    "owner_tokens_locked": true,
-    "tokenSCADA": "TokenSCADA1Market",
 
-    // proposals
-    "proposal_duration": 7 * days,
-
-    // meetings
-    "meeting_time_set_before": 7 * days,
-
-    // cashback
+    // Cashback Bylaws
+    "cashback_investor_no": 7 * days,
+    "cashback_owner_mia_dur": 365 * days
 
 };
 

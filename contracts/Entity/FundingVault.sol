@@ -333,7 +333,7 @@ contract FundingVault {
     function checkOwnerFailedToSetTimeOnMeeting() public view returns (bool) {
         // probably need to check all state change rules on all assets.
 
-        uint8 currentMilestoneId = MilestonesEntity.currentMilestone();
+        uint8 currentMilestoneId = MilestonesEntity.currentRecord();
         currentMilestoneId = 0;
         // get record times
 

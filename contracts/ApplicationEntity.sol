@@ -32,6 +32,12 @@ contract ApplicationEntity {
     /* Entity locked or not */
     bool public _locked = false;
 
+    /* Current Entity State */
+    uint8 public CurrentEntityState;
+
+    /* Available Entity State */
+    mapping (bytes32 => uint8) public EntityStates;
+
     /* GatewayInterface address */
     address public GatewayInterfaceAddress;
 
@@ -54,8 +60,6 @@ contract ApplicationEntity {
     mapping (uint8 => bytes32) public AssetCollectionIdToName;
     uint8 public AssetCollectionNum = 0;
 
-
-
     event EventAppEntityReady ( address indexed _address );
     event EventAppEntityCodeUpgradeProposal ( address indexed _address, bytes32 indexed _sourceCodeUrl );
     event EventAppEntityInitAsset ( bytes32 indexed _name, address indexed _address );
@@ -67,6 +71,30 @@ contract ApplicationEntity {
 
     function ApplicationEntity() public {
         deployerAddress = msg.sender;
+        setEntityStates();
+        CurrentEntityState = getEntityState("WAITING_FOR_SETUP");
+    }
+
+    function setEntityStates() internal {
+
+        // Contract States
+        EntityStates["__IGNORED__"]                 = 0;
+        EntityStates["WAITING_FOR_SETUP"]           = 1;
+        EntityStates["LINKED_TO_GATEWAY"]           = 2;
+
+        EntityStates["WAITING_FOR_FUNDING"]         = 3;
+        EntityStates["WAITING_FOR_FUNDING_MANAGER"] = 4;
+
+        EntityStates["IN_DEVELOPMENT"]              = 5;
+        EntityStates["DEVELOPMENT_COMPLETE"]        = 100;
+
+        EntityStates["IN_GLOBAL_CASHBACK"]          = 99;
+        EntityStates["LOCKED"]                      = 125;
+
+    }
+
+    function getEntityState(bytes32 name) public view returns (uint8) {
+        return EntityStates[name];
     }
 
     /*
@@ -156,9 +184,13 @@ contract ApplicationEntity {
         EventAppEntityInitAsset(name, _assetAddresses);
     }
 
+    function getAssetAddressByName(bytes32 _name) public view returns (address) {
+        return AssetCollection[_name];
+    }
+
     /* Application Bylaws mapping */
     mapping (bytes32 => uint256) public BylawsUint256;
-    mapping (bytes32 => string) public BylawsString;
+    mapping (bytes32 => bytes32) public BylawsBytes32;
 
 
     function setBylawUint256(bytes32 name, uint256 value) public requireNotInitialised onlyDeployer {
@@ -169,12 +201,12 @@ contract ApplicationEntity {
         return BylawsUint256[name];
     }
 
-    function setBylawString(bytes32 name, string value) public requireNotInitialised onlyDeployer {
-        BylawsString[name] = value;
+    function setBylawBytes32(bytes32 name, bytes32 value) public requireNotInitialised onlyDeployer {
+        BylawsBytes32[name] = value;
     }
 
-    function getBylawString(bytes32 name) public view requireInitialised returns (string) {
-        return BylawsString[name];
+    function getBylawBytes32(bytes32 name) public view requireInitialised returns (bytes32) {
+        return BylawsBytes32[name];
     }
 
     function initialize() external requireNotInitialised onlyGatewayInterface returns (bool) {

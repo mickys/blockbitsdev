@@ -146,7 +146,7 @@ contract FundingManager is ApplicationAsset {
         address currentVault = vaultById[1];
         EventFundingManagerProcessedVault(currentVault, 1);
         FundingVault vault = FundingVault(currentVault);
-        if(!vault.ReleaseFundsAndTokens()) {
+        if(!vault.ReleaseFundsToOutputAddress()) {
             revert();
         }
     }
@@ -249,7 +249,7 @@ contract FundingManager is ApplicationAsset {
 
             /*
             // release tokens back to owner
-            if(!vault.ReleaseFundsAndTokens()) {
+            if(!vault.ReleaseFundsToOutputAddress()) {
                 revert();
             }
             */
@@ -265,15 +265,17 @@ contract FundingManager is ApplicationAsset {
             // - ask vault to transfer "direct funding" tokens to investor
             // - ask vault to release the direct funding eth to platform
 
+            /*
             // release funds to owner / tokens to investor
-            if(!vault.ReleaseFundsAndTokens( getEntityState("FUNDING_SUCCESSFUL_PROGRESS") )) {
+            if(!vault.ReleaseFundsToOutputAddress()) {
                 revert();
             }
+            */
 
         } else if(CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS")) {
             /*
             // release funds to owner / tokens to investor
-            if(!vault.ReleaseFundsAndTokens( getEntityState("MILESTONE_PROCESS_PROGRESS") )) {
+            if(!vault.ReleaseFundsToOutputAddress()) {
                 revert();
             }
             */
@@ -308,7 +310,7 @@ contract FundingManager is ApplicationAsset {
         bool hasChanges = false;
         var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
         // suppress unused local variable warning
-         returnedCurrentEntityState = 0;
+        returnedCurrentEntityState = 0;
         if(EntityStateRequired != getEntityState("__IGNORED__") ) {
             hasChanges = true;
         }
@@ -333,11 +335,16 @@ contract FundingManager is ApplicationAsset {
 
 // Funding Successful
         } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_START") ) {
+
             // init SCADA variable cache.
-            TokenSCADAEntity.initCacheForVariables();
-            // start processing vaults
-            currentTask = getHash("FUNDING_SUCCESSFUL_START", "");
-            CurrentEntityState = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
+            if(TokenSCADAEntity.initCacheForVariables()) {
+                // start processing vaults
+                currentTask = getHash("FUNDING_SUCCESSFUL_START", "");
+                CurrentEntityState = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
+            } else {
+                // something went really wrong, just bail out for now
+                CurrentEntityState = getEntityState("FUNDING_FAILED_START");
+            }
         } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
 // Milestones

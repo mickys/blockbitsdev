@@ -95,11 +95,6 @@ contract Funding is ApplicationAsset {
 
     event EventFundingReceivedPayment(address indexed _sender, uint8 indexed _payment_method, uint256 indexed _amount );
 
-
-    function Funding() ApplicationAsset() public {
-
-    }
-
     function runBeforeInitialization() internal requireNotInitialised {
         DirectInput = new FundingInputDirect();
         MilestoneInput = new FundingInputMilestone();
@@ -115,6 +110,7 @@ contract Funding is ApplicationAsset {
         AllocateTokens();
         EventRunBeforeApplyingSettings(assetName);
     }
+
 
     function setAssetStates() internal {
         // Asset States

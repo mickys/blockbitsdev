@@ -22,12 +22,12 @@ module.exports = function(setup) {
             assert.equal(await app2.deployerAddress.call(), accounts[5], 'deployerAddress address should be accounts[5]');
         });
 
-        context('setBylawString()', async () => {
+        context('setBylawBytes32()', async () => {
             let bylaw_name = "test_bylaw";
             let bylaw_value = "value";
 
-            it('sets and returns a bylaw string if not initialized', async () => {
-                await app.setBylawString(bylaw_name, helpers.web3util.toHex(bylaw_value) );
+            it('sets and returns a bylaw bytes32 if not initialized', async () => {
+                await app.setBylawBytes32(bylaw_name, helpers.web3util.toHex(bylaw_value) );
                 await app.setTestGatewayInterfaceEntity(gateway.address);
                 await gateway.setTestCurrentApplicationEntityAddress(app.address);
                 let eventFilter = helpers.utils.hasEvent(
@@ -37,8 +37,8 @@ module.exports = function(setup) {
                 assert.equal(eventFilter.length, 1, 'EventAppEntityReady event not received.');
                 assert.isTrue(await app._initialized.call(), '_initialized should be true');
 
-                let testValue = await app.getBylawString.call(bylaw_name);
-                testValue = helpers.web3util.toAscii(testValue);
+                let testValue = await app.getBylawBytes32.call(bylaw_name);
+                testValue = helpers.web3util.toUtf8(testValue);
                 assert.equal(testValue, bylaw_value, 'Value should match');
             });
 
@@ -47,26 +47,26 @@ module.exports = function(setup) {
                 await app.setTestInitialized();
                 assert.isTrue(await app._initialized.call(), '_initialized should be true');
                 return helpers.assertInvalidOpcode(async () => {
-                    await app.setBylawString(bylaw_name, helpers.web3util.toHex(bylaw_value) );
+                    await app.setBylawBytes32(bylaw_name, helpers.web3util.toHex(bylaw_value) );
                 });
             });
         });
 
-        context('getBylawString()', async () => {
+        context('getBylawBytes32()', async () => {
             let bylaw_name = "test_bylaw";
             let bylaw_value = "testValue";
 
             it('throws if application is not initialized', async () => {
                 return helpers.assertInvalidOpcode(async () => {
-                    await app.getBylawString(bylaw_name);
+                    await app.getBylawBytes32(bylaw_name);
                 });
             });
 
-            it('returns correct value set by setBylawString if application is initialized', async () => {
-                await app.setBylawString(bylaw_name, helpers.web3util.toHex(bylaw_value));
+            it('returns correct value set by setBylawBytes32 if application is initialized', async () => {
+                await app.setBylawBytes32(bylaw_name, helpers.web3util.toHex(bylaw_value));
                 await app.setTestGatewayInterfaceEntity(gateway.address);
                 await app.setTestInitialized();
-                let val = helpers.web3util.toAscii( await app.getBylawString.call(bylaw_name) );
+                let val = helpers.web3util.toUtf8( await app.getBylawBytes32.call(bylaw_name) );
                 assert.equal(val, bylaw_value, "Value should be "+bylaw_value);
             });
         });
@@ -107,8 +107,7 @@ module.exports = function(setup) {
                 let TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
                 // link to real gateway
                 await TestBuildHelper.linkToRealGateway();
-
-                let assetContract = await TestBuildHelper.deployAndInitializeAsset( "Milestones" );
+                let assetContract = await TestBuildHelper.deployAndInitializeAsset( "NewsContract" );
 
                 // application is initialized and should have all bylaws set
                 let application = await TestBuildHelper.getDeployedByName("ApplicationEntity");
@@ -121,7 +120,8 @@ module.exports = function(setup) {
 
                     // string bylaw
                     if(typeof value === "string") {
-                        returnedValue = await application.getBylawString.call(key);
+                        returnedValue = await application.getBylawBytes32.call(key);
+                        returnedValue = await helpers.web3util.toUtf8(returnedValue);
                     } else {
                         // uints and booleans
                         // convert booleans to 1 / 0
