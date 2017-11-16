@@ -63,8 +63,8 @@ contract Milestones is ApplicationAsset {
         EntityStates["VOTING_ENDED_YES"]             = 7;
         EntityStates["VOTING_ENDED_NO"]              = 8;
         EntityStates["FINAL"]                        = 9;
-
         EntityStates["CASHBACK_OWNER_MIA"]           = 99;
+        EntityStates["DEVELOPMENT_COMPLETE"]         = 250;
 
         // Funding Stage States
         RecordStates["__IGNORED__"]     = 0;
@@ -152,7 +152,7 @@ contract Milestones is ApplicationAsset {
 
 
     function doStateChanges(bool recursive) public {
-        if( getApplicationState() == getApplicationEntityState("IN_DEVELOPMENT") ) {
+        if( ApplicationIsInDevelopment() ) {
 
             var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
             bool callAgain = false;
@@ -184,6 +184,12 @@ contract Milestones is ApplicationAsset {
         }
     }
 
+    function ApplicationIsInDevelopment() public view returns(bool) {
+        if( getApplicationState() == getApplicationEntityState("IN_DEVELOPMENT") ) {
+            return true;
+        }
+        return false;
+    }
 
     /*
      * Method: Get Record Required State Changes
@@ -194,24 +200,31 @@ contract Milestones is ApplicationAsset {
      * @return       uint8 RecordStateRequired
      */
     function getRecordStateRequiredChanges() public view returns (uint8) {
-
         Record memory record = Collection[currentRecord];
         uint8 RecordStateRequired = getRecordState("__IGNORED__");
 
-        if( record.state == getRecordState("FINAL") ) {
-            return getRecordState("__IGNORED__");
-        }
+        if( ApplicationIsInDevelopment() ) {
 
-        if( getTimestamp() >= record.time_start ) {
-            RecordStateRequired = getRecordState("IN_PROGRESS");
-        }
+            if( record.state == getRecordState("FINAL") ) {
 
-        if( getTimestamp() >= record.time_end) {
-            RecordStateRequired = getRecordState("FINAL");
-        }
+                return getRecordState("__IGNORED__");
 
-        if( record.state == RecordStateRequired ) {
-            RecordStateRequired = getRecordState("__IGNORED__");
+            } else if( record.state == getRecordState("NEW") ) {
+
+                if( getTimestamp() >= record.time_start ) {
+                    RecordStateRequired = getRecordState("IN_PROGRESS");
+                }
+
+            } else if( record.state == getRecordState("IN_PROGRESS") ) {
+
+                if( getTimestamp() >= record.time_end) {
+                    RecordStateRequired = getRecordState("FINAL");
+                }
+            }
+
+            if( record.state == RecordStateRequired ) {
+                RecordStateRequired = getRecordState("__IGNORED__");
+            }
         }
         return RecordStateRequired;
     }
@@ -219,15 +232,17 @@ contract Milestones is ApplicationAsset {
 
     function hasRequiredStateChanges() public view returns (bool) {
         bool hasChanges = false;
+        if( ApplicationIsInDevelopment() ) {
 
-        var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
-        CurrentRecordState = 0;
+            var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
+            CurrentRecordState = 0;
 
-        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
-            hasChanges = true;
-        }
-        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-            hasChanges = true;
+            if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+                hasChanges = true;
+            }
+            if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+                hasChanges = true;
+            }
         }
         return hasChanges;
     }
@@ -344,88 +359,90 @@ contract Milestones is ApplicationAsset {
         uint8 RecordStateRequired = getRecordStateRequiredChanges();
         uint8 EntityStateRequired = getEntityState("__IGNORED__");
 
+        if( ApplicationIsInDevelopment() ) {
 
-        // Record State Overrides
-        // if(CurrentRecordState != RecordStateRequired) {
-        if(RecordStateRequired != getRecordState("__IGNORED__"))
-        {
-            // direct state overrides by record state
-            if(RecordStateRequired == getRecordState("IN_PROGRESS") ) {
-                // both record and entity states need to move to IN_PROGRESS
-                EntityStateRequired = getEntityState("IN_PROGRESS");
+            // Record State Overrides
+            // if(CurrentRecordState != RecordStateRequired) {
+            if(RecordStateRequired != getRecordState("__IGNORED__"))
+            {
+                // direct state overrides by record state
+                if(RecordStateRequired == getRecordState("IN_PROGRESS") ) {
+                    // both record and entity states need to move to IN_PROGRESS
+                    EntityStateRequired = getEntityState("IN_PROGRESS");
 
-            } else if (RecordStateRequired == getRecordState("FINAL")) {
-                // funding stage moves to FINAL
+                } else if (RecordStateRequired == getRecordState("FINAL")) {
+                    // funding stage moves to FINAL
 
-                if (currentRecord == RecordNum) {
-                    // if current funding is last
-                    EntityStateRequired = getEntityState("DEVELOPMENT_ENDED");
+                    if (currentRecord == RecordNum) {
+                        // if current funding is last
+                        EntityStateRequired = getEntityState("DEVELOPMENT_ENDED");
+                    }
+                    else {
+                        // start voting period
+                        // EntityStateRequired = getEntityState("COOLDOWN");
+                    }
                 }
-                else {
-                    // start voting period
-                    // EntityStateRequired = getEntityState("COOLDOWN");
+
+            } else {
+
+                // Records do not require any updates.
+                // Do Entity Checks
+                if( CurrentEntityState == getEntityState("NEW") ) {
+                    EntityStateRequired = getEntityState("WAITING");
+                } else if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
+
+                    /*
+                        If milestone is in development:
+                        - check for meeting_time to be set
+                        - check for is time after Bylaws ?
+                    */
+                    uint256 meetingCreationMaxTime = record.time_end - getBylawsMinTimeInTheFutureForMeetingCreation();
+                    if(getTimestamp() >= meetingCreationMaxTime ) {
+                        // Force Owner Missing in Action - Cash Back Procedure
+                        EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_FAILED"); // getEntityState("CASHBACK_OWNER_MIA");
+                    }
+
+
+                    // if meeting time set
+                    // EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_YES");
+
+                } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_FAILED") ) {
+
+
+                } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
+
+                    // create meeting
+                    // start voting if meeting time passed
+
+                } else if ( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
+                    // check if voting ended, if so based on result set
+                    // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
+                    // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
+
+                } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
+
+                    // check funding manager has processed the FUNDING_SUCCESSFUL Task, if true => FUNDING_SUCCESSFUL_DONE
+                    /*
+                    if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
+                        EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                    }
+                    */
+
+                } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
+
+                    // check if milestone cashout period has passed and if so process fund releases
+                    /*
+                    if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
+                        EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                    }
+                    */
+
+                } else if ( CurrentEntityState == getEntityState("FINAL") ) {
+
                 }
             }
 
-        } else {
-
-            // Records do not require any updates.
-            // Do Entity Checks
-            if( CurrentEntityState == getEntityState("NEW") ) {
-                EntityStateRequired = getEntityState("WAITING");
-            } else if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
-
-                /*
-                    If milestone is in development:
-                    - check for meeting_time to be set
-                    - check for is time after Bylaws ?
-                */
-                uint256 meetingCreationMaxTime = record.time_end - getBylawsMinTimeInTheFutureForMeetingCreation();
-                if(getTimestamp() >= meetingCreationMaxTime ) {
-                    // Force Owner Missing in Action - Cash Back Procedure
-                    EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_FAILED"); // getEntityState("CASHBACK_OWNER_MIA");
-                }
-
-
-                // if meeting time set
-                // EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_YES");
-
-            } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_FAILED") ) {
-
-
-            } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
-
-                // create meeting
-                // start voting if meeting time passed
-
-            } else if ( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
-                // check if voting ended, if so based on result set
-                // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
-                // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
-
-            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
-
-                // check funding manager has processed the FUNDING_SUCCESSFUL Task, if true => FUNDING_SUCCESSFUL_DONE
-                /*
-                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
-                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
-                }
-                */
-
-            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
-
-                // check if milestone cashout period has passed and if so process fund releases
-                /*
-                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
-                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
-                }
-                */
-
-            } else if ( CurrentEntityState == getEntityState("FINAL") ) {
-
-            }
         }
-
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
     }
 

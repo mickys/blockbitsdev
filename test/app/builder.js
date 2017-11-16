@@ -500,6 +500,35 @@ TestBuildHelper.prototype.ValidateFundingState = async function (entity_start, e
 };
 
 
+TestBuildHelper.prototype.ValidateEntityAndRecordState = async function (assetName, entity_start, entity_required, record_start, record_required) {
+
+    let Asset = this.getDeployedByName(assetName);
+
+    let CurrentRecordState, RecordStateRequired, CurrentEntityState, EntityStateRequired;
+    let States = await Asset.getRequiredStateChanges.call();
+    CurrentRecordState = States[0];
+    RecordStateRequired = States[1];
+    EntityStateRequired = States[2];
+    CurrentEntityState = await Asset.CurrentEntityState.call();
+
+    if (CurrentEntityState.toString() !== entity_start) {
+        return false;
+    }
+    else if (EntityStateRequired.toString() !== entity_required) {
+        return false;
+    }
+    else if (CurrentRecordState.toString() !== record_start) {
+        return false;
+    }
+    else if (RecordStateRequired.toString() !== record_required) {
+        return false;
+    }
+
+    return true;
+};
+
+
+
 TestBuildHelper.prototype.ValidateAssetState = async function (assetName, entity_start, entity_required) {
 
     let Asset = this.getDeployedByName(assetName);

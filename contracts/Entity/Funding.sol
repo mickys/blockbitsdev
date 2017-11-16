@@ -691,15 +691,15 @@ contract Funding is ApplicationAsset {
                 if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_FAILED_START", "") ) == true) {
                     EntityStateRequired = getEntityState("FAILED_FINAL");
                 }
-            } else if ( CurrentEntityState == getEntityState("FINAL_SUCCESSFUL") ) {
+            } else if ( CurrentEntityState == getEntityState("SUCCESSFUL_FINAL") ) {
                 /*
-                    STATE: FINAL_SUCCESSFUL
+                    STATE: SUCCESSFUL_FINAL
                     Processor Action: none
 
                     External Action:
                     Application: Run Internal Processor ( Change State to IN_DEVELOPMENT )
                 */
-            } else if ( CurrentEntityState == getEntityState("FINAL_FAILED") ) {
+            } else if ( CurrentEntityState == getEntityState("FAILED_FINAL") ) {
                 /*
                     STATE: FINAL_FAILED
                     Processor Action: none

@@ -77,20 +77,21 @@ contract ApplicationEntity {
 
     function setEntityStates() internal {
 
-        // Contract States
+        // ApplicationEntity States
         EntityStates["__IGNORED__"]                 = 0;
-        EntityStates["WAITING_FOR_SETUP"]           = 1;
-        EntityStates["LINKED_TO_GATEWAY"]           = 2;
+        EntityStates["NEW"]                         = 1;
+        EntityStates["WAITING"]                     = 2;
 
         EntityStates["WAITING_FOR_FUNDING"]         = 3;
         EntityStates["WAITING_FOR_FUNDING_MANAGER"] = 4;
 
         EntityStates["IN_DEVELOPMENT"]              = 5;
-        EntityStates["DEVELOPMENT_COMPLETE"]        = 100;
+        EntityStates["IN_CODE_UPGRADE"]             = 50;
 
-        EntityStates["IN_GLOBAL_CASHBACK"]          = 99;
-        EntityStates["LOCKED"]                      = 125;
+        EntityStates["IN_GLOBAL_CASHBACK"]          = 150;
+        EntityStates["LOCKED"]                      = 200;
 
+        EntityStates["DEVELOPMENT_COMPLETE"]        = 250;
     }
 
     function getEntityState(bytes32 name) public view returns (uint8) {
@@ -328,5 +329,190 @@ contract ApplicationEntity {
         require(msg.sender == deployerAddress);
         _;
     }
+
+
+    event DebugApplicationRequiredChanges( uint8 indexed _current, uint8 indexed _required );
+    event EventApplicationEntityProcessor(uint8 indexed _current, uint8 indexed _required);
+
+    /*
+        We could create a generic method that iterates through all assets, and using assembly language get the return
+        value of the "hasRequiredStateChanges" method on each asset. Based on return, run doStateChanges on them or not.
+
+        Or we could be using a generic ABI contract that only defines the "hasRequiredStateChanges" and "doStateChanges"
+        methods thus not requiring any assembly variable / memory management
+
+        Problem with both cases is the fact that our application needs to change only specific asset states depending
+        on it's own current state, thus making a generic call wasteful in gas usage.
+
+        Let's stay away from that and follow the same approach as we do inside an asset.
+        - view method: -> get required state changes
+        - view method: -> has state changes
+        - processor that does the actual changes.
+        - doStateChanges recursive method that runs the processor if views require it to.
+
+        // pretty similar to FundingManager
+    */
+    function doStateChanges(bool recursive) public {
+
+        var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
+        bool callAgain = false;
+
+        DebugApplicationRequiredChanges( returnedCurrentEntityState, EntityStateRequired );
+
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            EntityProcessor(EntityStateRequired);
+            callAgain = true;
+        }
+
+        if(recursive && callAgain) {
+            if(hasRequiredStateChanges()) {
+                doStateChanges(recursive);
+            }
+        }
+    }
+
+    function hasRequiredStateChanges() public view returns (bool) {
+        bool hasChanges = false;
+        var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
+        // suppress unused local variable warning
+        returnedCurrentEntityState = 0;
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            hasChanges = true;
+        }
+        return hasChanges;
+    }
+
+    // view methods decide if changes are to be made
+    // in case of tasks, we do them in the Processors.
+
+    function EntityProcessor(uint8 EntityStateRequired) internal {
+
+        EventApplicationEntityProcessor( CurrentEntityState, EntityStateRequired );
+
+        // Update our Entity State
+        CurrentEntityState = EntityStateRequired;
+
+        // Do State Specific Updates
+
+        if ( EntityStateRequired == getEntityState("FUNDING_FAILED_START") ) {
+
+        }
+
+            // Funding Failed
+        /*
+        if ( EntityStateRequired == getEntityState("FUNDING_FAILED_START") ) {
+            // set ProcessVaultList Task
+            currentTask = getHash("FUNDING_FAILED_START", "");
+            CurrentEntityState = getEntityState("FUNDING_FAILED_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("FUNDING_FAILED_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+
+            // Funding Successful
+        } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_START") ) {
+
+            // init SCADA variable cache.
+            if(TokenSCADAEntity.initCacheForVariables()) {
+                // start processing vaults
+                currentTask = getHash("FUNDING_SUCCESSFUL_START", "");
+                CurrentEntityState = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
+            } else {
+                // something went really wrong, just bail out for now
+                CurrentEntityState = getEntityState("FUNDING_FAILED_START");
+            }
+        } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+            // Milestones
+        } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_START") ) {
+            currentTask = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneId() );
+            CurrentEntityState = getEntityState("MILESTONE_PROCESS_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+
+            // Completion
+        } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_START") ) {
+            currentTask = getHash("COMPLETE_PROCESS_START", "");
+            CurrentEntityState = getEntityState("COMPLETE_PROCESS_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+        }
+        */
+    }
+
+    /*
+     * Method: Get Entity Required State Changes
+     *
+     * @access       public
+     * @type         method
+     *
+     * @return       ( uint8 CurrentEntityState, uint8 EntityStateRequired )
+     */
+    function getRequiredStateChanges() public view returns (uint8, uint8) {
+
+        uint8 EntityStateRequired = getEntityState("__IGNORED__");
+
+
+        if( CurrentEntityState == getEntityState("NEW") ) {
+            // general so we know we initialized
+            EntityStateRequired = getEntityState("WAITING");
+
+        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
+
+            // Funding Started
+            if(
+                FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("IN_PROGRESS") ||
+                FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("COOLDOWN")
+            ) {
+                EntityStateRequired = getEntityState("WAITING_FOR_FUNDING");
+            }
+
+        } else if ( CurrentEntityState == getEntityState("WAITING_FOR_FUNDING") ) {
+
+            if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
+                // SUCCESSFUL_FINAL means FUNDING was successful, and FundingManager has finished distributing tokens and ether
+                EntityStateRequired = getEntityState("IN_DEVELOPMENT");
+
+            } else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED_FINAL")) {
+                // Funding failed..
+                EntityStateRequired = getEntityState("IN_GLOBAL_CASHBACK");
+            }
+
+        } else if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
+
+            // this is where most things happen
+            // milestones get developed
+            // code upgrades get initiated
+            // proposals get created and voted
+
+            if(ProposalsEntity.CurrentEntityState() == ProposalsEntity.getEntityState("CODE_UPGRADE_ACCEPTED")) {
+                // check if we have an upgrade proposal that is accepted and move into said state
+                EntityStateRequired = getEntityState("START_CODE_UPGRADE");
+            }
+            else if(MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("DEVELOPMENT_COMPLETE")) {
+                // check if we finished developing all milestones .. and if so move state to complete.
+                EntityStateRequired = getEntityState("DEVELOPMENT_COMPLETE");
+            }
+
+        } else if ( CurrentEntityState == getEntityState("START_CODE_UPGRADE") ) {
+
+            // check stuff to move into IN_CODE_UPGRADE
+            // EntityStateRequired = getEntityState("IN_CODE_UPGRADE");
+
+        } else if ( CurrentEntityState == getEntityState("IN_CODE_UPGRADE") ) {
+
+            // check stuff to finish
+            // EntityStateRequired = getEntityState("FINISHED_CODE_UPGRADE");
+
+        } else if ( CurrentEntityState == getEntityState("FINISHED_CODE_UPGRADE") ) {
+
+            // move to IN_DEVELOPMENT or DEVELOPMENT_COMPLETE based on state before START_CODE_UPGRADE.
+            // EntityStateRequired = getEntityState("DEVELOPMENT_COMPLETE");
+            // EntityStateRequired = getEntityState("FINISHED_CODE_UPGRADE");
+
+        }
+
+
+        return (CurrentEntityState, EntityStateRequired);
+    }
+
 
 }

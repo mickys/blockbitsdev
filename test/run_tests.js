@@ -78,6 +78,8 @@ tests.push("4_Asset_Funding");
 tests.push("4_Asset_Funding_States");
 tests.push("4_Asset_FundingManager");
 tests.push("4_Asset_FundingManager_Successful");
+tests.push("4_Asset_Milestones");
+tests.push("3_ApplicationEntity_States");
 
 
 // tests.push("4_FundingVault");
@@ -90,7 +92,9 @@ tests.push("4_Asset_FundingManager_Successful");
 
 // tests.push("4_Asset_FundingManager_Successful");
 
-// tests = [];
+tests = [];
+tests.push("3_ApplicationEntity_States");
+
 // tests.push("4_Asset_Milestones");
 // tests.push("3_ApplicationEntity");
 

@@ -11,7 +11,7 @@ pragma solidity ^0.4.17;
 import "./FundingInputGeneral.sol";
 
 contract FundingInputDirect is FundingInputGeneral {
-    function FundingInputDirect() FundingInputGeneral public {
+    function FundingInputDirect() FundingInputGeneral() public {
         typeId = 1;
     }
 }

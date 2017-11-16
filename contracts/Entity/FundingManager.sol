@@ -369,7 +369,6 @@ contract FundingManager is ApplicationAsset {
      *
      * @access       public
      * @type         method
-     * @modifiers    onlyOwner
      *
      * @return       ( uint8 CurrentEntityState, uint8 EntityStateRequired )
      */
