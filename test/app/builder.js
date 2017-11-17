@@ -6,7 +6,6 @@ function TestBuildHelper(setup, assert, accounts, platformWalletAddress) {
     this.accounts = accounts;
     this.deployed = [];
     this.platformWalletAddress = platformWalletAddress;
-
     this.gatewayAddress = this.accounts[0];
 }
 
@@ -39,6 +38,9 @@ TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
         // grab ownership of the assets so we can do tests
         await app.initializeAssetsToThisApplication();
 
+        // init application
+        await app.initialize();
+
     } else {
 
         // link to real gateway contract
@@ -58,6 +60,14 @@ TestBuildHelper.prototype.AddAllAssetSettingsAndLockExcept = async function (exc
         } else {
             await this.AddAssetSettingsAndLock(name);
         }
+    }
+};
+
+
+TestBuildHelper.prototype.AddAllAssetSettingsAndLock = async function () {
+    for (let i = 0; i < this.setup.assetContractNames.length; i++) {
+        let name = this.setup.assetContractNames[i];
+        await this.AddAssetSettingsAndLock(name);
     }
 };
 
@@ -218,7 +228,7 @@ TestBuildHelper.prototype.FundingManagerProcessVaults = async function (debug, i
         console.log("FundingManagerProcessVaults _Before State:");
         await this.setup.helpers.utils.showCurrentState(this.setup.helpers, FundingManager);
     }
-    let tx = await FundingManager.doStateChanges(false);
+    let tx = await FundingManager.doStateChanges();
 
     if (debug) {
         console.log("FundingManagerProcessVaults _After State:");
@@ -232,6 +242,64 @@ TestBuildHelper.prototype.FundingManagerProcessVaults = async function (debug, i
         await this.FundingManagerProcessVaults(debug, iteration + 1);
     }
 };
+
+/*
+TestBuildHelper.prototype.doFundingManagerStateChanges = async function () {
+    let FundingManager = this.getDeployedByName("FundingManager");
+
+    let hasChanges = await this.requiresStateChanges("FundingManager");
+    if (hasChanges === true) {
+        let tx = await FundingManager.doStateChanges(false);
+        await this.FundingManagerProcessVaults(debug, iteration + 1);
+    }
+}
+*/
+
+
+TestBuildHelper.prototype.showApplicationStates = async function () {
+    console.log( await this.setup.helpers.utils.showAllStates(this.setup.helpers, this) );
+}
+
+TestBuildHelper.prototype.doApplicationStateChanges = async function (name, debug) {
+    if(typeof debug === "undefined") {
+        debug = false;
+    }
+
+    let before;
+    let after;
+
+    let ApplicationEntity = this.getDeployedByName("ApplicationEntity");
+    if (debug) {
+        before = await this.setup.helpers.utils.showAllStates(this.setup.helpers, this);
+    }
+    let tx = await ApplicationEntity.doStateChanges();
+
+    if (debug) {
+        let usage = await this.setup.helpers.utils.getGasUsage(this.setup.helpers, tx, "");
+
+        after = await this.setup.helpers.utils.showAllStates(this.setup.helpers, this);
+
+        let table = new this.setup.helpers.Table({
+            head: [ "Report" ],
+            // colWidths: [20, 15, 18, 18, 18, 18, 26, 20]
+        });
+
+        table.push( [ "State Before: "+name ] );
+        table.push( [ before ] );
+        table.push( [ "State After => "+usage ] );
+        table.push( [ after ] );
+        console.log( table.toString() );
+        console.log();
+    }
+
+    let hasChanges = await ApplicationEntity.hasRequiredStateChanges.call();
+    if (hasChanges === true) {
+        await this.doApplicationStateChanges(name, debug);
+    }
+
+};
+
+
 
 TestBuildHelper.prototype.requiresStateChanges = async function (assetName) {
     let Asset = this.getDeployedByName(assetName);

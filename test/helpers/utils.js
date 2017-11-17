@@ -98,13 +98,19 @@ let StateArray = {
         {key: 0, name: "NONE"},
         {key: 1, name: "NEW"},
         {key: 2, name: "WAITING"},
-        {key: 3, name: "IN_DEVELOPMENT"},
-        {key: 4, name: "DEADLINE_MEETING_TIME_YES"},
-        {key: 5, name: "DEADLINE_MEETING_TIME_FAILED"},
-        {key: 6, name: "VOTING_IN_PROGRESS"},
-        {key: 7, name: "VOTING_ENDED_YES"},
-        {key: 8, name: "VOTING_ENDED_NO"},
-        {key: 9, name: "FINAL"},
+        {key: 5, name: "IN_DEVELOPMENT"},
+
+        {key: 10, name: "WAITING_MEETING_TIME"},
+        {key: 11, name: "DEADLINE_MEETING_TIME_YES"},
+        {key: 12, name: "DEADLINE_MEETING_TIME_FAILED"},
+
+        {key: 20, name: "VOTING_ENDED"},
+        {key: 21, name: "VOTING_IN_PROGRESS"},
+        {key: 22, name: "VOTING_ENDED_YES"},
+        {key: 23, name: "VOTING_ENDED_NO"},
+
+        {key: 50, name: "FINAL"},
+
         {key: 99, name: "CASHBACK_OWNER_MIA"},
         {key: 250, name: "DEVELOPMENT_COMPLETE"},
     ],
@@ -112,8 +118,8 @@ let StateArray = {
         {key: 0, name: "NONE"},
         {key: 1, name: "NEW"},
         {key: 2, name: "WAITING"},
-        {key: 3, name: "WAITING_FOR_FUNDING"},
-        {key: 4, name: "WAITING_FOR_FUNDING_MANAGER"},
+        {key: 3, name: "IN_FUNDING"},
+
         {key: 5, name: "IN_DEVELOPMENT"},
         {key: 50, name: "IN_CODE_UPGRADE"},
         {key: 150, name: "IN_GLOBAL_CASHBACK"},
@@ -274,11 +280,18 @@ module.exports = {
         );
     },
     async showGasUsage(helpers, tx, name) {
-        helpers.utils.toLog(logPre + name + " GAS USAGE: " +
+        helpers.utils.toLog(name + " GAS USAGE: " +
             helpers.utils.colors.purple +
             tx.receipt.cumulativeGasUsed
         );
     },
+    async getGasUsage(helpers, tx, name) {
+        return(name + "GAS USAGE: " +
+            helpers.utils.colors.purple +
+            tx.receipt.cumulativeGasUsed
+        );
+    },
+
     async showFundingState(helpers, assetContract) {
         await helpers.utils.showDebugSettings(helpers, assetContract);
         await helpers.utils.showDebugFundingStages(helpers, assetContract);
@@ -289,6 +302,238 @@ module.exports = {
     async showCurrentState(helpers, assetContract) {
         await helpers.utils.showGeneralRequiredStateChanges(helpers, assetContract);
     },
+
+    async showApplicationAssetTable(helpers, TestBuilder) {
+
+        // console.log("Application Entity Asset Setup Table: ")
+        let ApplicationEntity = await TestBuilder.getDeployedByName("ApplicationEntity");
+
+        let table = new helpers.Table({
+            head: ["Name", "Initialized", "Settings Locked"],
+            colWidths: [20, 15, 15]
+        });
+
+        let AssetCollectionNum = await ApplicationEntity.AssetCollectionNum.call();
+
+        for (let i = 0; i < AssetCollectionNum.toString(); i++) {
+
+            let assetNameBytes = await ApplicationEntity.AssetCollectionIdToName.call(i);
+            let assetName = await helpers.web3util.toUtf8(assetNameBytes);
+
+            let object = await TestBuilder.getDeployedByName(assetName);
+
+            let initialized = await object._initialized.call();
+            let settingsApplied = await object._settingsApplied.call();
+
+
+            table.push([
+                    assetName,
+                    initialized.toString(),
+                    settingsApplied.toString(),
+                ]
+            );
+        }
+
+        console.log(table.toString());
+        // console.log("");
+
+
+
+    },
+    async showAllStates(helpers, TestBuilder) {
+
+        // console.log("Application Entity Asset State Table: ")
+
+        let ApplicationEntity = await TestBuilder.getDeployedByName("ApplicationEntity");
+
+        let Funding = await TestBuilder.getDeployedByName("Funding");
+        let FundingManager = await TestBuilder.getDeployedByName("FundingManager");
+        let Milestones = await TestBuilder.getDeployedByName("Milestones");
+
+        let table = new helpers.Table({
+            head: ["Name", "CHGS", "Current", "Required", "Rec Cur", "Rec Req", "Extra 1", "Extra 2"],
+            colWidths: [20, 7, 32, 32, 20, 20, 14, 10]
+        });
+
+        table.push(await helpers.utils.getApplicationRequiredStateChanges( helpers, ApplicationEntity) );
+        table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, Funding) );
+        table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, FundingManager) );
+        table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, Milestones) );
+
+        return table.toString();
+    },
+
+    async getOneLineRequiredStateChanges(helpers, assetContract) {
+
+        let contractTimeStamp = await assetContract.getTimestamp.call();
+        let assetName = await assetContract.assetName.call();
+        let contractType = await helpers.web3util.toUtf8(assetName);
+
+        let logLine = "";
+        let logColor = helpers.utils.colors.white;
+        let color;
+
+        let cols = [];
+
+        cols.push(contractType);
+
+        let reqChanges = await assetContract.getRequiredStateChanges.call();
+
+        let hasChanges = await assetContract.hasRequiredStateChanges.call();
+
+        if (hasChanges.toString() === "false") {
+            color = helpers.utils.colors.green;
+        } else {
+            color = helpers.utils.colors.red;
+        }
+
+        cols.push(color+hasChanges.toString());
+
+        if(contractType === "Funding" || contractType === "Milestones" ) {
+
+
+            let CurrentRecordState = helpers.utils.getRecordStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[0]));
+            let RecordStateRequired = helpers.utils.getRecordStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[1]));
+            let EntityStateRequired = helpers.utils.getEntityStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[2]));
+
+            let CurrentEntityStateReq = await assetContract.CurrentEntityState.call();
+            let CurrentEntityState = await helpers.web3util.toDecimal(CurrentEntityStateReq);
+
+            // cols.push(helpers.utils.colors.green + "[" + CurrentEntityState + "] " + helpers.utils.getEntityStateNameById(contractType, CurrentEntityState));
+            cols.push(helpers.utils.colors.green + helpers.utils.getEntityStateNameById(contractType, CurrentEntityState));
+
+            if (reqChanges[2].toString() === "0") {
+                color = helpers.utils.colors.green;
+            } else {
+                color = helpers.utils.colors.red;
+            }
+
+            // cols.push(color + "[" + reqChanges[2].toString() + "] " + EntityStateRequired);
+            cols.push(color + EntityStateRequired);
+
+            // cols.push(helpers.utils.colors.green + "[" + reqChanges[0] + "] " + CurrentRecordState);
+            cols.push(helpers.utils.colors.green + CurrentRecordState);
+
+            color = helpers.utils.colors.red;
+            let stateChangeInt = helpers.web3util.toDecimal(reqChanges[1]);
+            if (stateChangeInt === 0) {
+                color = helpers.utils.colors.green;
+            }
+            //cols.push(color + "[" + stateChangeInt + "] " + RecordStateRequired);
+            cols.push(color + RecordStateRequired);
+
+
+            if (contractType === "Funding") {
+
+                let FundingStageNum = await assetContract.FundingStageNum.call();
+                let currentFundingStage = await assetContract.currentFundingStage.call();
+
+//                cols.push(logColor + "Stages: " + helpers.utils.colors.orange + FundingStageNum);
+//                cols.push(logColor + "Current: " + helpers.utils.colors.orange + currentFundingStage);
+                cols.push(logColor + "Rec:" + helpers.utils.colors.orange + FundingStageNum);
+                cols.push(logColor + "Cur:" + helpers.utils.colors.orange + currentFundingStage);
+
+            } else if (contractType === "Milestones") {
+
+                let RecordNum = await assetContract.RecordNum.call();
+                let currentRecord = await assetContract.currentRecord.call();
+
+//                cols.push(logColor + "Stages: " + helpers.utils.colors.orange + RecordNum);
+//                cols.push(logColor + "Current: " + helpers.utils.colors.orange + currentRecord);
+                cols.push(logColor + "Rec:" + helpers.utils.colors.orange + RecordNum);
+                cols.push(logColor + "Cur:" + helpers.utils.colors.orange + currentRecord);
+
+            } else {
+                cols.push("");
+                cols.push("");
+            }
+
+
+
+        }
+        else if(contractType === "FundingManager") {
+
+            let CurrentEntityStateID =  helpers.web3util.toDecimal(reqChanges[0]);
+            let RequiredEntityStateID = helpers.web3util.toDecimal(reqChanges[1]);
+
+            let CurrentEntityStateName = helpers.utils.getEntityStateNameById(contractType, CurrentEntityStateID);
+            let RequiredEntityStateName = helpers.utils.getEntityStateNameById(contractType, RequiredEntityStateID);
+
+            color = helpers.utils.colors.red;
+//            cols.push(helpers.utils.colors.green + "[" + CurrentEntityStateID + "] " + CurrentEntityStateName);
+            cols.push(helpers.utils.colors.green + CurrentEntityStateName);
+
+            if (RequiredEntityStateID.toString() === "0") {
+                color = helpers.utils.colors.green;
+            }
+//            cols.push(color + "[" + RequiredEntityStateID + "] " + RequiredEntityStateName);
+            cols.push(color + RequiredEntityStateName);
+
+            let vaultNum = await assetContract.vaultNum.call();
+            let lastProcessedVaultId = await assetContract.lastProcessedVaultId.call();
+
+            cols.push("");
+            cols.push("");
+//            cols.push(logColor+"vaultNum: " +  helpers.utils.colors.orange +  vaultNum);
+            cols.push(logColor+"VNum:" +  helpers.utils.colors.orange +  vaultNum);
+//            cols.push(logColor+"Last Processed: " + helpers.utils.colors.orange + lastProcessedVaultId);
+            cols.push(logColor+"Last:" + helpers.utils.colors.orange + lastProcessedVaultId);
+
+        }
+        return cols;
+    },
+
+    async getApplicationRequiredStateChanges(helpers, assetContract) {
+
+        let contractTimeStamp = await assetContract.getTimestamp.call();
+        let assetName = "ApplicationEntity";
+
+        let cols = [];
+        cols.push(assetName);
+        let color;
+
+        let hasChanges = await assetContract.hasRequiredStateChanges.call();
+        let changes = "false";
+        if(hasChanges) {
+            changes = "true";
+        }
+
+        if (hasChanges === false) {
+            color = helpers.utils.colors.green;
+        } else {
+            color = helpers.utils.colors.red;
+        }
+        cols.push(color+changes);
+
+        let reqChanges = await assetContract.getRequiredStateChanges.call();
+
+        let CurrentEntityStateID =  helpers.web3util.toDecimal(reqChanges[0]);
+        let RequiredEntityStateID = helpers.web3util.toDecimal(reqChanges[1]);
+
+        let CurrentEntityStateName = helpers.utils.getEntityStateNameById(assetName, CurrentEntityStateID);
+        let RequiredEntityStateName = helpers.utils.getEntityStateNameById(assetName, RequiredEntityStateID);
+
+//        cols.push( helpers.utils.colors.green + "[" + CurrentEntityStateID + "] " + CurrentEntityStateName );
+        cols.push( helpers.utils.colors.green + CurrentEntityStateName );
+
+        if (RequiredEntityStateID.toString() === "0") {
+            color = helpers.utils.colors.green;
+        } else {
+            color = helpers.utils.colors.red;
+        }
+
+        // cols.push( color + "[" + RequiredEntityStateID + "] " + RequiredEntityStateName );
+        cols.push( color + RequiredEntityStateName );
+        cols.push("");
+        cols.push("");
+        cols.push( helpers.utils.toDate(contractTimeStamp) );
+        cols.push("");
+
+        return cols;
+    },
+
+
+
     async showGeneralRequiredStateChanges(helpers, assetContract) {
 
         helpers.utils.toLog("\n" + logPre + " Debug - Required State Changes: ");
@@ -313,8 +558,8 @@ module.exports = {
 
         if(contractType === "Funding" ) {
 
-            let CurrentRecordState = helpers.utils.getEntityStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[0]));
-            let RecordStateRequired = helpers.utils.getEntityStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[1]));
+            let CurrentRecordState = helpers.utils.getRecordStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[0]));
+            let RecordStateRequired = helpers.utils.getRecordStateNameById(contractType, helpers.web3util.toDecimal(reqChanges[1]));
             let EntityStateRequired = helpers.utils.getEntityStateNameById(contractType,helpers.web3util.toDecimal(reqChanges[2]));
 
             let CurrentEntityStateReq = await assetContract.CurrentEntityState.call();
@@ -355,7 +600,7 @@ module.exports = {
                 logPre + "Current ENTITY:          " +
                 helpers.utils.colors.green +
                 "[" + CurrentEntityState + "] " +
-                helpers.utils.getEntityStateIdByName(contractType, CurrentEntityState)
+                helpers.utils.getEntityStateNameById(contractType, CurrentEntityState)
             );
 
             if (reqChanges[2] == 0) {

@@ -94,7 +94,7 @@ project_milestones.push(
     {
         name: "Milestone 1",            // string _name
         description: "Description",     // bytes32 _description_hash
-        duration: 90,                   // uint256 _duration
+        duration: 90 * days,            // uint256 _duration
         funding_percentage: 20,         // uint8   _funding_percentage
     }
 );
@@ -103,7 +103,7 @@ project_milestones.push(
     {
         name: "Milestone 2",            // string _name
         description: "2 Description",   // bytes32 _description_hash
-        duration: 90,                   // uint256 _duration
+        duration: 90 * days,             // uint256 _duration
         funding_percentage: 20,         // uint8   _funding_percentage
     }
 );
@@ -112,7 +112,7 @@ project_milestones.push(
     {
         name: "Milestone 3",            // string _name
         description: "3 Description",   // bytes32 _description_hash
-        duration: 120,                  // uint256 _duration
+        duration: 120 * days,           // uint256 _duration
         funding_percentage: 20,         // uint8   _funding_percentage
     }
 );
@@ -121,7 +121,7 @@ project_milestones.push(
     {
         name: "Milestone 4",            // string _name
         description: "4 Description",   // bytes32 _description_hash
-        duration: 120,                  // uint256 _duration
+        duration: 120 * days,           // uint256 _duration
         funding_percentage: 20,         // uint8   _funding_percentage
     }
 );
@@ -130,7 +130,7 @@ project_milestones.push(
     {
         name: "Milestone 5",            // string _name
         description: "5 Description",   // bytes32 _description_hash
-        duration: 120,                  // uint256 _duration
+        duration: 120 * days,           // uint256 _duration
         funding_percentage: 20,         // uint8   _funding_percentage
     }
 );

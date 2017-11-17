@@ -287,7 +287,7 @@ contract FundingManager is ApplicationAsset {
         // should never get here unless something went terribly wrong with the whole network :)
     }
 
-    function doStateChanges(bool recursive) public {
+    function doStateChanges() public {
 
         var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
         bool callAgain = false;
@@ -299,11 +299,13 @@ contract FundingManager is ApplicationAsset {
             callAgain = true;
         }
 
+        /*
         if(recursive && callAgain) {
             if(hasRequiredStateChanges()) {
                 doStateChanges(recursive);
             }
         }
+        */
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
@@ -376,79 +378,95 @@ contract FundingManager is ApplicationAsset {
 
         uint8 EntityStateRequired = getEntityState("__IGNORED__");
 
-        if( CurrentEntityState == getEntityState("NEW") ) {
-            // general so we know we initialized
-            EntityStateRequired = getEntityState("WAITING");
+        if(ApplicationInFundingOrDevelopment()) {
 
-        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
-            /*
-                This is where we decide if we should process something
-            */
+            if ( CurrentEntityState == getEntityState("WAITING") ) {
+                /*
+                    This is where we decide if we should process something
+                */
 
-            // For funding
-            if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED")) {
-                EntityStateRequired = getEntityState("FUNDING_FAILED_START");
-            }
-            else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL")) {
-                // make sure we haven't processed this yet
-                if(taskByHash[ getHash("FUNDING_SUCCESSFUL_START", "") ] == false) {
-                    EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_START");
+                // For funding
+                if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED")) {
+                    EntityStateRequired = getEntityState("FUNDING_FAILED_START");
+                }
+                else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL")) {
+                    // make sure we haven't processed this yet
+                    if(taskByHash[ getHash("FUNDING_SUCCESSFUL_START", "") ] == false) {
+                        EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_START");
+                    }
+                }
+                else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
+
+                    // We can only process milestones, if Funding is successful, and has been processed.
+
+                    // for milestones
+                    // if we have a milestone that meets requirements, then we need to process it.
+                    // EntityStateRequired = getEntityState("MILESTONE_PROCESS_START");
+
+                    // else, check if all milestones have been processed and try finalising development process
+                    // EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
+                // still in progress? check if we should move to done
+                if ( processFundingSuccessfulFinished() ) {
+                    EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_DONE");
+                } else {
+                    EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_DONE") ) {
+                EntityStateRequired = getEntityState("WAITING");
+
+    // Funding Failed
+            } else if ( CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ) {
+                // still in progress? check if we should move to done
+                if ( processFundingFailedFinished() ) {
+                    EntityStateRequired = getEntityState("FUNDING_FAILED_DONE");
+                } else {
+                    EntityStateRequired = getEntityState("FUNDING_FAILED_PROGRESS");
+                }
+
+    // Milestone process
+            } else if ( CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
+                // still in progress? check if we should move to done
+
+                /*
+                if ( processMilestoneFinished() ) {
+                    EntityStateRequired = getEntityState("MILESTONE_PROCESS_DONE");
+                } else {
+                    EntityStateRequired = getEntityState("MILESTONE_PROCESS_PROGRESS");
+                }
+                */
+
+    // Completion
+            } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
+                // still in progress? check if we should move to done
+                if ( processCompleteFinished() ) {
+                    EntityStateRequired = getEntityState("COMPLETE_PROCESS_DONE");
+                } else {
+                    EntityStateRequired = getEntityState("COMPLETE_PROCESS_PROGRESS");
                 }
             }
-            else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
+        } else {
 
-                // We can only process milestones, if Funding is successful, and has been processed.
-
-                // for milestones
-                // if we have a milestone that meets requirements, then we need to process it.
-                // EntityStateRequired = getEntityState("MILESTONE_PROCESS_START");
-
-                // else, check if all milestones have been processed and try finalising development process
-                // EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
-            }
-
-        } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
-            // still in progress? check if we should move to done
-            if ( processFundingSuccessfulFinished() ) {
-                EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_DONE");
-            } else {
-                EntityStateRequired = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
-            }
-
-        } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_DONE") ) {
-            EntityStateRequired = getEntityState("WAITING");
-
-// Funding Failed
-        } else if ( CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ) {
-            // still in progress? check if we should move to done
-            if ( processFundingFailedFinished() ) {
-                EntityStateRequired = getEntityState("FUNDING_FAILED_DONE");
-            } else {
-                EntityStateRequired = getEntityState("FUNDING_FAILED_PROGRESS");
-            }
-
-// Milestone process
-        } else if ( CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
-            // still in progress? check if we should move to done
-
-            /*
-            if ( processMilestoneFinished() ) {
-                EntityStateRequired = getEntityState("MILESTONE_PROCESS_DONE");
-            } else {
-                EntityStateRequired = getEntityState("MILESTONE_PROCESS_PROGRESS");
-            }
-            */
-
-// Completion
-        } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
-            // still in progress? check if we should move to done
-            if ( processCompleteFinished() ) {
-                EntityStateRequired = getEntityState("COMPLETE_PROCESS_DONE");
-            } else {
-                EntityStateRequired = getEntityState("COMPLETE_PROCESS_PROGRESS");
+            if( CurrentEntityState == getEntityState("NEW") ) {
+                // general so we know we initialized
+                EntityStateRequired = getEntityState("WAITING");
             }
         }
 
         return (CurrentEntityState, EntityStateRequired);
+    }
+
+    function ApplicationInFundingOrDevelopment() public view returns(bool) {
+        uint8 AppState = getApplicationState();
+        if(
+            AppState == getApplicationEntityState("IN_FUNDING") ||
+            AppState == getApplicationEntityState("IN_DEVELOPMENT")
+        ) {
+            return true;
+        }
+        return false;
     }
 }

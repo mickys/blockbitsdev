@@ -51,9 +51,9 @@ contract ApplicationAsset {
     function setInitialOwnerAndName(bytes32 _name) external requireNotInitialised onlyOwner returns (bool){
         // init states
         setAssetStates();
+        assetName = _name;
         // set initial state
         CurrentEntityState = getEntityState("NEW");
-        assetName = _name;
         runBeforeInitialization();
         _initialized = true;
         EventAppAssetOwnerSet(_name, owner);

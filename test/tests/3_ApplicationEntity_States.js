@@ -8,19 +8,22 @@ module.exports = function(setup) {
     let ico_settings = setup.settings.funding_periods[1];
 
     contract('ApplicationEntity States', accounts => {
-        let assetContract, tx, TestBuildHelper = {};
+        let assetContract, tx, TestBuildHelper, ApplicationEntity, FundingContract = {};
         let assetName = "ApplicationEntity";
 
         let platformWalletAddress = accounts[19];
 
         beforeEach(async () => {
+
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
             await TestBuildHelper.deployAndInitializeApplication();
-            await TestBuildHelper.AddAllAssetSettingsAndLockExcept();
+            await TestBuildHelper.AddAllAssetSettingsAndLock();
             assetContract = await TestBuildHelper.getDeployedByName("ApplicationEntity");
+            ApplicationEntity = assetContract;
 
+            FundingContract = await TestBuildHelper.getDeployedByName("Funding");
 
-            let FundingContract = await TestBuildHelper.getDeployedByName("Funding");
+            await TestBuildHelper.doApplicationStateChanges("Initialization", false);
 
             // funding inputs
             let FundingInputDirectAddress = await FundingContract.DirectInput.call();
@@ -32,7 +35,10 @@ module.exports = function(setup) {
 
             // time travel to pre ico start time
             tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-            tx = await FundingContract.doStateChanges(true);
+
+            await TestBuildHelper.doApplicationStateChanges("After PRE ICO START", false);
+
+            // tx = await FundingContract.doStateChanges(true);
 
             await FundingInputMilestone.sendTransaction({
                 value: 10000 * helpers.solidity.ether,
@@ -46,7 +52,9 @@ module.exports = function(setup) {
 
             // time travel to start of ICO, and change states
             tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-            tx = await FundingContract.doStateChanges(true);
+            await TestBuildHelper.doApplicationStateChanges("After ICO START", false);
+
+            // tx = await FundingContract.doStateChanges(true);
 
             await FundingInputDirect.sendTransaction({
                 value: 10000 * helpers.solidity.ether,
@@ -60,9 +68,22 @@ module.exports = function(setup) {
 
             // time travel to end of ICO, and change states
             tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-            tx = await FundingContract.doStateChanges(true);
 
-            await TestBuildHelper.FundingManagerProcessVaults(false);
+            console.log("BEFORE ICO END - PROCESSING START");
+
+            // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper) );
+            await TestBuildHelper.doApplicationStateChanges("Processing Vaults", false);
+
+
+            tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
+            // await TestBuildHelper.showApplicationStates();
+
+            await TestBuildHelper.doApplicationStateChanges("Development Start", true);
+
+
+            // tx = await FundingContract.doStateChanges(true);
+
+            // await TestBuildHelper.FundingManagerProcessVaults(false);
 
             // await TestBuildHelper.displayAllVaultDetails();
 
@@ -73,7 +94,15 @@ module.exports = function(setup) {
 
             it('starts with state as New and requires a change to WAITING if current time is before any funding stage', async () => {
 
-                await helpers.utils.showApplicationRequiredStateChanges(helpers, assetContract);
+                // await helpers.utils.showApplicationRequiredStateChanges(helpers, ApplicationEntity);
+                // await helpers.utils.showGeneralRequiredStateChanges(helpers, FundingContract);
+
+
+
+
+                // tx = await ApplicationEntity.doStateChanges(false);
+                // await helpers.utils.showApplicationRequiredStateChanges(helpers, assetContract);
+
 
                 /*
                 validation = await TestBuildHelper.ValidateEntityAndRecordState(

@@ -72,7 +72,7 @@ contract ApplicationEntity {
     function ApplicationEntity() public {
         deployerAddress = msg.sender;
         setEntityStates();
-        CurrentEntityState = getEntityState("WAITING_FOR_SETUP");
+        CurrentEntityState = getEntityState("NEW");
     }
 
     function setEntityStates() internal {
@@ -82,8 +82,7 @@ contract ApplicationEntity {
         EntityStates["NEW"]                         = 1;
         EntityStates["WAITING"]                     = 2;
 
-        EntityStates["WAITING_FOR_FUNDING"]         = 3;
-        EntityStates["WAITING_FOR_FUNDING_MANAGER"] = 4;
+        EntityStates["IN_FUNDING"]                  = 3;
 
         EntityStates["IN_DEVELOPMENT"]              = 5;
         EntityStates["IN_CODE_UPGRADE"]             = 50;
@@ -352,7 +351,10 @@ contract ApplicationEntity {
 
         // pretty similar to FundingManager
     */
-    function doStateChanges(bool recursive) public {
+    function doStateChanges() public {
+
+        // process assets first so we can initialize them from NEW to WAITING
+        AssetProcessor();
 
         var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
         bool callAgain = false;
@@ -364,11 +366,15 @@ contract ApplicationEntity {
             callAgain = true;
         }
 
+
+
+        /*
         if(recursive && callAgain) {
             if(hasRequiredStateChanges()) {
                 doStateChanges(recursive);
             }
         }
+        */
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
@@ -379,11 +385,86 @@ contract ApplicationEntity {
         if(EntityStateRequired != getEntityState("__IGNORED__") ) {
             hasChanges = true;
         }
+
+        if(anyAssetHasChanges()) {
+            hasChanges = true;
+        }
+
         return hasChanges;
+    }
+
+    function anyAssetHasChanges() public view returns (bool) {
+        if( FundingEntity.hasRequiredStateChanges() ) {
+            return true;
+        }
+        if( FundingManagerEntity.hasRequiredStateChanges() ) {
+            return true;
+        }
+        if( MilestonesEntity.hasRequiredStateChanges() ) {
+            return true;
+        }
+
+        /*
+        if( ProposalsEntity.hasRequiredStateChanges() ) {
+            return true;
+        }
+        */
     }
 
     // view methods decide if changes are to be made
     // in case of tasks, we do them in the Processors.
+
+    function AssetProcessor() internal {
+
+
+        if ( CurrentEntityState == getEntityState("NEW") ) {
+
+            // move all assets that have states to "WAITING"
+            if(FundingEntity.hasRequiredStateChanges()) {
+                FundingEntity.doStateChanges();
+            }
+
+            if(FundingManagerEntity.hasRequiredStateChanges()) {
+                FundingManagerEntity.doStateChanges();
+            }
+
+            if( MilestonesEntity.hasRequiredStateChanges() ) {
+                MilestonesEntity.doStateChanges();
+            }
+
+        } else if ( CurrentEntityState == getEntityState("WAITING") ) {
+
+            if( FundingEntity.hasRequiredStateChanges() ) {
+                FundingEntity.doStateChanges();
+            }
+        }
+        else if ( CurrentEntityState == getEntityState("IN_FUNDING") ) {
+
+            if( FundingEntity.hasRequiredStateChanges() ) {
+                FundingEntity.doStateChanges();
+            }
+
+            if( FundingManagerEntity.hasRequiredStateChanges() ) {
+                FundingManagerEntity.doStateChanges();
+            }
+        }
+        else if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
+
+            if( FundingManagerEntity.hasRequiredStateChanges() ) {
+                FundingManagerEntity.doStateChanges();
+            }
+
+            if(MilestonesEntity.hasRequiredStateChanges()) {
+                MilestonesEntity.doStateChanges();
+            }
+
+            /*
+            if(ProposalsEntity.hasRequiredStateChanges()) {
+                ProposalsEntity.doStateChanges();
+            }
+            */
+        }
+    }
 
     function EntityProcessor(uint8 EntityStateRequired) internal {
 
@@ -394,11 +475,15 @@ contract ApplicationEntity {
 
         // Do State Specific Updates
 
-        if ( EntityStateRequired == getEntityState("FUNDING_FAILED_START") ) {
-
+        if ( EntityStateRequired == getEntityState("IN_FUNDING") ) {
+            // run Funding state changer
+            // doStateChanges
         }
 
-            // Funding Failed
+        // EntityStateRequired = getEntityState("IN_FUNDING");
+
+
+        // Funding Failed
         /*
         if ( EntityStateRequired == getEntityState("FUNDING_FAILED_START") ) {
             // set ProcessVaultList Task
@@ -458,14 +543,11 @@ contract ApplicationEntity {
         } else if ( CurrentEntityState == getEntityState("WAITING") ) {
 
             // Funding Started
-            if(
-                FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("IN_PROGRESS") ||
-                FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("COOLDOWN")
-            ) {
-                EntityStateRequired = getEntityState("WAITING_FOR_FUNDING");
+            if( FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("IN_PROGRESS") ) {
+                EntityStateRequired = getEntityState("IN_FUNDING");
             }
 
-        } else if ( CurrentEntityState == getEntityState("WAITING_FOR_FUNDING") ) {
+        } else if ( CurrentEntityState == getEntityState("IN_FUNDING") ) {
 
             if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
                 // SUCCESSFUL_FINAL means FUNDING was successful, and FundingManager has finished distributing tokens and ether

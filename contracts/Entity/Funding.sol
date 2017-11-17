@@ -512,10 +512,11 @@ contract Funding is ApplicationAsset {
         if( record.state == RecordStateRequired ) {
             RecordStateRequired = getRecordState("__IGNORED__");
         }
+
         return RecordStateRequired;
     }
 
-    function doStateChanges(bool recursive) public {
+    function doStateChanges() public {
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
         bool callAgain = false;
 
@@ -538,11 +539,13 @@ contract Funding is ApplicationAsset {
             //}
         }
 
+        /*
         if(recursive && callAgain) {
             if(hasRequiredStateChanges()) {
                 doStateChanges(recursive);
             }
         }
+        */
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
@@ -652,7 +655,7 @@ contract Funding is ApplicationAsset {
                     Processor Action: Allocate Tokens to Funding / Owners then Update to WAITING
                 */
                 EntityStateRequired = getEntityState("WAITING");
-            } else if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
+            } else  if ( CurrentEntityState == getEntityState("FUNDING_ENDED") ) {
                 /*
                     STATE: FUNDING_ENDED
                     Processor Action: Check if funding is successful or not, and move state to "SUCCESSFUL" or "FAILED"
@@ -710,8 +713,8 @@ contract Funding is ApplicationAsset {
             }
         }
 
+
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
     }
-
 
 }

@@ -4,6 +4,7 @@
   "description": "Core contracts for BlockBits",
   "main": "index.js",
   "scripts": {
+    "js": "./node_modules/.bin/truffle --network rpc exec test/run_tests.js",
     "test": "scripts/test.sh",
     "testToHtml": "scripts/testOutputToHtml.sh",
     "lint": "solium --dir ./contracts",
@@ -47,6 +48,7 @@
     "zeppelin-solidity": "^1.2.0"
   },
   "dependencies": {
+    "cli-table": "^0.3.1",
     "solc": "git://github.com/mickys/solc-js.git#edabdf1b85818a323c42af61b60c908e7a34009a",
     "web3-utils": "^1.0.0-beta.23"
   }

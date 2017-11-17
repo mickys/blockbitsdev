@@ -16,13 +16,8 @@ import "./Proposals.sol";
 
 contract Milestones is ApplicationAsset {
 
-    mapping (bytes32 => uint8) public EntityStates;
-    mapping (bytes32 => uint8) public RecordStates;
-
     FundingManager FundingManagerEntity;
     Proposals ProposalsEntity;
-
-    uint8 public CurrentEntityState;
 
     struct Record {
         bytes32 name;
@@ -56,13 +51,20 @@ contract Milestones is ApplicationAsset {
         EntityStates["__IGNORED__"]                  = 0;
         EntityStates["NEW"]                          = 1;
         EntityStates["WAITING"]                      = 2;
-        EntityStates["IN_DEVELOPMENT"]               = 3;
-        EntityStates["DEADLINE_MEETING_TIME_YES"]    = 4;
-        EntityStates["DEADLINE_MEETING_TIME_FAILED"] = 5;
-        EntityStates["VOTING_IN_PROGRESS"]           = 6;
-        EntityStates["VOTING_ENDED_YES"]             = 7;
-        EntityStates["VOTING_ENDED_NO"]              = 8;
-        EntityStates["FINAL"]                        = 9;
+
+        EntityStates["IN_DEVELOPMENT"]               = 5;
+
+        EntityStates["WAITING_MEETING_TIME"]         = 10;
+        EntityStates["DEADLINE_MEETING_TIME_YES"]    = 11;
+        EntityStates["DEADLINE_MEETING_TIME_FAILED"] = 12;
+
+        EntityStates["VOTING_IN_PROGRESS"]           = 20;
+        EntityStates["VOTING_ENDED"]                 = 21;
+        EntityStates["VOTING_ENDED_YES"]             = 22;
+        EntityStates["VOTING_ENDED_NO"]              = 23;
+
+        EntityStates["FINAL"]                        = 50;
+
         EntityStates["CASHBACK_OWNER_MIA"]           = 99;
         EntityStates["DEVELOPMENT_COMPLETE"]         = 250;
 
@@ -79,8 +81,12 @@ contract Milestones is ApplicationAsset {
         EventRunBeforeInit(assetName);
     }
 
-    function getRecordState(bytes32 name) public view returns (uint8) {
-        return RecordStates[name];
+    function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied  {
+        // setup first milestone
+        Record storage rec = Collection[currentRecord];
+            rec.time_start = getBylawsProjectDevelopmentStart();
+            rec.time_end = rec.time_start + rec.duration;
+        EventRunBeforeApplyingSettings(assetName);
     }
 
     function getBylawsProjectDevelopmentStart() public view returns (uint256) {
@@ -150,46 +156,47 @@ contract Milestones is ApplicationAsset {
         rec.index               = RecordNum;
     }
 
+    function doStateChanges() public {
 
-    function doStateChanges(bool recursive) public {
-        if( ApplicationIsInDevelopment() ) {
+        var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
+        bool callAgain = false;
 
-            var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
-            bool callAgain = false;
+        DebugRecordRequiredChanges( assetName, CurrentRecordState, RecordStateRequired );
+        DebugEntityRequiredChanges( assetName, CurrentEntityState, EntityStateRequired );
 
-            DebugRecordRequiredChanges( assetName, CurrentRecordState, RecordStateRequired );
-            DebugEntityRequiredChanges( assetName, CurrentEntityState, EntityStateRequired );
+        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+            // process record changes.
+            RecordProcessor(CurrentRecordState, RecordStateRequired);
+            DebugCallAgain(2);
+            callAgain = true;
+        }
 
-            if( RecordStateRequired != getRecordState("__IGNORED__") ) {
-                // process record changes.
-                RecordProcessor(CurrentRecordState, RecordStateRequired);
-                DebugCallAgain(2);
-                callAgain = true;
-            }
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            // process entity changes.
+            // if(CurrentEntityState != EntityStateRequired) {
+            EntityProcessor(EntityStateRequired);
+            DebugCallAgain(1);
+            callAgain = true;
+            //}
+        }
 
-            if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-                // process entity changes.
-                // if(CurrentEntityState != EntityStateRequired) {
-                EntityProcessor(EntityStateRequired);
-                DebugCallAgain(1);
-                callAgain = true;
-                //}
-            }
-
-            if(recursive && callAgain) {
-                if(hasRequiredStateChanges()) {
-                    doStateChanges(recursive);
-                }
+        /*
+        if(recursive && callAgain) {
+            if(hasRequiredStateChanges()) {
+                doStateChanges(recursive);
             }
         }
+        */
+
     }
 
-    function ApplicationIsInDevelopment() public view returns(bool) {
-        if( getApplicationState() == getApplicationEntityState("IN_DEVELOPMENT") ) {
+    function MilestonesCanChange() internal view returns (bool) {
+        if(CurrentEntityState == getEntityState("WAITING") || CurrentEntityState == getEntityState("IN_DEVELOPMENT")) {
             return true;
         }
         return false;
     }
+
 
     /*
      * Method: Get Record Required State Changes
@@ -203,13 +210,9 @@ contract Milestones is ApplicationAsset {
         Record memory record = Collection[currentRecord];
         uint8 RecordStateRequired = getRecordState("__IGNORED__");
 
-        if( ApplicationIsInDevelopment() ) {
+        if( ApplicationIsInDevelopment() && MilestonesCanChange() ) {
 
-            if( record.state == getRecordState("FINAL") ) {
-
-                return getRecordState("__IGNORED__");
-
-            } else if( record.state == getRecordState("NEW") ) {
+            if( record.state == getRecordState("NEW") ) {
 
                 if( getTimestamp() >= record.time_start ) {
                     RecordStateRequired = getRecordState("IN_PROGRESS");
@@ -232,18 +235,16 @@ contract Milestones is ApplicationAsset {
 
     function hasRequiredStateChanges() public view returns (bool) {
         bool hasChanges = false;
-        if( ApplicationIsInDevelopment() ) {
+        var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
+        CurrentRecordState = 0;
 
-            var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
-            CurrentRecordState = 0;
-
-            if( RecordStateRequired != getRecordState("__IGNORED__") ) {
-                hasChanges = true;
-            }
-            if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-                hasChanges = true;
-            }
+        if( RecordStateRequired != getRecordState("__IGNORED__") ) {
+            hasChanges = true;
         }
+        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+            hasChanges = true;
+        }
+
         return hasChanges;
     }
 
@@ -253,12 +254,12 @@ contract Milestones is ApplicationAsset {
     function RecordProcessor(uint8 CurrentRecordState, uint8 RecordStateRequired) internal {
         EventRecordProcessor( assetName, CurrentRecordState, RecordStateRequired );
         updateRecord( RecordStateRequired );
-        if( RecordStateRequired == getRecordState("FINAL") ) {
-            if(currentRecord < RecordNum) {
-                // jump to next milestone
-                // set current record end date etc
-                currentRecord++;
-            }
+
+        if (
+            CurrentEntityState == getEntityState("VOTING_ENDED_YES")
+            || CurrentEntityState == getEntityState("VOTING_ENDED_NO")
+        ) {
+            startNextMilestone();
         }
     }
 
@@ -269,10 +270,47 @@ contract Milestones is ApplicationAsset {
         // Update our Entity State
         CurrentEntityState = EntityStateRequired;
 
-        if ( EntityStateRequired == getEntityState("DEVELOPMENT_ENDED") ) {
+        if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
+            // create meeting
+
+        } else if( EntityStateRequired == getEntityState("VOTING_ENDED") ) {
+            //
+
+        } else if( EntityStateRequired == getEntityState("DEVELOPMENT_ENDED") ) {
 
         }
 
+    }
+
+
+    function setCurrentMilestoneMeetingTime(uint256 _meeting_time) public onlyDeployer {
+        if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
+            Record storage rec = Collection[currentRecord];
+            uint256 meetingTimeCheck = rec.time_end - getBylawsMinTimeInTheFutureForMeetingCreation();
+            // make sure we CAN set the time first, and that the time abides by meeting creation bylaws!
+            if( getTimestamp() < meetingTimeCheck ) {
+                rec.meeting_time = _meeting_time;
+            } else {
+                revert();
+            }
+        }
+    }
+
+    function startNextMilestone() internal {
+        Record storage rec = Collection[currentRecord];
+        if(rec.state == getRecordState("FINAL") ) {
+            if(currentRecord < RecordNum) {
+                // set current record end date etc
+                rec.time_ended = getTimestamp();
+
+                // jump to next milestone
+                currentRecord++;
+
+                Record storage nextRec = Collection[currentRecord];
+                    nextRec.time_start = rec.time_ended;
+                    nextRec.time_end = rec.time_ended + nextRec.duration;
+            }
+        }
     }
 
     /*
@@ -342,7 +380,6 @@ contract Milestones is ApplicationAsset {
         return false;
     }
 
-
     /*
      * Method: Get Record and Entity State Changes
      *
@@ -361,16 +398,84 @@ contract Milestones is ApplicationAsset {
 
         if( ApplicationIsInDevelopment() ) {
 
+            // Do Entity Checks
+
+            if ( CurrentEntityState == getEntityState("WAITING") ) {
+
+                if(RecordStateRequired == getRecordState("IN_PROGRESS") ) {
+                    // both record and entity states need to move to IN_PROGRESS
+                    EntityStateRequired = getEntityState("IN_DEVELOPMENT");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
+
+                EntityStateRequired = getEntityState("WAITING_MEETING_TIME");
+
+            } else if ( CurrentEntityState == getEntityState("WAITING_MEETING_TIME") ) {
+
+                if(record.meeting_time > 0) {
+
+                    EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_YES");
+
+                } else {
+                    if(MeetingTimeSetFailure()) {
+                        // Force Owner Missing in Action - Cash Back Procedure
+                        EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_FAILED");
+                    }
+                }
+
+            } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_FAILED") ) {
+
+
+            } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
+
+                // create meeting
+                // start voting if meeting time passed
+                if(getTimestamp() > record.meeting_time) {
+                    EntityStateRequired = getEntityState("VOTING_IN_PROGRESS");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
+
+                if(getTimestamp() > ( record.meeting_time + getBylawsProposalVotingDuration() ) ) {
+                    EntityStateRequired = getEntityState("VOTING_ENDED");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED") ) {
+
+                // check if voting ended, if so based on result set
+                // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
+                // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
+
+            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
+
+                // check funding manager has processed the FUNDING_SUCCESSFUL Task, if true => FUNDING_SUCCESSFUL_DONE
+                /*
+                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
+                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                }
+                */
+
+            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
+
+                // check if milestone cashout period has passed and if so process fund releases
+                /*
+                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
+                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                }
+                */
+
+            } else if ( CurrentEntityState == getEntityState("FINAL") ) {
+
+            }
+
             // Record State Overrides
             // if(CurrentRecordState != RecordStateRequired) {
+            /*
             if(RecordStateRequired != getRecordState("__IGNORED__"))
             {
                 // direct state overrides by record state
-                if(RecordStateRequired == getRecordState("IN_PROGRESS") ) {
-                    // both record and entity states need to move to IN_PROGRESS
-                    EntityStateRequired = getEntityState("IN_PROGRESS");
-
-                } else if (RecordStateRequired == getRecordState("FINAL")) {
+                if (RecordStateRequired == getRecordState("FINAL")) {
                     // funding stage moves to FINAL
 
                     if (currentRecord == RecordNum) {
@@ -382,68 +487,36 @@ contract Milestones is ApplicationAsset {
                         // EntityStateRequired = getEntityState("COOLDOWN");
                     }
                 }
-
-            } else {
-
-                // Records do not require any updates.
-                // Do Entity Checks
-                if( CurrentEntityState == getEntityState("NEW") ) {
-                    EntityStateRequired = getEntityState("WAITING");
-                } else if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
-
-                    /*
-                        If milestone is in development:
-                        - check for meeting_time to be set
-                        - check for is time after Bylaws ?
-                    */
-                    uint256 meetingCreationMaxTime = record.time_end - getBylawsMinTimeInTheFutureForMeetingCreation();
-                    if(getTimestamp() >= meetingCreationMaxTime ) {
-                        // Force Owner Missing in Action - Cash Back Procedure
-                        EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_FAILED"); // getEntityState("CASHBACK_OWNER_MIA");
-                    }
-
-
-                    // if meeting time set
-                    // EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_YES");
-
-                } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_FAILED") ) {
-
-
-                } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
-
-                    // create meeting
-                    // start voting if meeting time passed
-
-                } else if ( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
-                    // check if voting ended, if so based on result set
-                    // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
-                    // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
-
-                } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
-
-                    // check funding manager has processed the FUNDING_SUCCESSFUL Task, if true => FUNDING_SUCCESSFUL_DONE
-                    /*
-                    if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
-                        EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
-                    }
-                    */
-
-                } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
-
-                    // check if milestone cashout period has passed and if so process fund releases
-                    /*
-                    if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
-                        EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
-                    }
-                    */
-
-                } else if ( CurrentEntityState == getEntityState("FINAL") ) {
-
-                }
             }
+            */
 
+
+        } else {
+
+            if( CurrentEntityState == getEntityState("NEW") ) {
+                EntityStateRequired = getEntityState("WAITING");
+            }
         }
+
+
+
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
+    }
+
+    function ApplicationIsInDevelopment() public view returns(bool) {
+        if( getApplicationState() == getApplicationEntityState("IN_DEVELOPMENT") ) {
+            return true;
+        }
+        return false;
+    }
+
+    function MeetingTimeSetFailure() public view returns (bool) {
+        Record memory record = Collection[currentRecord];
+        uint256 meetingCreationMaxTime = record.time_end - getBylawsMinTimeInTheFutureForMeetingCreation();
+        if(getTimestamp() >= meetingCreationMaxTime ) {
+            return true;
+        }
+        return false;
     }
 
 }

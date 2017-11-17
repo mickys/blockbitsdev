@@ -6,6 +6,8 @@ BigNumber.config({ DECIMAL_PLACES: 0 , ROUNDING_MODE: 1 }); // ROUND_DOWN = 1
 
 
 const TestBuildHelper           = require('./app/builder.js');
+const Table                     = require('cli-table');
+
 const ProjectSettings           = require('../project-settings.js');
 
 const utils                     = require('./helpers/utils');
@@ -22,6 +24,31 @@ const TokenManager              = artifacts.require('TestTokenManager');
 const sourceCodeUrl             = "http://test.com/SourceCodeValidator";
 
 
+function toIntVal(val) {
+    return parseInt(val);
+}
+
+web3._extend({
+    property: 'evm',
+    methods: [new web3._extend.Method({
+        name: 'snapshot',
+        call: 'evm_snapshot',
+        params: 0,
+        outputFormatter: toIntVal
+    })]
+});
+
+web3._extend({
+    property: 'evm',
+    methods: [new web3._extend.Method({
+        name: 'revert',
+        call: 'evm_revert',
+        params: 1,
+        inputFormatter: [toIntVal]
+    })]
+});
+
+
 let settings = ProjectSettings.application_settings;
 settings.sourceCodeUrl = sourceCodeUrl;
 
@@ -35,6 +62,7 @@ const setup = {
         solidity:settings.solidity,
         artifacts:artifacts,
         TestBuildHelper:TestBuildHelper,
+        Table:Table,
         BigNumber:BigNumber
     },
     contracts:{
@@ -93,9 +121,10 @@ tests.push("3_ApplicationEntity_States");
 // tests.push("4_Asset_FundingManager_Successful");
 
 tests = [];
-tests.push("3_ApplicationEntity_States");
+ tests.push("3_ApplicationEntity_States");
+ tests.push("4_Asset_Funding_States");
+tests.push("4_Asset_Milestones");
 
-// tests.push("4_Asset_Milestones");
 // tests.push("3_ApplicationEntity");
 
 // tests = [];
@@ -132,6 +161,45 @@ tests.map( async (name) => {
     }
 });
 
+
+
+for(let i = 0; i < tests.length; i++) {
+    let name = tests[i];
+    if(name.length > 0) {
+        console.log("started running " + name);
+
+        let filename = './tests/' + name + '.js';
+        let runTest = require(filename);
+
+        ApplicationEntity.new().then(async () => await runTest(setup));
+        console.log("finished running " + name);
+    }
+}
+
+/*
+let newTests = [
+
+];
+
+LinkDatabaseArtifacts.new().then(function(instance) {
+
+
+}
+*/
+
+// console.log(this);
+
+// deployer.then(async () => await doStage(deployer));
+/*
+for(i = 0; i < tests.length; i++) {
+    console.log("started running "+i);
+    let name = tests[i];
+    let filename = './tests/' + name + '.js';
+    let runTest = require(filename);
+    runTest(setup);
+    console.log("finished running "+i);
+}
+*/
 
 /*
 
