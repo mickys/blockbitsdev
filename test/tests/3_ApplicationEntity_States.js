@@ -23,7 +23,7 @@ module.exports = function(setup) {
 
             FundingContract = await TestBuildHelper.getDeployedByName("Funding");
 
-            await TestBuildHelper.doApplicationStateChanges("Initialization", false);
+            await TestBuildHelper.doApplicationStateChanges("Initialization", true);
 
             // funding inputs
             let FundingInputDirectAddress = await FundingContract.DirectInput.call();
@@ -36,7 +36,7 @@ module.exports = function(setup) {
             // time travel to pre ico start time
             tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
 
-            await TestBuildHelper.doApplicationStateChanges("After PRE ICO START", false);
+            await TestBuildHelper.doApplicationStateChanges("After PRE ICO START", true);
 
             // tx = await FundingContract.doStateChanges(true);
 
@@ -52,7 +52,7 @@ module.exports = function(setup) {
 
             // time travel to start of ICO, and change states
             tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-            await TestBuildHelper.doApplicationStateChanges("After ICO START", false);
+            await TestBuildHelper.doApplicationStateChanges("After ICO START", true);
 
             // tx = await FundingContract.doStateChanges(true);
 
@@ -72,7 +72,7 @@ module.exports = function(setup) {
             console.log("BEFORE ICO END - PROCESSING START");
 
             // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper) );
-            await TestBuildHelper.doApplicationStateChanges("Processing Vaults", false);
+            await TestBuildHelper.doApplicationStateChanges("Processing Vaults", true);
 
 
             tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);

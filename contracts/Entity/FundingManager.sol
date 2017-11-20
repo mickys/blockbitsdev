@@ -27,6 +27,8 @@ contract FundingManager is ApplicationAsset {
     Token TokenEntity;
     TokenSCADAGeneric TokenSCADAEntity;
 
+    uint256 LockedVotingTokens = 0;
+
     event EventFundingManagerReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
     event EventFundingManagerProcessedVault(address _vault, uint256 id );
 
@@ -272,6 +274,7 @@ contract FundingManager is ApplicationAsset {
             }
             */
 
+
         } else if(CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS")) {
             /*
             // release funds to owner / tokens to investor
@@ -284,7 +287,10 @@ contract FundingManager is ApplicationAsset {
                 not much to do here, except get vault to transfer black hole tokens to investors, or output address
             */
         }
-        // should never get here unless something went terribly wrong with the whole network :)
+
+        // For proposal voting, we need to know how many investor locked tokens remain.
+        LockedVotingTokens+= TokenEntity.balanceOf(vaultAddress);
+
     }
 
     function doStateChanges() public {

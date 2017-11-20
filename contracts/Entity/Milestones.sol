@@ -12,7 +12,9 @@ pragma solidity ^0.4.17;
 
 import "./../ApplicationAsset.sol";
 import "./FundingManager.sol";
+import "./Meetings.sol";
 import "./Proposals.sol";
+
 
 contract Milestones is ApplicationAsset {
 
@@ -77,6 +79,7 @@ contract Milestones is ApplicationAsset {
 
     function runBeforeInitialization() internal requireNotInitialised {
         FundingManagerEntity = FundingManager( getApplicationAssetAddressByName('FundingManager') );
+        MeetingsEntity = Meetings( getApplicationAssetAddressByName('Meetings') );
         ProposalsEntity = Proposals( getApplicationAssetAddressByName('Proposals') );
         EventRunBeforeInit(assetName);
     }
@@ -272,9 +275,18 @@ contract Milestones is ApplicationAsset {
 
         if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
             // create meeting
+            // Meetings.create("internal", "MILESTONE_END", "");
+
+        } else if( EntityStateRequired == getEntityState("VOTING_IN_PROGRESS") ) {
+            // create proposal and start voting on it
+            if(MilestoneAcceptanceProposalCreated == false) {
+                createMilestoneAcceptanceProposal();
+            }
 
         } else if( EntityStateRequired == getEntityState("VOTING_ENDED") ) {
-            //
+
+            // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
+            // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
 
         } else if( EntityStateRequired == getEntityState("DEVELOPMENT_ENDED") ) {
 
@@ -282,17 +294,32 @@ contract Milestones is ApplicationAsset {
 
     }
 
+    bool MilestoneAcceptanceProposalCreated = false;
+
+    function createMilestoneAcceptanceProposal() {
+
+        ProposalsEntity.create
+
+        MilestoneAcceptanceProposalCreated = true;
+    }
+
 
     function setCurrentMilestoneMeetingTime(uint256 _meeting_time) public onlyDeployer {
-        if ( CurrentEntityState == getEntityState("IN_DEVELOPMENT") ) {
-            Record storage rec = Collection[currentRecord];
-            uint256 meetingTimeCheck = rec.time_end - getBylawsMinTimeInTheFutureForMeetingCreation();
-            // make sure we CAN set the time first, and that the time abides by meeting creation bylaws!
-            if( getTimestamp() < meetingTimeCheck ) {
-                rec.meeting_time = _meeting_time;
+        if ( CurrentEntityState == getEntityState("WAITING_MEETING_TIME") ) {
+            if(MeetingTimeSetFailure() == false ) {
+                Record storage record = Collection[currentRecord];
+                // minimum x days into the future
+                uint256 min = getTimestamp() + getBylawsMinTimeInTheFutureForMeetingCreation();
+                // minimum days before end date
+                uint256 max = record.time_end + 24 * 3600;
+                if(_meeting_time > min && _meeting_time < max ) {
+                    record.meeting_time = _meeting_time;
+                }
             } else {
                 revert();
             }
+        } else {
+            revert();
         }
     }
 
@@ -431,7 +458,7 @@ contract Milestones is ApplicationAsset {
 
                 // create meeting
                 // start voting if meeting time passed
-                if(getTimestamp() > record.meeting_time) {
+                if(getTimestamp() > record.meeting_time ) {
                     EntityStateRequired = getEntityState("VOTING_IN_PROGRESS");
                 }
 

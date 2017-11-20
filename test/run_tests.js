@@ -121,9 +121,9 @@ tests.push("3_ApplicationEntity_States");
 // tests.push("4_Asset_FundingManager_Successful");
 
 tests = [];
- tests.push("3_ApplicationEntity_States");
- tests.push("4_Asset_Funding_States");
-tests.push("4_Asset_Milestones");
+// tests.push("3_ApplicationEntity_States");
+// tests.push("4_Asset_Funding_States");
+ tests.push("4_Asset_Milestones");
 
 // tests.push("3_ApplicationEntity");
 
@@ -161,45 +161,6 @@ tests.map( async (name) => {
     }
 });
 
-
-
-for(let i = 0; i < tests.length; i++) {
-    let name = tests[i];
-    if(name.length > 0) {
-        console.log("started running " + name);
-
-        let filename = './tests/' + name + '.js';
-        let runTest = require(filename);
-
-        ApplicationEntity.new().then(async () => await runTest(setup));
-        console.log("finished running " + name);
-    }
-}
-
-/*
-let newTests = [
-
-];
-
-LinkDatabaseArtifacts.new().then(function(instance) {
-
-
-}
-*/
-
-// console.log(this);
-
-// deployer.then(async () => await doStage(deployer));
-/*
-for(i = 0; i < tests.length; i++) {
-    console.log("started running "+i);
-    let name = tests[i];
-    let filename = './tests/' + name + '.js';
-    let runTest = require(filename);
-    runTest(setup);
-    console.log("finished running "+i);
-}
-*/
 
 /*
 

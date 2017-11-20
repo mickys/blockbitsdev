@@ -7,42 +7,24 @@ module.exports = function(setup) {
     let pre_ico_settings = setup.settings.funding_periods[0];
     let ico_settings = setup.settings.funding_periods[1];
 
-    let snapshotsEnabled = true;
+    let snapshotsEnabled = false;
     let snapshots = [];
 
     contract('Milestones Asset', accounts => {
-        let assetContract, tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, myFundingVault, validation = {};
+        let assetContract, tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, MilestonesContract, validation = {};
         let assetName = "Milestones";
 
         let platformWalletAddress = accounts[19];
 
-
         beforeEach(async () => {
-            let SnapShotKey = "ApplicationInit";
-            if( typeof snapshots[SnapShotKey] !== "undefined" && snapshotsEnabled) {
-                // restore snapshot
-                let SnapShotId = snapshots[SnapShotKey];
-                console.log("Reloading SnapShotKey["+SnapShotKey+"] from #"+ SnapShotId);
+            TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
+            await TestBuildHelper.deployAndInitializeApplication();
+            await TestBuildHelper.AddAllAssetSettingsAndLockExcept("Milestones");
 
-                await helpers.web3.evm.revert( SnapShotId );
-
-            } else {
-
-                TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
-                await TestBuildHelper.deployAndInitializeApplication();
-                await TestBuildHelper.AddAllAssetSettingsAndLockExcept("Milestones");
-
-                // let's not lock Milestones yet. need to do tests on this baby
-                // await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
-                assetContract = await TestBuildHelper.getDeployedByName("Milestones");
-
-                // create snapshot
-                if(snapshotsEnabled) {
-                    let SnapShotId = await helpers.web3.evm.snapshot();
-                    snapshots[SnapShotKey] = SnapShotId;
-                    console.log("Saving SnapShotKey["+SnapShotKey+"] = #"+ SnapShotId);
-                }
-            }
+            // let's not lock Milestones yet. need to do tests on this baby
+            // await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
+            assetContract = await TestBuildHelper.getDeployedByName("Milestones");
+            MilestonesContract = assetContract
         });
 
         /*
@@ -63,8 +45,6 @@ module.exports = function(setup) {
             });
         });
 
-        */
-
         it('starts with state as New and requires a change to WAITING if current time is before development start', async () => {
             await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
             // await helpers.utils.showCurrentState(helpers, assetContract);
@@ -78,73 +58,56 @@ module.exports = function(setup) {
             );
             assert.isTrue(validation, 'State validation failed..');
         });
+        */
 
         context("states", async () => {
             beforeEach(async () => {
+                await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
+                let FundingContract = await TestBuildHelper.getDeployedByName("Funding");
 
-                let SnapShotKey = "FundingSuccessful";
-                if( typeof snapshots[SnapShotKey] !== "undefined" && snapshotsEnabled) {
-                    // restore snapshot
-                    let SnapShotId = snapshots[SnapShotKey];
-                    console.log("Reloading SnapShotKey["+SnapShotKey+"] from #"+ SnapShotId);
+                // funding inputs
+                let FundingInputDirectAddress = await FundingContract.DirectInput.call();
+                let FundingInputMilestoneAddress = await FundingContract.MilestoneInput.call();
+                let FundingInputDirectContract = await helpers.getContract('FundingInputDirect');
+                let FundingInputMilestoneContract = await helpers.getContract('FundingInputMilestone');
+                FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
+                FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
 
-                    await helpers.web3.evm.revert( SnapShotId );
+                // time travel to pre ico start time
+                await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
+                await TestBuildHelper.doApplicationStateChanges("After PRE ICO START", false);
 
-                } else {
+                await FundingInputMilestone.sendTransaction({
+                    value: 10000 * helpers.solidity.ether,
+                    from: accounts[10]
+                });
 
-                    await TestBuildHelper.AddAssetSettingsAndLock("Milestones");
+                await FundingInputDirect.sendTransaction({
+                    value: 10000 * helpers.solidity.ether,
+                    from: accounts[11]
+                });
 
-                    let FundingContract = await TestBuildHelper.getDeployedByName("Funding");
+                // time travel to start of ICO, and change states
+                await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                await TestBuildHelper.doApplicationStateChanges("After ICO START", false);
 
-                    // funding inputs
-                    let FundingInputDirectAddress = await FundingContract.DirectInput.call();
-                    let FundingInputMilestoneAddress = await FundingContract.MilestoneInput.call();
-                    let FundingInputDirectContract = await helpers.getContract('FundingInputDirect');
-                    let FundingInputMilestoneContract = await helpers.getContract('FundingInputMilestone');
-                    FundingInputDirect = await FundingInputDirectContract.at(FundingInputDirectAddress);
-                    FundingInputMilestone = await FundingInputMilestoneContract.at(FundingInputMilestoneAddress);
+                await FundingInputDirect.sendTransaction({
+                    value: 10000 * helpers.solidity.ether,
+                    from: accounts[10]
+                });
 
-                    // time travel to pre ico start time
-                    await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                    await TestBuildHelper.doApplicationStateChanges("After PRE ICO START", false);
+                await FundingInputMilestone.sendTransaction({
+                    value: 10000 * helpers.solidity.ether,
+                    from: accounts[11]
+                });
 
-                    await FundingInputMilestone.sendTransaction({
-                        value: 10000 * helpers.solidity.ether,
-                        from: accounts[10]
-                    });
+                // time travel to end of ICO, and change states
+                await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                await TestBuildHelper.doApplicationStateChanges("Funding End", false);
 
-                    await FundingInputDirect.sendTransaction({
-                        value: 10000 * helpers.solidity.ether,
-                        from: accounts[11]
-                    });
-
-                    // time travel to start of ICO, and change states
-                    await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                    await TestBuildHelper.doApplicationStateChanges("After ICO START", false);
-
-                    await FundingInputDirect.sendTransaction({
-                        value: 10000 * helpers.solidity.ether,
-                        from: accounts[10]
-                    });
-
-                    await FundingInputMilestone.sendTransaction({
-                        value: 10000 * helpers.solidity.ether,
-                        from: accounts[11]
-                    });
-
-                    // time travel to end of ICO, and change states
-                    await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                    await TestBuildHelper.doApplicationStateChanges("Funding End", false);
-
-                    // await TestBuildHelper.displayAllVaultDetails();
-
-                    if(snapshotsEnabled) {
-                        let SnapShotId = await helpers.web3.evm.snapshot();
-                        snapshots[SnapShotKey] = SnapShotId;
-                        console.log("Saving SnapShotKey["+SnapShotKey+"] = #"+ SnapShotId);
-                    }
-                }
+                // await TestBuildHelper.displayAllVaultDetails();
             });
+
 
 
             it('handles ENTITY state change from WAITING to WAITING_MEETING_TIME when current time is after development start', async () => {
@@ -214,13 +177,76 @@ module.exports = function(setup) {
                     helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
                 );
 
-                tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
+                await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
                 await TestBuildHelper.doApplicationStateChanges("Development Started", false);
 
                 // time travel to end of milestone
                 let duration = settings.milestones[0].duration;
+                let time = settings.bylaws["development_start"] + duration +1;
+
+                let currentTime = await MilestonesContract.getTimestamp.call();
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
+
+                await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
+                await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
+
+                validation = await TestBuildHelper.ValidateEntityAndRecordState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_YES").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+
+                // validate meeting created
+
+            });
+
+
+
+            it('handles ENTITY state change from DEADLINE_MEETING_TIME_YES to VOTING_IN_PROGRESS when current time is after meeting time', async () => {
+
+                validation = await TestBuildHelper.ValidateEntityAndRecordState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_YES").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "VOTING_IN_PROGRESS").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "NEW").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
+                );
+
+                await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
+                await TestBuildHelper.doApplicationStateChanges("Development Started", false);
+
+                // time travel to end of milestone
+                let duration = settings.milestones[0].duration;
+                let time = settings.bylaws["development_start"] + duration +1;
+
+                let currentTime = await MilestonesContract.getTimestamp.call();
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
+
+                await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
+                await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
+
+                validation = await TestBuildHelper.ValidateEntityAndRecordState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_YES").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+
+
+
+
+                // time travel to end of milestone
+                let duration = settings.milestones[0].duration;
                 let time = settings.bylaws["development_start"] + 1 + duration;
-                await assetContract.setCurrentMilestoneMeetingTime(time + ( 3600 * 5 ));
+                tx = await TestBuildHelper.timeTravelTo(time);
+
 
                 /*
                  // time travel to end of milestone
@@ -229,19 +255,12 @@ module.exports = function(setup) {
                  tx = await TestBuildHelper.timeTravelTo(time);
                  */
 
-                await TestBuildHelper.doApplicationStateChanges("Milestone End", false);
-                // await helpers.utils.showCurrentState(helpers, assetContract);
+                // await TestBuildHelper.doApplicationStateChanges("Milestone End", true);
+                // await helpers.utils.showCurrentState(helpers, MilestonesContract);
 
+                /*
 
-                validation = await TestBuildHelper.ValidateEntityAndRecordState(
-                    assetName,
-                    helpers.utils.getEntityStateIdByName(assetName, "WAITING_MEETING_TIME").toString(),
-                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-                    helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-                );
-                assert.isTrue(validation, 'State validation failed..');
-
+                 */
             });
 
             /*

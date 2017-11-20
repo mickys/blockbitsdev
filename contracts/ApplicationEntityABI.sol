@@ -38,4 +38,6 @@ contract ApplicationEntityABI {
 
     function canInitiateCodeUpgrade(address _sender) public view returns(bool);
 
+    function acceptCodeUpgradeProposal(address _newAddress) external ;
+
 }

@@ -19,4 +19,16 @@ contract Meetings is ApplicationAsset {
 
     }
     */
+
+    struct Record {
+        bytes32 hash;
+        bytes32 name;
+        uint8 state;
+        uint256 time_start;                     // start at unixtimestamp
+        uint256 duration;
+        uint8 index;
+    }
+
+    mapping (uint8 => Record) public Collection;
+
 }

@@ -14,6 +14,8 @@ TestBuildHelper.prototype.linkToRealGateway = async function () {
     this.gatewayAddress = await gateway.address;
 };
 
+
+
 TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
 
     // deploy application
