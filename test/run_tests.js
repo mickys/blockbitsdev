@@ -28,6 +28,7 @@ function toIntVal(val) {
     return parseInt(val);
 }
 
+
 web3._extend({
     property: 'evm',
     methods: [new web3._extend.Method({
@@ -47,6 +48,17 @@ web3._extend({
         inputFormatter: [toIntVal]
     })]
 });
+
+/*
+web3._extend({
+    property: 'evm',
+    methods: [new web3._extend.Method({
+        name: 'mine',
+        call: 'evm_mine',
+        params: 0,
+    })]
+});
+*/
 
 
 let settings = ProjectSettings.application_settings;
@@ -106,39 +118,15 @@ tests.push("4_Asset_Funding");
 tests.push("4_Asset_Funding_States");
 tests.push("4_Asset_FundingManager");
 tests.push("4_Asset_FundingManager_Successful");
-tests.push("4_Asset_Milestones");
-tests.push("3_ApplicationEntity_States");
+tests.push("4_Asset_Milestones_NotLocked");
+tests.push("4_Asset_Milestones_Locked");
 
-
-// tests.push("4_FundingVault");
-// tests.push("4_Asset_Funding_Payments");
-//tests.push("4_Asset_Funding");
-// tests.push("4_Asset_FundingManager_Successful");
-
-// tests.push("4_Asset_ListingContract");
-// tests.push("4_Asset_NewsContract");
-
-// tests.push("4_Asset_FundingManager_Successful");
-
-tests = [];
-// tests.push("3_ApplicationEntity_States");
-// tests.push("4_Asset_Funding_States");
- tests.push("4_Asset_Milestones");
-
-// tests.push("3_ApplicationEntity");
+//tests.push("3_ApplicationEntity_States");
 
 // tests = [];
-// tests.push("4_Asset_Funding_States");
-//tests.push("4_Asset_FundingManager");
+// tests.push("4_Asset_FundingManager");
 // tests.push("4_Asset_FundingManager_Successful");
 
-// tests.push("1_GatewayInterface");
-// tests.push("2_ApplicationAsset");
-// tests.push("3_ApplicationEntity");
-
-
-// tests.push("4_Asset_FundingManager");
-// tests.push("4_Asset_Funding_States");
 
 if(! process.env.SOLIDITY_COVERAGE ) {
 

@@ -8,10 +8,13 @@ module.exports = function(setup) {
     contract('ListingContract Asset', accounts => {
         let assetContract, tx, TestBuildHelper = {};
         let assetName = "ListingContract";
+        let platformWalletAddress = accounts[19];
 
         beforeEach(async () => {
-            TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
-            assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["Proposals"] );
+            TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
+            await TestBuildHelper.deployAndInitializeApplication();
+            await TestBuildHelper.AddAllAssetSettingsAndLockExcept(assetName);
+            assetContract = await TestBuildHelper.getDeployedByName(assetName);
         });
 
         context("addItem()", async () => {
@@ -85,6 +88,7 @@ module.exports = function(setup) {
 
         });
 
+
         context("delistChild()", async () => {
 
             beforeEach(async () => {
@@ -97,7 +101,6 @@ module.exports = function(setup) {
                 let childApplication = await TestBuildHelperSecond.getDeployedByName("ApplicationEntity");
 
                 await application.callTestListingContractAddItem(testName, await childApplication.address.toString());
-
             });
 
             it('throws if called by any address other than Proposals Asset', async () => {
@@ -111,7 +114,6 @@ module.exports = function(setup) {
             });
 
             it('works if called by proposals asset, resulting in a child with status == false', async () => {
-                await TestBuildHelper.AddAssetSettingsAndLock("Proposals");
 
                 let ProposalsAsset = TestBuildHelper.getDeployedByName("Proposals");
 

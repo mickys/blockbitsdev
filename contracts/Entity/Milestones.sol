@@ -20,6 +20,7 @@ contract Milestones is ApplicationAsset {
 
     FundingManager FundingManagerEntity;
     Proposals ProposalsEntity;
+    Meetings MeetingsEntity;
 
     struct Record {
         bytes32 name;
@@ -61,7 +62,7 @@ contract Milestones is ApplicationAsset {
         EntityStates["DEADLINE_MEETING_TIME_FAILED"] = 12;
 
         EntityStates["VOTING_IN_PROGRESS"]           = 20;
-        EntityStates["VOTING_ENDED"]                 = 21;
+        // EntityStates["VOTING_ENDED"]                 = 21;
         EntityStates["VOTING_ENDED_YES"]             = 22;
         EntityStates["VOTING_ENDED_NO"]              = 23;
 
@@ -294,12 +295,12 @@ contract Milestones is ApplicationAsset {
 
     }
 
+    uint256 currentProposalId = 0;
     bool MilestoneAcceptanceProposalCreated = false;
+    function createMilestoneAcceptanceProposal() internal {
 
-    function createMilestoneAcceptanceProposal() {
-
-        ProposalsEntity.create
-
+        currentProposalId = 10;
+        // ProposalsEntity.create
         MilestoneAcceptanceProposalCreated = true;
     }
 
@@ -445,6 +446,7 @@ contract Milestones is ApplicationAsset {
                     EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_YES");
 
                 } else {
+
                     if(MeetingTimeSetFailure()) {
                         // Force Owner Missing in Action - Cash Back Procedure
                         EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_FAILED");
@@ -456,15 +458,19 @@ contract Milestones is ApplicationAsset {
 
             } else if ( CurrentEntityState == getEntityState("DEADLINE_MEETING_TIME_YES") ) {
 
-                // create meeting
-                // start voting if meeting time passed
-                if(getTimestamp() > record.meeting_time ) {
+                // create proposal
+                // start voting if time passed
+                if(getTimestamp() >= record.meeting_time ) {
                     EntityStateRequired = getEntityState("VOTING_IN_PROGRESS");
                 }
 
             } else if ( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
 
-                if(getTimestamp() > ( record.meeting_time + getBylawsProposalVotingDuration() ) ) {
+                uint8 ProposalRecordState = ProposalsEntity.getProposalState( currentProposalId );
+                if (
+                    ProposalRecordState == ProposalsEntity.getEntityState("VOTING_ACCEPTED") ||
+                    ProposalRecordState == ProposalsEntity.getEntityState("VOTING_REJECTED")
+                ) {
                     EntityStateRequired = getEntityState("VOTING_ENDED");
                 }
 
@@ -524,8 +530,6 @@ contract Milestones is ApplicationAsset {
                 EntityStateRequired = getEntityState("WAITING");
             }
         }
-
-
 
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
     }

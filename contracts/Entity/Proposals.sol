@@ -31,13 +31,17 @@ contract Proposals is ApplicationAsset {
         return RecordStates[name];
     }
 
+    function getProposalState(uint256 _proposalId) public view returns (uint8) {
+        return registry[_proposalId].state;
+    }
+
     function getActionType(bytes32 name) public view returns (uint8) {
         return ActionTypes[name];
     }
 
     mapping (bytes32 => uint8) public ActionTypes;
 
-    function setActionTypes() {
+    function setActionTypes() internal {
         ActionTypes["MILESTONE_DEADLINE"] = 1;
         ActionTypes["MILESTONE_POSTPONING"] = 2;
         ActionTypes["PROJECT_DELISTING"] = 75;
@@ -47,6 +51,8 @@ contract Proposals is ApplicationAsset {
 
 
     function setEntityStates() internal {
+
+        setActionTypes();
 
         // ApplicationEntity States
         RecordStates["NEW"]                 = 1;
@@ -106,7 +112,7 @@ contract Proposals is ApplicationAsset {
         address TokenManagerAddress = getApplicationAssetAddressByName('TokenManager');
         TokenManagerEntity = TokenManager(TokenManagerAddress);
 
-        TokenEntity = Token(TokenManagerEntity.TokenEntity);
+        TokenEntity = Token(TokenManagerEntity.TokenEntity());
 
         address ListingContractAddress = getApplicationAssetAddressByName('ListingContract');
         ListingContractEntity = ListingContract(ListingContractAddress);
@@ -165,12 +171,13 @@ contract Proposals is ApplicationAsset {
 
     function CreateProposal(bytes32 _name, bytes32 _hash, uint8 _action) internal {
 
+        /*
         if(reqByHash[_hash] == 0x0) {
 
             record storage proposal = registry[++RecordNum];
             proposal.creator = owner;
             proposal.name = "Code Upgrade";
-            proposal.description = _sourceCodeUrl;
+            proposal.description = "";
             proposal.actionType = getActionType("CODE_UPGRADE");
             proposal.state = getRecordState("NEW");
             proposal.hash = _hash;
@@ -190,6 +197,7 @@ contract Proposals is ApplicationAsset {
         if(_action == getActionType("CODE_UPGRADE")) {
 
         }
+        */
     }
 
 
@@ -211,23 +219,23 @@ contract Proposals is ApplicationAsset {
 
     function startProposalVoting(uint256 _proposalId) internal {
 
-        uint256 VotingTokenSupply = 0;
+        ResultStruct storage result = ResultsByProposalId[_proposalId];
+
         if(getApplicationState() == getApplicationEntityState("IN_DEVELOPMENT") ) {
-            VotingTokenSupply = FundingManagerEntity.LockedVotingTokens();
+            result.totalAvailable = FundingManagerEntity.LockedVotingTokens();
 
         } else if(getApplicationState() == getApplicationEntityState("DEVELOPMENT_COMPLETE") ) {
             // we also count owner tokens, as they're unlocked now.
-            VotingTokenSupply = TokenEntity.totalSupply();
+            result.totalAvailable = TokenEntity.totalSupply();
         }
-
-        ResultStruct result = ResultsByProposalId[_proposalId];
-            result.totalAvailable = VotingTokenSupply;
-            result.requiredForResult = VotingTokenSupply / 2;   // 50%
+        result.requiredForResult = result.totalAvailable / 2;   // 50%
     }
 
 
 
     function finaliseProposal(uint256 _proposalId, bool result) internal {
+
+
 
     }
 
@@ -242,6 +250,8 @@ contract Proposals is ApplicationAsset {
         uint256 time;
         bool    vote;
         uint256 power;
+        bool    annulled;
+        uint256 index;
     }
 
     struct ResultStruct {
@@ -254,10 +264,11 @@ contract Proposals is ApplicationAsset {
 
 
     mapping (uint256 => mapping (uint256 => VoteStruct) ) public VotesByProposalId;
+    mapping (uint256 => mapping (address => VoteStruct) ) public VotesByCaster;
     mapping (uint256 => uint256 ) public VotesNumByProposalId;
     mapping (uint256 => ResultStruct ) public ResultsByProposalId;
 
-    function RegisterVote(uint256 _proposalId, bool _myVote) {
+    function RegisterVote(uint256 _proposalId, bool _myVote) public {
         address Voter = msg.sender;
 
         // get voting power
@@ -265,46 +276,59 @@ contract Proposals is ApplicationAsset {
 
         if(VoterPower > 0) {
 
+
+
+            // first check if this Voter has a record registered,
+            // and if they did, annul initial vote, update results, and add new one
+
+            VoteStruct storage previousVoteByCaster = VotesByCaster[_proposalId][Voter];
+            if( previousVoteByCaster.power > 0 ) {
+                previousVoteByCaster.annulled = true;
+
+                VoteStruct storage previousVoteByProposalId = VotesByProposalId[_proposalId][previousVoteByCaster.index];
+                previousVoteByProposalId.annulled = true;
+
+                ResultStruct storage result = ResultsByProposalId[_proposalId];
+
+                if(previousVoteByProposalId.vote == true) {
+                    result.yes-= previousVoteByProposalId.power;
+                } else if(previousVoteByProposalId.vote == false) {
+                    result.no-= previousVoteByProposalId.power;
+                }
+            }
+
+            // handle new vote
             uint256 currentVoteId = VotesNumByProposalId[_proposalId]++;
-            VoteStruct vote = VotesByProposalId[_proposalId][currentVoteId];
+            VoteStruct storage vote = VotesByProposalId[_proposalId][currentVoteId];
                 vote.voter = Voter;
                 vote.time = getTimestamp();
                 vote.vote = _myVote;
                 vote.power = VoterPower;
+                vote.index = currentVoteId;
 
-            ResultStruct result = ResultsByProposalId[_proposalId];
-                result.totalSoFar+= VoterPower;
+            VotesByCaster[_proposalId][Voter] = VotesByProposalId[_proposalId][currentVoteId];
+
+            ResultStruct storage newResult = ResultsByProposalId[_proposalId];
+                newResult.totalSoFar+= VoterPower;
 
             if(_myVote == true) {
-                result.yes+= VoterPower;
+                newResult.yes+= VoterPower;
             } else if(_myVote == false) {
-                result.no+= VoterPower;
+                newResult.no+= VoterPower;
             }
 
-            // this is where we can end voting before time if totalSoFar > 53% of totalAvailable
-            endVoteBeforeTimeExpiry(_proposalId);
+            // this is where we can end voting before time if totalSoFar > 50% of totalAvailable
+            // endVoteBeforeTimeExpiry(_proposalId);
 
         } else {
             revert();
         }
     }
 
-    function endVoteBeforeTimeExpiry(uint256 _proposalId) {
-        ResultStruct result = ResultsByProposalId[_proposalId];
-        uint256 requiredVotesForResult = result.requiredForResult;
-        if(result.yes >= result.requiredForResult) {
-            // voting resulted in YES
-            finaliseProposal(_proposalId, true);
-
-        } else if (result.no >= result.requiredForResult) {
-            // voting resulted in NO
-            finaliseProposal(_proposalId, false);
-        }
-    }
 
     function getMyVotingPower(uint256 _proposalId, address _voter) public view returns ( uint256 ) {
 
-        bool VotingPower = 0;
+        uint256 VotingPower = 0;
         record storage proposal = registry[_proposalId];
         address VaultAddress = FundingManagerEntity.getMyVaultAddress(_voter);
 
@@ -323,10 +347,50 @@ contract Proposals is ApplicationAsset {
         return VotingPower;
     }
 
-    function CalculateVotingResult(uint256 _proposalId) {
+
+    uint256 public VoteCountPerProcess = 256;
+    mapping( uint256 => uint256 ) public lastProcessedVaultIdByProposal;
+
+    function ProcessVoteTotals(uint256 _proposalId, uint256 length) public {
+
+        uint256 start = lastProcessedVaultIdByProposal[_proposalId] + 1;
+        uint256 end = start + length - 1;
+
+        if(end > VotesNumByProposalId[_proposalId]) {
+            end = VotesNumByProposalId[_proposalId];
+        }
+
+        for(uint256 i = start; i <= end; i++) {
+
+            VoteStruct storage vote = VotesByProposalId[_proposalId][i];
+            // process vote into totals.
+
+            lastProcessedVaultIdByProposal[_proposalId]++;
+        }
+
+        // reset iterator so we can call it again.
+        if(lastProcessedVaultIdByProposal[_proposalId] >= VotesNumByProposalId[_proposalId] ) {
+            lastProcessedVaultIdByProposal[_proposalId] = 0;
+        }
+    }
+
+    function endVoteBeforeTimeExpiry(uint256 _proposalId) internal {
+        ResultStruct storage result = ResultsByProposalId[_proposalId];
+        uint256 requiredVotesForResult = result.requiredForResult;
+        if(result.yes >= result.requiredForResult) {
+            // voting resulted in YES
+            finaliseProposal(_proposalId, true);
+
+        } else if (result.no >= result.requiredForResult) {
+            // voting resulted in NO
+            finaliseProposal(_proposalId, false);
+        }
+    }
+
+    function CalculateVotingResult(uint256 _proposalId) internal {
         // we end up here due to time expiration.. we only take into account cast votes.
 
-        ResultStruct result = ResultsByProposalId[_proposalId];
+        ResultStruct storage result = ResultsByProposalId[_proposalId];
 
         if(result.yes > result.no ) {
             // voting resulted in YES

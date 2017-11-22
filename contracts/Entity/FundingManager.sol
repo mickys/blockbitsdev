@@ -27,7 +27,7 @@ contract FundingManager is ApplicationAsset {
     Token TokenEntity;
     TokenSCADAGeneric TokenSCADAEntity;
 
-    uint256 LockedVotingTokens = 0;
+    uint256 public LockedVotingTokens = 0;
 
     event EventFundingManagerReceivedPayment(address indexed _vault, uint8 indexed _payment_method, uint256 indexed _amount );
     event EventFundingManagerProcessedVault(address _vault, uint256 id );

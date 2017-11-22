@@ -104,8 +104,8 @@ let StateArray = {
         {key: 11, name: "DEADLINE_MEETING_TIME_YES"},
         {key: 12, name: "DEADLINE_MEETING_TIME_FAILED"},
 
-        {key: 20, name: "VOTING_ENDED"},
-        {key: 21, name: "VOTING_IN_PROGRESS"},
+        {key: 20, name: "VOTING_IN_PROGRESS"},
+        // {key: 21, name: "VOTING_ENDED"},
         {key: 22, name: "VOTING_ENDED_YES"},
         {key: 23, name: "VOTING_ENDED_NO"},
 

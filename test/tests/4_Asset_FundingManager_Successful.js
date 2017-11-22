@@ -35,7 +35,7 @@ module.exports = function (setup) {
 
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
             await TestBuildHelper.deployAndInitializeApplication();
-            await TestBuildHelper.AddAllAssetSettingsAndLockExcept();
+            await TestBuildHelper.AddAllAssetSettingsAndLock();
             FundingContract = await TestBuildHelper.getDeployedByName("Funding");
 
             // funding inputs
@@ -57,7 +57,8 @@ module.exports = function (setup) {
             it('SoftCap reached in pre-ico, 1 payment, 1 payment in pre-ico, 0 payments in ico', async () => {
                 // time travel to pre ico start time
                 tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
+
 
                 // insert 1 payment, at soft cap.
                 await FundingInputMilestone.sendTransaction({
@@ -67,9 +68,7 @@ module.exports = function (setup) {
 
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -91,7 +90,7 @@ module.exports = function (setup) {
             it('SoftCap reached in ico, 1 payment, 1 account, 0 payments in pre-ico, 1 payment in ico', async () => {
                 // time travel to start of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, at soft cap.
                 await FundingInputMilestone.sendTransaction({
@@ -101,9 +100,7 @@ module.exports = function (setup) {
 
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -125,7 +122,7 @@ module.exports = function (setup) {
             it('SoftCap reached in pre-ico, 2 payments, 1 account, 1 payment in pre-ico, 1 payment in ico', async () => {
                 // time travel to pre ico start time
                 tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, at soft cap.
                 await FundingInputMilestone.sendTransaction({
@@ -135,7 +132,7 @@ module.exports = function (setup) {
 
                 // time travel to start of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, very low.
                 await FundingInputMilestone.sendTransaction({
@@ -145,9 +142,7 @@ module.exports = function (setup) {
 
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -168,7 +163,7 @@ module.exports = function (setup) {
             it('SoftCap reached in ico, 2 payments, 1 account, 1 payment in pre-ico, 1 payment in ico', async () => {
                 // time travel to pre ico start time
                 tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, very low.
                 await FundingInputMilestone.sendTransaction({
@@ -178,7 +173,7 @@ module.exports = function (setup) {
 
                 // time travel to start of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, at soft cap.
                 await FundingInputMilestone.sendTransaction({
@@ -188,9 +183,7 @@ module.exports = function (setup) {
 
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -212,7 +205,7 @@ module.exports = function (setup) {
             it('SoftCap reached in pre-ico, 2 payments, 2 accounts, 1 payment in pre-ico (account 1), 1 payment in ico (account 2)', async () => {
                 // time travel to pre ico start time
                 tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, very low.
                 await FundingInputMilestone.sendTransaction({
@@ -222,7 +215,7 @@ module.exports = function (setup) {
 
                 // time travel to start of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, at soft cap.
                 await FundingInputMilestone.sendTransaction({
@@ -232,9 +225,7 @@ module.exports = function (setup) {
 
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -261,7 +252,7 @@ module.exports = function (setup) {
             it('SoftCap reached in ico, 2 payments, 2 accounts, 1 payment in pre-ico (account 1), 1 payment in ico (account 2)', async () => {
                 // time travel to pre ico start time
                 tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, very low.
                 await FundingInputMilestone.sendTransaction({
@@ -271,7 +262,7 @@ module.exports = function (setup) {
 
                 // time travel to start of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 // insert 1 payment, at soft cap.
                 await FundingInputMilestone.sendTransaction({
@@ -281,9 +272,7 @@ module.exports = function (setup) {
 
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 validation = await TestBuildHelper.ValidateAssetState(
                     assetName,
@@ -314,21 +303,17 @@ module.exports = function (setup) {
             let tx;
             it('should run doStateChanges even if no changes are required', async () => {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                // tx = await assetContract.doStateChanges(false);
-                await TestBuildHelper.FundingManagerProcessVaults();
-                tx = await FundingManager.doStateChanges(false);
+                await TestBuildHelper.doApplicationStateChanges("", false);
             });
 
             it('SCADA - getTokenFraction() should run 0 if my amount is 0', async () => {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
 
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults();
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
                 let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
@@ -342,14 +327,12 @@ module.exports = function (setup) {
 
             it('SCADA - getUnsoldTokenFraction() should run 0 if my amount is 0', async () => {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
 
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
-
-                await TestBuildHelper.FundingManagerProcessVaults();
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
                 let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
                 let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
@@ -363,12 +346,11 @@ module.exports = function (setup) {
 
             it('SCADA - initCacheForVariables() throws if called by other than FundingManager', async () => {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
                 await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                tx = await FundingContract.doStateChanges(true);
+                await TestBuildHelper.doApplicationStateChanges("", false);
 
-                await TestBuildHelper.FundingManagerProcessVaults();
                 let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
                 let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
                 let SCADAAddress = await TokenManager.TokenSCADAEntity.call();

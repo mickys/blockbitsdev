@@ -63,7 +63,7 @@ contract ListingContract is ApplicationAsset {
         }
     }
 
-    function getItemStatus(uint256 _childId) external view returns (bool) {
+    function getItemStatus(uint256 _childId) public view returns (bool) {
         return items[_childId].status;
     }
 

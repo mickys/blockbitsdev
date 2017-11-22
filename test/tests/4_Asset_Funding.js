@@ -234,10 +234,11 @@ module.exports = function (setup) {
         });
 
 
+
         context("funding stages added, asset initialized", async () => {
             let FundingInputDirect, FundingInputMilestone;
 
-            beforeEach(async () => {
+            beforeEach( async () => {
 
                 assetContract = await TestBuildHelper.AddAssetSettingsAndLock("Funding");
 
@@ -317,7 +318,7 @@ module.exports = function (setup) {
 
                     beforeEach(async () => {
                         let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                        tx = await assetContract.doStateChanges(true);
+                        tx = await assetContract.doStateChanges();
                     });
 
                     it('returns false if ETH value is 0', async () => {
@@ -381,7 +382,7 @@ module.exports = function (setup) {
 
                         beforeEach(async () => {
                             let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                            tx = await assetContract.doStateChanges(true);
+                            tx = await assetContract.doStateChanges();
                         });
 
                         it('has correct type id = 1', async () => {
@@ -523,7 +524,7 @@ module.exports = function (setup) {
 
                         beforeEach(async () => {
                             let tx = await TestBuildHelper.timeTravelTo(pre_ico_settings.start_time + 1);
-                            tx = await assetContract.doStateChanges(true);
+                            tx = await assetContract.doStateChanges();
                         });
 
                         it('has correct type id = 2', async () => {
