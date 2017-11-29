@@ -173,6 +173,8 @@ let project_bylaws = {
     // Milestone Bylaws
     // (unixtime) milestone development starts 14 days after ico ends
     "development_start": ico_end + 14 * days,
+    "min_postponing": 7 * days,
+    "max_postponing": 90 * days,
 
     // if this is available, emergency fund will be crated out of total milestone funding amount.
     // the rest gets then split up into milestone balances using their respective percentage settings

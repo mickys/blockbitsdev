@@ -46,7 +46,9 @@ contract TestApplicationEntity is ApplicationEntity {
         NewsContractEntity.addInternalMessage(state);
     }
 
-
+    function callTestAddCodeUpgradeProposal(address _addr, bytes32 _sourceCodeUrl) external returns (uint256) {
+        return ProposalsEntity.addCodeUpgradeProposal(_addr, _sourceCodeUrl);
+    }
 
     uint256 _mockTime = now;
     function getTimestamp() view public returns (uint256) {

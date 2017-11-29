@@ -143,8 +143,19 @@ let RecordArray = {
         { key: 2,  name: "IN_PROGRESS"},
         { key: 3,  name: "FINAL"}
     ],
+
 };
 
+let ActionArray = {
+    "Proposals":[
+        { key: 1,   name: "MILESTONE_DEADLINE"},
+        { key: 2,   name: "MILESTONE_POSTPONING"},
+        { key: 60,  name: "EMERGENCY_FUND_RELEASE"},
+        { key: 50,  name: "IN_DEVELOPMENT_CODE_UPGRADE"},
+        { key: 51,  name: "AFTER_COMPLETE_CODE_UPGRADE"},
+        { key: 75,  name: "PROJECT_DELISTING"},
+    ],
+};
 
 
 module.exports = {
@@ -1118,6 +1129,13 @@ module.exports = {
     getRecordStateIdByName(_type, _name) {
         return RecordArray[_type].filter(x => x.name === _name)[0].key;
     },
+    getActionNameById(_type, _id) {
+        return ActionArray[_type].filter(x => x.key === _id)[0].name;
+    },
+    getActionIdByName(_type, _name) {
+        return ActionArray[_type].filter(x => x.name === _name)[0].key;
+    },
+
 
     async getContractBalance(helpers, address) {
         return await helpers.utils.getBalance(helpers.artifacts, address);

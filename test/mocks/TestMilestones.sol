@@ -12,4 +12,10 @@ import "./TestApplicationAsset.sol";
 
 contract TestMilestones is Milestones, TestApplicationAsset {
 
+
+    function callTestCreateMilestoneAcceptanceProposal() external returns (uint256) {
+
+        return ProposalsEntity.createMilestoneAcceptanceProposal();
+    }
+
 }

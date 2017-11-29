@@ -139,6 +139,11 @@ contract ApplicationAsset {
         _;
     }
 
+    modifier onlyApplicationEntity() {
+        require(msg.sender == owner);
+        _;
+    }
+
     modifier requireInitialised() {
         require(_initialized == true);
         _;

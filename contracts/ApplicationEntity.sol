@@ -284,7 +284,8 @@ contract ApplicationEntity {
     }
 
     /*
-        DUMMY METHOD, to be replaced in a future Code Upgrade with a check to determine if sender CAN initiate a code upgrade
+        DUMMY METHOD, to be replaced in a future Code Upgrade with a check to determine if sender should be able to initiate a code upgrade
+        specifically used after milestone development completes
     */
     function canInitiateCodeUpgrade(address _sender) public view returns(bool) {
         // suppress warning
@@ -404,11 +405,6 @@ contract ApplicationEntity {
             return true;
         }
 
-        /*
-        if( ProposalsEntity.hasRequiredStateChanges() ) {
-            return true;
-        }
-        */
     }
 
     // view methods decide if changes are to be made
@@ -458,11 +454,6 @@ contract ApplicationEntity {
                 MilestonesEntity.doStateChanges();
             }
 
-            /*
-            if(ProposalsEntity.hasRequiredStateChanges()) {
-                ProposalsEntity.doStateChanges();
-            }
-            */
         }
     }
 
@@ -565,11 +556,15 @@ contract ApplicationEntity {
             // code upgrades get initiated
             // proposals get created and voted
 
+            /*
             if(ProposalsEntity.CurrentEntityState() == ProposalsEntity.getEntityState("CODE_UPGRADE_ACCEPTED")) {
                 // check if we have an upgrade proposal that is accepted and move into said state
                 EntityStateRequired = getEntityState("START_CODE_UPGRADE");
             }
-            else if(MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("DEVELOPMENT_COMPLETE")) {
+            else
+            */
+
+            if(MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("DEVELOPMENT_COMPLETE")) {
                 // check if we finished developing all milestones .. and if so move state to complete.
                 EntityStateRequired = getEntityState("DEVELOPMENT_COMPLETE");
             }

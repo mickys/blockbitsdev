@@ -85,7 +85,7 @@ module.exports = function(setup) {
 
         context("states", async () => {
 
-            /*
+
             it('handles ENTITY state change from WAITING to WAITING_MEETING_TIME when current time is after development start', async () => {
 
                 tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
@@ -155,8 +155,6 @@ module.exports = function(setup) {
 
             });
 
-            */
-
             it('handles ENTITY state change from DEADLINE_MEETING_TIME_YES to VOTING_IN_PROGRESS when current time is after meeting time', async () => {
 
                 await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
@@ -184,8 +182,6 @@ module.exports = function(setup) {
                     helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
                 );
                 assert.isTrue(validation, 'State validation failed..');
-
-
 
 
                 /*
@@ -218,98 +214,6 @@ module.exports = function(setup) {
 
                  */
             });
-
-            /*
-            it('handles ENTITY state change from DEADLINE_MEETING_TIME_YES to DEADLINE_MEETING_TIME_YES when current time is after milestone end, and meeting time was set', async () => {
-
-
-            });
-            */
-
-            /*
-            await helpers.utils.showCurrentState(helpers, assetContract);
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-            */
-
-
-
-
-            /*
-
-
-            // setCurrentMilestoneMeetingTime
-
-            await helpers.utils.showCurrentState(helpers, assetContract);
-
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-
-            */
-
-            /*
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-            tx = await assetContract.doStateChanges();
-            await helpers.utils.showCurrentState(helpers, assetContract);
-            */
-
-            /*
-            let getBylawsMinTimeInTheFutureForMeetingCreation = await assetContract.getBylawsMinTimeInTheFutureForMeetingCreation.call();
-            console.log("getBylawsMinTimeInTheFutureForMeetingCreation:", getBylawsMinTimeInTheFutureForMeetingCreation);
-
-            let meetingCreationMaxTime = await assetContract.meetingCreationMaxTime.call();
-            console.log("meetingCreationMaxTime:", meetingCreationMaxTime);
-            console.log("meetingCreationMaxTime:", await helpers.utils.toDate(meetingCreationMaxTime) );
-
-            let contractNow = await assetContract.getTimestamp.call();
-            console.log("timestamp:", await helpers.utils.toDate(contractNow) );
-
-
-
-            let currentRecordId = await assetContract.currentRecord.call();
-            let record = await assetContract.Collection.call(currentRecordId);
-            let start = record[4];
-            let end = record[6];
-            console.log("record start:", await helpers.utils.toDate(start) );
-            console.log("record end:  ", await helpers.utils.toDate(end) );
-            */
-
-
-            /*
-            let getRecordStartTime = await assetContract.getRecordStartTime.call();
-            console.log("getRecordStartTime:", getRecordStartTime);
-
-            let owner = await assetContract.owner.call();
-            console.log("owner:", owner);
-
-            let ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
-            console.log("ApplicationEntity:", ApplicationEntity.address);
-
-
-            let app_development_start = await ApplicationEntity.getBylawUint256.call("development_start");
-            console.log("app_development_start:", app_development_start);
-
-            let development_start = await assetContract.getAppBylawUint256.call("development_start");
-             console.log("development_start:", development_start);
-
-            let getBylawsProjectDevelopmentStart = await assetContract.getBylawsProjectDevelopmentStart.call();
-            console.log("getBylawsProjectDevelopmentStart:", getBylawsProjectDevelopmentStart);
-
-            let getRecordStartTimePlusDev = await assetContract.getRecordStartTimePlusDev.call();
-            console.log("getRecordStartTimePlusDev:", getRecordStartTimePlusDev);
-            */
-
         });
     });
 };

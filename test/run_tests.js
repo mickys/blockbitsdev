@@ -120,10 +120,24 @@ tests.push("4_Asset_FundingManager");
 tests.push("4_Asset_FundingManager_Successful");
 tests.push("4_Asset_Milestones_NotLocked");
 tests.push("4_Asset_Milestones_Locked");
+tests.push("4_Asset_Proposals_Creation");
 
 //tests.push("3_ApplicationEntity_States");
 
-// tests = [];
+tests = [];
+// tests.push("4_Asset_Milestones_Locked");
+// tests.push("4_Asset_Proposals_Creation");
+
+tests.push("4_Asset_Proposals_Type1");
+
+/*
+tests.push("4_Asset_Proposals_Type2");
+tests.push("4_Asset_Proposals_Type3");
+tests.push("4_Asset_Proposals_Type4");
+tests.push("4_Asset_Proposals_Type5");
+tests.push("4_Asset_Proposals_Type6");
+*/
+
 // tests.push("4_Asset_FundingManager");
 // tests.push("4_Asset_FundingManager_Successful");
 

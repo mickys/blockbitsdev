@@ -67,6 +67,7 @@ contract ListingContract is ApplicationAsset {
         return items[_childId].status;
     }
 
+    // update so that this checks the child status, and only delists IF funding has not started yet.
     function delistChild( uint256 _childId ) public onlyAsset("Proposals") requireInitialised {
         item storage child = items[_childId];
             child.status = false;
