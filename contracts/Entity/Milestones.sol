@@ -161,7 +161,7 @@ contract Milestones is ApplicationAsset {
     }
 
     function getMilestoneFundingPercentage(uint8 recordId) public view returns (uint8){
-        Record storage rec = Collection[recordId];
+        Record memory rec = Collection[recordId];
         return rec.funding_percentage;
     }
 

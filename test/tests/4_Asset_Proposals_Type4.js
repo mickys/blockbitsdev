@@ -294,6 +294,9 @@ module.exports = function(setup) {
                     // EMERGENCY_FUND_RELEASE
                     await TestBuildHelper.doApplicationStateChanges("EMERGENCY_FUND_RELEASE", true);
 
+
+                    
+
                     // FundingManagerAsset.
 
                     // stake below 50%

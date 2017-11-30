@@ -227,7 +227,7 @@ contract FundingManager is ApplicationAsset {
     }
 
     function processEmergencyFundReleaseFinished() public view returns (bool) {
-        bytes32 thisHash = getHash("EMERGENCY_PROCESS_START", getCurrentMilestoneIdHash());
+        bytes32 thisHash = getHash("EMERGENCY_PROCESS_START", bytes32(0));
         return taskByHash[thisHash];
     }
 
