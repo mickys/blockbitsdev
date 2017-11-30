@@ -315,6 +315,21 @@ TestBuildHelper.prototype.getTokenContract = async function () {
     return await TokenContract.at(TokenContractAddress);
 };
 
+TestBuildHelper.prototype.displayOwnerAddressDetails = async function () {
+
+    this.setup.helpers.utils.toLog("");
+    this.setup.helpers.utils.toLog(logPre + "Owner address details: " + this.platformWalletAddress);
+    let tokenBalance = await this.getTokenBalance( this.platformWalletAddress ) ;
+    let tokenBalanceInFull = this.setup.helpers.web3util.fromWei(tokenBalance, "ether");
+
+    let etherBalance = await this.setup.helpers.utils.getBalance(this.setup.helpers.artifacts, this.platformWalletAddress);
+    let etherBalanceInFull = this.setup.helpers.web3util.fromWei(etherBalance, "ether");
+
+    this.setup.helpers.utils.toLog(logPre + "Token Balance: " + tokenBalanceInFull.toString());
+    this.setup.helpers.utils.toLog(logPre + "Ether Balance: " + etherBalanceInFull.toString());
+
+};
+
 TestBuildHelper.prototype.displayAllVaultDetails = async function () {
     let FundingManager = await this.getDeployedByName("FundingManager");
     let vaultNum = await FundingManager.vaultNum.call();

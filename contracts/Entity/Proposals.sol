@@ -294,38 +294,40 @@ contract Proposals is ApplicationAsset {
         returns (uint256)
     {
 
-        if(_action > 0) {
+        // if(_action > 0) {
 
-            if(ProposalIdByHash[_hash] == 0) {
+        if(ProposalIdByHash[_hash] == 0) {
 
-                ProposalRecord storage proposal = ProposalsById[++RecordNum];
-                proposal.creator        = _creator;
-                proposal.name           = _name;
-                proposal.actionType     = _action;
-                proposal.addr           = _addr;
-                proposal.sourceCodeUrl  = _sourceCodeUrl;
-                proposal.extra          = _extra;
-                proposal.hash           = _hash;
-                proposal.state          = getRecordState("NEW");
-                proposal.time_start     = getTimestamp();
-                proposal.time_end       = getTimestamp() + getBylawsProposalVotingDuration();
-                proposal.index          = RecordNum;
+            ProposalRecord storage proposal = ProposalsById[++RecordNum];
+            proposal.creator        = _creator;
+            proposal.name           = _name;
+            proposal.actionType     = _action;
+            proposal.addr           = _addr;
+            proposal.sourceCodeUrl  = _sourceCodeUrl;
+            proposal.extra          = _extra;
+            proposal.hash           = _hash;
+            proposal.state          = getRecordState("NEW");
+            proposal.time_start     = getTimestamp();
+            proposal.time_end       = getTimestamp() + getBylawsProposalVotingDuration();
+            proposal.index          = RecordNum;
 
-                ProposalIdByHash[_hash] = RecordNum;
+            ProposalIdByHash[_hash] = RecordNum;
 
-            } else {
-                // already exists!
-                revert();
-            }
+        } else {
+            // already exists!
+            revert();
+        }
 
-            initProposalVoting(RecordNum);
-            EventNewProposalCreated ( _hash, RecordNum );
-            return RecordNum;
+        initProposalVoting(RecordNum);
+        EventNewProposalCreated ( _hash, RecordNum );
+        return RecordNum;
 
+        /*
         } else {
             // no action?!
             revert();
         }
+        */
     }
 
     function acceptCodeUpgrade(uint256 _proposalId) internal {
@@ -445,7 +447,7 @@ contract Proposals is ApplicationAsset {
 
         VoteStruct storage previousVoteByCaster = VotesByCaster[_proposalId][_voter];
 
-        if( previousVoteByCaster.power > 0 ) {
+        // if( previousVoteByCaster.power > 0 ) {
             previousVoteByCaster.annulled = true;
 
             VoteStruct storage previousVoteByProposalId = VotesByProposalId[_proposalId][previousVoteByCaster.index];
@@ -458,10 +460,11 @@ contract Proposals is ApplicationAsset {
 
             if(previousVoteByProposalId.vote == true) {
                 result.yes-= previousVoteByProposalId.power;
-            } else if(previousVoteByProposalId.vote == false) {
+            // } else if(previousVoteByProposalId.vote == false) {
+            } else {
                 result.no-= previousVoteByProposalId.power;
             }
-        }
+        // }
 
     }
 

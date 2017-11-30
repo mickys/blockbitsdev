@@ -12,7 +12,7 @@ module.exports = function(setup) {
 
     contract('Proposals Asset - Type 4 - EMERGENCY_FUND_RELEASE', accounts => {
         let tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, ProposalsAsset,
-            MilestonesAsset, ApplicationEntity, beforeProposalRequiredStateChanges, FundingManagerAsset,
+            MilestonesAsset, ApplicationEntity, beforeProposalRequiredStateChanges, FundingAsset, FundingManagerAsset,
             TokenManagerAsset, TokenEntity, validation = {};
 
         let assetName = "Proposals";
@@ -103,6 +103,7 @@ module.exports = function(setup) {
             ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
             MilestonesAsset = await TestBuildHelper.getDeployedByName("Milestones");
             ProposalsAsset = await TestBuildHelper.getDeployedByName("Proposals");
+            FundingAsset = await TestBuildHelper.getDeployedByName("Funding");
             FundingManagerAsset = await TestBuildHelper.getDeployedByName("FundingManager");
             TokenManagerAsset = await TestBuildHelper.getDeployedByName("TokenManager");
 
@@ -111,8 +112,6 @@ module.exports = function(setup) {
             TokenEntity = await TokenEntityContract.at(TokenEntityAddress);
         });
 
-
-        /*
 
         it( "current proposal matches EMERGENCY_FUND_RELEASE settings", async () => {
 
@@ -139,14 +138,18 @@ module.exports = function(setup) {
 
         });
 
-        */
+        it( "throws if EMERGENCY_FUND_RELEASE proposal was already created once", async () => {
+            return helpers.assertInvalidOpcode(async () => {
+                await ProposalsAsset.createEmergencyFundReleaseProposal()
+            });
+        });
 
         context("Proposal Created - Voting Started", async () => {
             let ProposalId = 1;
 
             // await TestBuildHelper.displayAllVaultDetails();
+            // await TestBuildHelper.displayOwnerAddressDetails();
 
-            /*
             it("throws if trying to vote on a non existing proposal", async () => {
                 return helpers.assertInvalidOpcode(async () => {
                     await ProposalsAsset.RegisterVote( 0, true, {from: wallet4} );
@@ -235,7 +238,7 @@ module.exports = function(setup) {
 
             });
 
-            it("Annuls and registers a new valid vote if voter already voted, has a stake in the proposal, and proposal is not closed", async () => {
+            it("YES Vote, Annuls and registers a new valid vote if voter already voted, has a stake in the proposal, and proposal is not closed", async () => {
 
                 let usedWallet = wallet4;
                 tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: usedWallet} );
@@ -265,11 +268,44 @@ module.exports = function(setup) {
 
                 assert.equal( yesTotals.toString(), 0, "Yes Totals should be 0!" );
                 assert.equal( noTotals.toString(), Power.toString(), "Totals should match voting power!" );
-
                 assert.equal( totalSoFar.toString(), calcTotals.toString(), "calcTotals should match totalSoFar" );
 
             });
-            */
+
+            it("NO Vote, Annuls and registers a new valid vote if voter already voted, has a stake in the proposal, and proposal is not closed", async () => {
+
+                let usedWallet = wallet4;
+                tx = await ProposalsAsset.RegisterVote( ProposalId, false, {from: usedWallet} );
+
+                let ProposalResultRecord = await ProposalsAsset.ResultsByProposalId.call( ProposalId );
+                let yesTotals = ProposalResultRecord[3];
+                let noTotals = ProposalResultRecord[4];
+
+                let Power = await ProposalsAsset.getVotingPower.call( ProposalId, usedWallet );
+                assert.equal( noTotals.toString(), Power.toString(), "Totals should match voting power!" );
+
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call( ProposalId );
+                let ProposalState = helpers.utils.getRecordStateNameById("Proposals", ProposalRecord[3].toNumber() );
+
+                assert.equal(ProposalState, "ACCEPTING_VOTES", "Proposal state should be ACCEPTING_VOTES");
+
+                // change from no to yes
+
+                tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: usedWallet} );
+
+                ProposalResultRecord = await ProposalsAsset.ResultsByProposalId.call( ProposalId );
+                let totalSoFar = ProposalResultRecord[2];
+                yesTotals = ProposalResultRecord[3];
+                noTotals = ProposalResultRecord[4];
+                let calcTotals = new helpers.BigNumber(0);
+                calcTotals = calcTotals.add(yesTotals);
+                calcTotals = calcTotals.add(noTotals);
+
+                assert.equal( yesTotals.toString(), Power.toString(), "Totals should match voting power!");
+                assert.equal( noTotals.toString(), 0, "No Totals should be 0!"  );
+                assert.equal( totalSoFar.toString(), calcTotals.toString(), "calcTotals should match totalSoFar" );
+
+            });
 
             context("Voting Successful", async () => {
 
@@ -279,210 +315,86 @@ module.exports = function(setup) {
                     // await helpers.utils.showGasUsage(helpers, tx, "RegisterVote");
                 });
 
-                /*
                 it("throws if trying to vote on a the proposal that has already been finalised", async () => {
                     return helpers.assertInvalidOpcode(async () => {
                         await ProposalsAsset.RegisterVote( ProposalId, true, {from: wallet4} );
                     });
                 });
-                */
 
-                it("FundingManagerAsset state", async () => {
+                it("FundingManagerAsset state processed, releases ether to owner, tokens to investors, validates balances", async () => {
+
+                    // save platformWalletAddress initial balances
+                    let tokenBalance = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
+                    let etherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
+                    // total funding ether
+                    let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
+                    // emergency fund percent
+                    let EmergencyAmount = MilestoneAmountRaised.div(100);
+                    EmergencyAmount = EmergencyAmount.mul(settings.bylaws["emergency_fund_percentage"]);
+
+                    // save wallet1 state so we can validate after
+                    let walletTokenBalance = await TestBuildHelper.getTokenBalance( wallet1 ) ;
 
                     // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper) );
+                    // await TestBuildHelper.displayAllVaultDetails();
+                    // await TestBuildHelper.displayOwnerAddressDetails();
 
-                    // EMERGENCY_FUND_RELEASE
-                    await TestBuildHelper.doApplicationStateChanges("EMERGENCY_FUND_RELEASE", true);
+                    await TestBuildHelper.doApplicationStateChanges("EMERGENCY_FUND_RELEASE", false);
 
+                    let tokenBalanceAfter = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
+                    let etherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
 
-                    
+                    let initialPlusEmergency = etherBalance.add(EmergencyAmount);
 
-                    // FundingManagerAsset.
+                    assert.equal(tokenBalance.toString(), tokenBalanceAfter.toString(), "tokenBalances should match");
+                    assert.equal(etherBalanceAfter.toString(), initialPlusEmergency.toString(), "etherBalanceAfter should match initialPlusEmergency ");
 
-                    // stake below 50%
-                    /*
-                    tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: wallet4});
-                    await helpers.utils.showGasUsage(helpers, tx, "RegisterVote");
+                    let walletTokenBalanceAfter = await TestBuildHelper.getTokenBalance( wallet1 ) ;
+                    let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
+                    let vaultReleaseTokenBalance = await vault.tokenBalances.call(0);
+                    let walletInitialPlusEmergency = walletTokenBalance.add(vaultReleaseTokenBalance);
 
-                    // stake above 50%
-                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: wallet1});
-                    await helpers.utils.showGasUsage(helpers, tx, "RegisterVote");
+                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusEmergency.toString(), "walletTokenBalanceAfter should match walletInitialPlusEmergency ");
 
+                });
+            });
 
-                    // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
+            context('misc for extra coverage', async () => {
 
-                    let ProposalResultRecord = await ProposalsAsset.ResultsByProposalId.call(ProposalId);
-                    let totalSoFar = ProposalResultRecord[2];
-                    let yesTotals = ProposalResultRecord[3];
-                    let noTotals = ProposalResultRecord[4];
-                    let calcTotals = new helpers.BigNumber(0);
-                    calcTotals = calcTotals.add(yesTotals);
-                    calcTotals = calcTotals.add(noTotals);
+                it('getRequiredStateChanges', async () => {
+                    await ProposalsAsset.getRequiredStateChanges.call();
+                });
 
-                    assert.equal(totalSoFar.toString(), calcTotals.toString(), "calcTotals should match totalSoFar");
+                it('hasRequiredStateChanges', async () => {
+                    await ProposalsAsset.hasRequiredStateChanges.call();
+                });
 
-                    let PowerYes = await ProposalsAsset.getVotingPower.call(ProposalId, wallet1);
-                    assert.equal(yesTotals.toString(), PowerYes.toString(), "yesTotals should match voting power!");
+                it('process', async () => {
+                    await ProposalsAsset.process();
+                });
 
-                    let PowerNo = await ProposalsAsset.getVotingPower.call(ProposalId, wallet4);
-                    assert.equal(noTotals.toString(), PowerNo.toString(), "noTotals should match voting power!");
+                it('getMyVote', async () => {
+                    await ProposalsAsset.getMyVote( 1, wallet1);
+                });
 
-                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
-                    let ProposalState = helpers.utils.getRecordStateNameById("Proposals", ProposalRecord[3].toNumber());
+                it('getProposalState', async () => {
+                    await ProposalsAsset.getProposalState.call(1);
+                });
 
-                    assert.equal(ProposalState, "VOTING_RESULT_YES", "Proposal state should be VOTING_RESULT_YES");
-                    */
+                it('getBylawsMilestoneMinPostponing', async () => {
+                    await ProposalsAsset.getBylawsMilestoneMinPostponing.call();
+                });
 
+                it('getBylawsMilestoneMaxPostponing', async () => {
+                    await ProposalsAsset.getBylawsMilestoneMaxPostponing.call();
+                });
+
+                it('getVotingPower for non existent investor', async () => {
+                    let Power = await ProposalsAsset.getVotingPower.call(1, accounts[0]);
+                    assert.equal(Power.toNumber(), 0, "Power is not 0");
                 });
 
             });
-
-            /*
-            it( "placing a vote ", async () => {
-
-                let vault = await FundingManagerAsset.getMyVaultAddress.call(wallet1);
-                console.log("wallet1:         ", wallet1);
-                console.log("vault:           ", vault.toString());
-
-                let Power = await ProposalsAsset.getVotingPower.call( ProposalId, wallet1 );
-                let PowerInFull = helpers.web3util.fromWei(Power, "ether");
-                console.log("Power:           ", PowerInFull.toString());
-
-                await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
-
-
-                console.log("before first vote");
-                tx = await ProposalsAsset.RegisterVote( ProposalId, false, {from: wallet1} );
-                console.log("after first vote");
-
-
-                await helpers.utils.showGasUsage(helpers, tx, "RegisterVote 1 - wallet 1");
-
-                let hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
-                console.log("afterVoteHasRequiredStateChanges:", hasRequiredStateChanges.toString());
-
-
-                await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
-
-                let ActiveProposalNum = await ProposalsAsset.ActiveProposalNum.call();
-                let ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(0);
-                console.log("ActiveProposalNum:", ActiveProposalNum.toString());
-                console.log("ActiveProposalId: ", ActiveProposalId.toString());
-
-
-
-            });
-            */
         });
-
-        /*
-        context("states", async () => {
-
-
-             it('handles ENTITY state change from WAITING to WAITING_MEETING_TIME when current time is after development start', async () => {
-
-             tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-             await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-             validation = await TestBuildHelper.ValidateEntityAndRecordState(
-             assetName,
-             helpers.utils.getEntityStateIdByName(assetName, "WAITING_MEETING_TIME").toString(),
-             helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-             );
-             assert.isTrue(validation, 'State validation failed..');
-
-             });
-
-             it('handles ENTITY state change from WAITING_MEETING_TIME to DEADLINE_MEETING_TIME_FAILED when current time is after milestone end, and meeting time was not set', async () => {
-
-             tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-             await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-             // time travel to end of milestone
-             let duration = settings.milestones[0].duration;
-             let time = settings.bylaws["development_start"] + 1 + duration;
-             tx = await TestBuildHelper.timeTravelTo(time);
-
-             await TestBuildHelper.doApplicationStateChanges("Milestone End", false);
-             // await helpers.utils.showCurrentState(helpers, assetContract);
-
-
-             validation = await TestBuildHelper.ValidateEntityAndRecordState(
-             assetName,
-             helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_FAILED").toString(),
-             helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-             );
-             assert.isTrue(validation, 'State validation failed..');
-
-             });
-
-             it('handles ENTITY state change from WAITING_MEETING_TIME to DEADLINE_MEETING_TIME_YES when current time is after milestone end, and meeting time was set', async () => {
-
-             await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-             await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-             // time travel to end of milestone
-             let duration = settings.milestones[0].duration;
-             let time = settings.bylaws["development_start"] + duration +1;
-
-             let currentTime = await MilestonesContract.getTimestamp.call();
-             let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
-
-             await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
-             await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
-
-             validation = await TestBuildHelper.ValidateEntityAndRecordState(
-             assetName,
-             helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_YES").toString(),
-             helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-             );
-             assert.isTrue(validation, 'State validation failed..');
-
-             // validate meeting created
-
-             });
-
-
-
-            it('handles ENTITY state change from DEADLINE_MEETING_TIME_YES to VOTING_IN_PROGRESS when current time is after meeting time', async () => {
-
-                await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-                await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-                // time travel to end of milestone
-                let duration = settings.milestones[0].duration;
-                let time = settings.bylaws["development_start"] + duration +1;
-
-                let currentTime = await MilestonesContract.getTimestamp.call();
-                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
-
-                await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
-                await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
-
-                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
-
-                await TestBuildHelper.doApplicationStateChanges("At Meeting time", false);
-
-                validation = await TestBuildHelper.ValidateEntityAndRecordState(
-                    assetName,
-                    helpers.utils.getEntityStateIdByName(assetName, "VOTING_IN_PROGRESS").toString(),
-                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-                    helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-                );
-                assert.isTrue(validation, 'State validation failed..');
-
-
-            });
-
-
-        });
-         */
     });
 };

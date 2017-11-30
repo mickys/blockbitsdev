@@ -66,6 +66,7 @@ contract Funding is ApplicationAsset {
 
     // funding settings
     uint256 public AmountRaised = 0;
+    uint256 public MilestoneAmountRaised = 0;
 
     uint256 public GlobalAmountCapSoft = 0;
     uint256 public GlobalAmountCapHard = 0;
@@ -325,9 +326,12 @@ contract Funding is ApplicationAsset {
         // check that msg.value is higher than 0, don't really want to have to deal with minus in case the network breaks this somehow
         if(allowedPaymentMethod(_payment_method) && canAcceptPayment(msg.value) ) {
 
-            // increase amount raised, we don't care about payment method here.
             Collection[currentFundingStage].amount_raised+= msg.value;
             AmountRaised+= msg.value;
+
+            if(_payment_method == uint8(FundingMethodIds.MILESTONE_ONLY)) {
+                MilestoneAmountRaised+=msg.value;
+            }
 
             EventFundingReceivedPayment(_sender, _payment_method, msg.value);
 
