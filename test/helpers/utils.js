@@ -90,6 +90,9 @@ let StateArray = {
         {key: 30, name: "MILESTONE_PROCESS_START"},
         {key: 31, name: "MILESTONE_PROCESS_PROGRESS"},
         {key: 32, name: "MILESTONE_PROCESS_DONE"},
+        {key: 40, name: "EMERGENCY_PROCESS_START"},
+        {key: 41, name: "EMERGENCY_PROCESS_PROGRESS"},
+        {key: 42, name: "EMERGENCY_PROCESS_DONE"},
         {key: 100, name: "COMPLETE_PROCESS_START"},
         {key: 101, name: "COMPLETE_PROCESS_PROGRESS"},
         {key: 102, name: "COMPLETE_PROCESS_DONE"},
@@ -143,7 +146,14 @@ let RecordArray = {
         { key: 2,  name: "IN_PROGRESS"},
         { key: 3,  name: "FINAL"}
     ],
-
+    "Proposals":[
+        { key: 0,  name: "NONE"},
+        { key: 1,  name: "NEW"},
+        { key: 2,  name: "ACCEPTING_VOTES"},
+        { key: 3,  name: "VOTING_ENDED"},
+        { key: 10,  name: "VOTING_RESULT_YES"},
+        { key: 20,  name: "VOTING_RESULT_NO"},
+    ],
 };
 
 let ActionArray = {
@@ -360,6 +370,7 @@ module.exports = {
         let Funding = await TestBuilder.getDeployedByName("Funding");
         let FundingManager = await TestBuilder.getDeployedByName("FundingManager");
         let Milestones = await TestBuilder.getDeployedByName("Milestones");
+        let Proposals = await TestBuilder.getDeployedByName("Proposals");
 
         let table = new helpers.Table({
             head: ["Name", "CHGS", "Current", "Required", "Rec Cur", "Rec Req", "Extra 1", "Extra 2"],
@@ -370,6 +381,7 @@ module.exports = {
         table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, Funding) );
         table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, FundingManager) );
         table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, Milestones) );
+        table.push(await helpers.utils.getOneLineRequiredStateChanges( helpers, Proposals) );
 
         return table.toString();
     },
@@ -389,7 +401,6 @@ module.exports = {
         cols.push(contractType);
 
         let reqChanges = await assetContract.getRequiredStateChanges.call();
-
         let hasChanges = await assetContract.hasRequiredStateChanges.call();
 
         if (hasChanges.toString() === "false") {
@@ -490,6 +501,40 @@ module.exports = {
 //            cols.push(logColor+"Last Processed: " + helpers.utils.colors.orange + lastProcessedVaultId);
             cols.push(logColor+"Last:" + helpers.utils.colors.orange + lastProcessedVaultId);
 
+        } else if (contractType === "Proposals") {
+
+            // quite different from other assets. We list the ids of proposals that require processing before finalisation
+
+            let NumberOfActiveProposals = await helpers.web3util.toDecimal(reqChanges);
+
+            if(hasChanges === true) {
+
+                if (NumberOfActiveProposals > 0) {
+
+                    let ProposalIdWithChanges = [];
+
+                    for(let i = 0; i < NumberOfActiveProposals; i++) {
+
+                        let ActiveProposalId = await assetContract.ActiveProposalIds.call(i);
+                        // let ProposalRecord = await assetContract.ProposalsById.call(ActiveProposalId);
+                        let canEndVoting = await assetContract.canEndVoting(ActiveProposalId);
+                        if(canEndVoting === true) {
+                            ProposalIdWithChanges.push(ActiveProposalId);
+                        }
+                    }
+                    cols.push( helpers.utils.colors.red + ProposalIdWithChanges.join(", ") );
+                }
+            } else {
+                cols.push( helpers.utils.colors.green + "NONE" );
+            }
+
+            let RecordNum = await assetContract.RecordNum.call();
+
+            cols.push("");
+            cols.push("");
+            cols.push("");
+            cols.push(logColor+"Num:" + helpers.utils.colors.orange +  RecordNum);
+            cols.push(logColor+"Act:" + helpers.utils.colors.orange + NumberOfActiveProposals);
         }
         return cols;
     },
@@ -1104,6 +1149,45 @@ module.exports = {
         helpers.utils.toLog(logPre + "token_share_perc: " + helpers.web3util.toDecimal(struct[12]));        // uint8
         helpers.utils.toLog(logPre + "index:            " + helpers.web3util.toDecimal(struct[13]));        // uint8
         helpers.utils.toLog("");
+    },
+
+    async displayProposal(helpers, ProposalsAsset, ProposalId) {
+
+        helpers.utils.toLog(logPre + "Proposal Id ["+ProposalId+"]" );
+        let ProposalRecord = await ProposalsAsset.ProposalsById.call( ProposalId );
+
+        helpers.utils.toLog(logPre + "creator:           "+ ProposalRecord[0].toString());
+        helpers.utils.toLog(logPre + "name:              "+ helpers.web3util.toUtf8(ProposalRecord[1]));
+        helpers.utils.toLog(logPre + "actionType:        "+ helpers.utils.getActionNameById("Proposals", ProposalRecord[2].toNumber() ) );
+        helpers.utils.toLog(logPre + "state:             "+ helpers.utils.getRecordStateNameById("Proposals", ProposalRecord[3].toNumber() ) );
+        helpers.utils.toLog(logPre + "hash:              "+ ProposalRecord[4].toString());
+        helpers.utils.toLog(logPre + "addr:              "+ ProposalRecord[5].toString());
+        helpers.utils.toLog(logPre + "sourceCodeUrl:     "+ helpers.web3util.toUtf8(ProposalRecord[6]));
+        helpers.utils.toLog(logPre + "extra:             "+ ProposalRecord[7].toString());
+        helpers.utils.toLog(logPre + "time_start:        "+ helpers.utils.toDateFromHex(ProposalRecord[8]));
+        helpers.utils.toLog(logPre + "time_end:          "+ helpers.utils.toDateFromHex(ProposalRecord[9]));
+        helpers.utils.toLog(logPre + "index:             "+ ProposalRecord[10].toString());
+
+        let ProposalResultRecord = await ProposalsAsset.ResultsByProposalId.call( ProposalId );
+
+        helpers.utils.toLog(logPre + "" );
+        helpers.utils.toLog(logPre + "Result Record:" );
+        helpers.utils.toLog(logPre + "totalAvailable:    "+ helpers.utils.getInTotal(helpers, ProposalResultRecord[0]) );
+        helpers.utils.toLog(logPre + "requiredForResult: "+ helpers.utils.getInTotal(helpers, ProposalResultRecord[1]) );
+        helpers.utils.toLog(logPre + "totalSoFar:        "+ helpers.utils.getInTotal(helpers, ProposalResultRecord[2]) );
+        helpers.utils.toLog(logPre + "yes:               "+ helpers.utils.getInTotal(helpers, ProposalResultRecord[3]) );
+        helpers.utils.toLog(logPre + "no:                "+ helpers.utils.getInTotal(helpers, ProposalResultRecord[4]) );
+        helpers.utils.toLog(logPre + "requiresCounting:  "+ ProposalResultRecord[5].toString());
+        helpers.utils.toLog(logPre + "" );
+
+        let hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
+        helpers.utils.toLog(logPre + "RequiredStateChanges:"+ hasRequiredStateChanges.toString() );
+        helpers.utils.toLog(logPre + "" );
+
+    },
+    getInTotal( helpers, bigNumber ) {
+        let result = helpers.web3util.fromWei(bigNumber, "ether");
+        return result.toString();
     },
     getFundingStageStateNameById(_id) {
         return FundingStageStates.filter(x => x.key === _id)[0].name;

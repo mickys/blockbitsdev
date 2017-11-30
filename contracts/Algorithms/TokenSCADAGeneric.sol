@@ -38,11 +38,12 @@ contract TokenSCADAGeneric {
         return SCADA_requires_hard_cap;
     }
 
-    function getBoughtTokens( address _vaultAddress ) public view returns (uint256) {
+
+    function getBoughtTokens( address _vaultAddress, bool _direct ) public view returns (uint256) {
         // second stage
-        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress );
+        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress, _direct );
         // first stage
-        uint256 myPRETokens = getMyTokensInFirstStage( _vaultAddress );
+        uint256 myPRETokens = getMyTokensInFirstStage( _vaultAddress, _direct );
 
         if(UnsoldTokenAmountCacheValue == 0) {
             return myPRETokens + myIcoTokens;
@@ -55,21 +56,49 @@ contract TokenSCADAGeneric {
         }
     }
 
-    function getMyTokensInFirstStage(address _vaultAddress) public view returns(uint256) {
+    function getMyTokensInFirstStage(address _vaultAddress, bool _direct) public view returns(uint256) {
         FundingVault vault = FundingVault(_vaultAddress);
         uint8 PREpercentInStage = FundingEntity.getStageTokenSharePercentage(1);
         uint256 PREraisedAmount = FundingEntity.getStageAmountRaised(1);
         // make sure we're not dividing by 0
         if(PREraisedAmount > 0) {
-            return getTokenFraction( PREpercentInStage, PREraisedAmount, vault.stageAmounts(1) );
+            uint256 amount = vault.stageAmounts(1);
+            if(_direct) {
+                amount = vault.stageAmountsDirect(1);
+            }
+
+            return getTokenFraction( PREpercentInStage, PREraisedAmount, amount );
         } else {
             // pre ico raised 0 eth, so we distribute tokens based on stake in ICO
             return getPRETokensBasedOnStakeInICO(_vaultAddress);
         }
     }
 
+    function getMyTokensInSecondStage(address _vaultAddress, bool _direct) public view returns(uint256) {
+        FundingVault vault = FundingVault(_vaultAddress);
+        uint256 amount = vault.stageAmounts(2);
+        if(_direct) {
+            amount = vault.stageAmountsDirect(2);
+        }
+        if(UnsoldTokenAmountCacheValue == 0) {
+            // all tokens got sold, no need to redistribute, we use fraction here
+            uint8 percentInStage = FundingEntity.getStageTokenSharePercentage(2);
+            uint256 raisedAmount = FundingEntity.getStageAmountRaised(2);
+            if(raisedAmount > 0) {
+                return getTokenFraction( percentInStage, raisedAmount, amount );
+            } else {
+                // ico raised 0 eth, so we distribute tokens based on stake in PRE
+                return getICOTokensBasedOnStakeInPRE(_vaultAddress);
+            }
+        }
+        else {
+            // ico has unsold tokens, we use parity
+            return amount * stageTwoParityCacheValue;
+        }
+    }
+
     function getPRETokensBasedOnStakeInICO(address _vaultAddress) view internal returns(uint256) {
-        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress );
+        uint256 myIcoTokens = getMyTokensInSecondStage( _vaultAddress, false );
         uint8 PREpercentInStage = FundingEntity.getStageTokenSharePercentage(1);
         uint8 ICOpercentInStage = FundingEntity.getStageTokenSharePercentage(2);
         uint256 ICOtokensInStage = tokenSupply * ICOpercentInStage / 100;
@@ -79,29 +108,12 @@ contract TokenSCADAGeneric {
         return (preIcoUnsoldSupply * myFraction) / ( 10 ** precision );
     }
 
-    function getMyTokensInSecondStage(address _vaultAddress) public view returns(uint256) {
-        FundingVault vault = FundingVault(_vaultAddress);
-        if(UnsoldTokenAmountCacheValue == 0) {
-            // all tokens got sold, no need to redistribute, we use fraction here
-            uint8 percentInStage = FundingEntity.getStageTokenSharePercentage(2);
-            uint256 raisedAmount = FundingEntity.getStageAmountRaised(2);
-            if(raisedAmount > 0) {
-                return getTokenFraction( percentInStage, raisedAmount, vault.stageAmounts(2) );
-            } else {
-                // ico raised 0 eth, so we distribute tokens based on stake in PRE
-                return getICOTokensBasedOnStakeInPRE(_vaultAddress);
-            }
-        }
-        else {
-            // ico has unsold tokens, we use parity
-            return vault.stageAmounts(2) * stageTwoParityCacheValue;
-        }
-    }
+
 
     function getICOTokensBasedOnStakeInPRE(address _vaultAddress) view internal returns(uint256) {
         uint8 PREpercentInStage = FundingEntity.getStageTokenSharePercentage(1);
         uint8 ICOpercentInStage = FundingEntity.getStageTokenSharePercentage(2);
-        uint256 myPreTokens = getMyTokensInFirstStage( _vaultAddress );
+        uint256 myPreTokens = getMyTokensInFirstStage( _vaultAddress, false );
         uint256 PREtokensInStage = tokenSupply * PREpercentInStage / 100;
         uint256 precision = 18;
         uint256 IcoUnsoldSupply = tokenSupply * ICOpercentInStage / 100;

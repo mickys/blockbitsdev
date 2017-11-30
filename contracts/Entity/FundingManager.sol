@@ -6,9 +6,6 @@
 
  Contains the Funding Contract code deployed and linked to the Application Entity
 
-
-    !!! Links directly to Milestones
-
 */
 
 pragma solidity ^0.4.17;
@@ -16,6 +13,8 @@ pragma solidity ^0.4.17;
 import "./../ApplicationAsset.sol";
 import "./FundingVault.sol";
 import "./TokenManager.sol";
+import "./Proposals.sol";
+import "./Milestones.sol";
 import "./Funding.sol";
 import "./Token.sol";
 import "./../Algorithms/TokenSCADA1Market.sol";
@@ -26,6 +25,8 @@ contract FundingManager is ApplicationAsset {
     TokenManager TokenManagerEntity;
     Token TokenEntity;
     TokenSCADAGeneric TokenSCADAEntity;
+    Proposals ProposalsEntity;
+    Milestones MilestonesEntity;
 
     uint256 public LockedVotingTokens = 0;
 
@@ -54,6 +55,11 @@ contract FundingManager is ApplicationAsset {
         EntityStates["MILESTONE_PROCESS_PROGRESS"]  = 31;
         EntityStates["MILESTONE_PROCESS_DONE"]      = 32;
 
+        EntityStates["EMERGENCY_PROCESS_START"]     = 40;
+        EntityStates["EMERGENCY_PROCESS_PROGRESS"]  = 41;
+        EntityStates["EMERGENCY_PROCESS_DONE"]      = 42;
+
+
         EntityStates["COMPLETE_PROCESS_START"]     = 100;
         EntityStates["COMPLETE_PROCESS_PROGRESS"]  = 101;
         EntityStates["COMPLETE_PROCESS_DONE"]      = 102;
@@ -78,6 +84,12 @@ contract FundingManager is ApplicationAsset {
 
         address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
         TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress) ;
+
+        address MilestonesAddress = getApplicationAssetAddressByName('Milestones');
+        MilestonesEntity = Milestones(MilestonesAddress) ;
+
+        address ProposalsAddress = getApplicationAssetAddressByName('Proposals');
+        ProposalsEntity = Proposals(ProposalsAddress) ;
     }
 
 
@@ -130,7 +142,6 @@ contract FundingManager is ApplicationAsset {
         }
     }
 
-
     function getMyVaultAddress(address _sender) public view returns (address) {
         return vaultList[_sender];
     }
@@ -143,39 +154,12 @@ contract FundingManager is ApplicationAsset {
         }
     }
 
-    /*
-    function doProcessVaultOne() public {
-        address currentVault = vaultById[1];
-        EventFundingManagerProcessedVault(currentVault, 1);
-        FundingVault vault = FundingVault(currentVault);
-        if(!vault.ReleaseFundsToOutputAddress()) {
-            revert();
-        }
-    }
-    */
-
     bool public fundingProcessed = false;
     uint256 public lastProcessedVaultId = 0;
     uint8 public VaultCountPerProcess = 10;
     bytes32 public currentTask = "";
 
     mapping (bytes32 => bool) public taskByHash;
-
-    /*
-    function addTask(bytes32 actionType, bytes32 arg1) {
-        bytes32 thisHash = getHash( actionType, arg1 );
-        taskByHash[thisHash] = false;
-    }
-
-    function initTasks() {
-        // add original tasks, excluding milestones for now
-        currentTask = getHash("FUNDING_FAILED_START", "");
-        getHash("FUNDING_SUCCESSFUL_START", "");
-        getHash("MILESTONE_PROCESS_START", "");
-        getHash("COMPLETE_PROCESS_START", "");
-    }
-
-    */
 
     function getHash(bytes32 actionType, bytes32 arg1) public pure returns ( bytes32 ) {
         return keccak256(actionType, arg1);
@@ -188,6 +172,7 @@ contract FundingManager is ApplicationAsset {
                 CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS") ||
                 CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ||
                 CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ||
+                CurrentEntityState == getEntityState("EMERGENCY_PROCESS_PROGRESS") ||
                 CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")
             ) {
 
@@ -232,17 +217,19 @@ contract FundingManager is ApplicationAsset {
         return taskByHash[thisHash];
     }
 
-    uint8 currentMilestoneId = 0;
-
-    function getCurrentMilestoneId() internal view returns (bytes32) {
-        return bytes32(currentMilestoneId);
+    function getCurrentMilestoneIdHash() internal view returns (bytes32) {
+        return bytes32(MilestonesEntity.currentRecord());
     }
 
     function processMilestoneFinished() public view returns (bool) {
-        bytes32 thisHash = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneId());
+        bytes32 thisHash = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneIdHash());
         return taskByHash[thisHash];
     }
 
+    function processEmergencyFundReleaseFinished() public view returns (bool) {
+        bytes32 thisHash = getHash("EMERGENCY_PROCESS_START", getCurrentMilestoneIdHash());
+        return taskByHash[thisHash];
+    }
 
     function ProcessFundingVault(address vaultAddress ) internal {
         FundingVault vault = FundingVault(vaultAddress);
@@ -250,7 +237,7 @@ contract FundingManager is ApplicationAsset {
         if(CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS")) {
 
             /*
-            // release tokens back to owner
+            // release all tokens back to owner
             if(!vault.ReleaseFundsToOutputAddress()) {
                 revert();
             }
@@ -260,28 +247,33 @@ contract FundingManager is ApplicationAsset {
 
             // step 1 -  transfer bought token share from "manager" to "vault"
             TokenEntity.transfer( vaultAddress, vault.getBoughtTokens() );
+
             // vault should now hold as many tokens as the investor bought using direct and milestone funding,
             // as well as the ether they sent
 
-            // step 2
-            // - ask vault to transfer "direct funding" tokens to investor
-            // - ask vault to release the direct funding eth to platform
-
-            /*
-            // release funds to owner / tokens to investor
-            if(!vault.ReleaseFundsToOutputAddress()) {
+            // "direct funding" release -> funds to owner / tokens to investor
+            if(!vault.ReleaseFundsAndTokens()) {
                 revert();
             }
-            */
-
 
         } else if(CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS")) {
-            /*
-            // release funds to owner / tokens to investor
-            if(!vault.ReleaseFundsToOutputAddress()) {
-                revert();
+
+            if(vault.allFundingProcessed() == false) {
+                // release funds to owner / tokens to investor
+                if(!vault.ReleaseFundsAndTokens()) {
+                    revert();
+                }
             }
-            */
+
+        } else if(CurrentEntityState == getEntityState("EMERGENCY_PROCESS_PROGRESS")) {
+
+            if(vault.allFundingProcessed() == false) {
+                // release emergency funds to owner / tokens to investor
+                if(!vault.releaseTokensAndEtherForEmergencyFund()) {
+                    revert();
+                }
+            }
+
         } else if(CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")) {
             /*
                 not much to do here, except get vault to transfer black hole tokens to investors, or output address
@@ -304,14 +296,6 @@ contract FundingManager is ApplicationAsset {
             EntityProcessor(EntityStateRequired);
             callAgain = true;
         }
-
-        /*
-        if(recursive && callAgain) {
-            if(hasRequiredStateChanges()) {
-                doStateChanges(recursive);
-            }
-        }
-        */
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
@@ -357,17 +341,27 @@ contract FundingManager is ApplicationAsset {
             ProcessVaultList(VaultCountPerProcess);
 // Milestones
         } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_START") ) {
-            currentTask = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneId() );
+            currentTask = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneIdHash() );
             CurrentEntityState = getEntityState("MILESTONE_PROCESS_PROGRESS");
         } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
+            ProcessVaultList(VaultCountPerProcess);
+
+// Emergency funding release
+        } else if ( EntityStateRequired == getEntityState("EMERGENCY_PROCESS_START") ) {
+            currentTask = getHash("EMERGENCY_PROCESS_START", bytes32(0) );
+            CurrentEntityState = getEntityState("EMERGENCY_PROCESS_PROGRESS");
+        } else if ( EntityStateRequired == getEntityState("EMERGENCY_PROCESS_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
 
 // Completion
         } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_START") ) {
             currentTask = getHash("COMPLETE_PROCESS_START", "");
             CurrentEntityState = getEntityState("COMPLETE_PROCESS_PROGRESS");
+
         } else if ( EntityStateRequired == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
-            ProcessVaultList(VaultCountPerProcess);
+            // release platform owner tokens from token manager
+            TokenManagerEntity.ReleaseOwnersLockedTokens( FundingEntity.multiSigOutputAddress() );
+            CurrentEntityState = getEntityState("COMPLETE_PROCESS_DONE");
         }
 
     }
@@ -411,6 +405,13 @@ contract FundingManager is ApplicationAsset {
 
                     // else, check if all milestones have been processed and try finalising development process
                     // EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
+
+
+                    if(processEmergencyFundReleaseFinished() == false) {
+                        if(ProposalsEntity.EmergencyFundingReleaseApproved() == true) {
+                            EntityStateRequired = getEntityState("EMERGENCY_PROCESS_START");
+                        }
+                    }
                 }
 
             } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
@@ -437,13 +438,21 @@ contract FundingManager is ApplicationAsset {
             } else if ( CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
                 // still in progress? check if we should move to done
 
-                /*
                 if ( processMilestoneFinished() ) {
                     EntityStateRequired = getEntityState("MILESTONE_PROCESS_DONE");
                 } else {
                     EntityStateRequired = getEntityState("MILESTONE_PROCESS_PROGRESS");
                 }
-                */
+
+    // Emergency funding release
+            } else if ( CurrentEntityState == getEntityState("EMERGENCY_PROCESS_PROGRESS") ) {
+                // still in progress? check if we should move to done
+
+                if ( processEmergencyFundReleaseFinished() ) {
+                    EntityStateRequired = getEntityState("EMERGENCY_PROCESS_DONE");
+                } else {
+                    EntityStateRequired = getEntityState("EMERGENCY_PROCESS_PROGRESS");
+                }
 
     // Completion
             } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {

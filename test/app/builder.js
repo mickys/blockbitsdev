@@ -355,10 +355,35 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
         let vaultAddress = await FundingManager.vaultById.call(i);
         let TokenBalance = await this.getTokenBalance(vaultAddress);
         let TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
-        this.setup.helpers.utils.toLog(logPre + "Vault Balance ["+i+"]:   " + TokenBalanceInFull);
+        this.setup.helpers.utils.toLog(logPre + "Vault Balance  ["+i+"]:  " + TokenBalanceInFull);
+
+        total = total.add( this.setup.helpers.web3util.fromWei(TokenBalance, "wei") );
+
+        vault = await FundingVault.at(vaultAddress);
+        let walletAddress = await vault.vaultOwner.call();
+        TokenBalance = await this.getTokenBalance(walletAddress);
+        TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
+        this.setup.helpers.utils.toLog(logPre + "Wallet Balance ["+i+"]:  " + TokenBalanceInFull);
 
         total = total.add( this.setup.helpers.web3util.fromWei(TokenBalance, "wei") );
         // this.setup.helpers.utils.toLog(logPre + "Vault Distributed:   " + total.toString());
+
+
+        let BalanceNum = await vault.BalanceNum.call();
+        this.setup.helpers.utils.toLog(logPre + "Milestone Breakdown ["+BalanceNum.toString()+"]");
+        for (let c = 0; c < BalanceNum; c++) {
+
+            TokenBalance = await vault.tokenBalances.call(c);
+            TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
+            this.setup.helpers.utils.toLog(logPre + "Token Balance ["+c+"]:  " + TokenBalanceInFull);
+
+            let EthBalance = await vault.etherBalances.call(c);
+            let EthBalanceInFull = this.setup.helpers.web3util.fromWei(EthBalance, "ether");
+            this.setup.helpers.utils.toLog(logPre + "Eth Balance   ["+c+"]:  " + EthBalanceInFull);
+        }
+
+        this.setup.helpers.utils.toLog("");
+
     }
 
     let totalInFull = this.setup.helpers.web3util.fromWei(total, "ether");
@@ -408,11 +433,11 @@ TestBuildHelper.prototype.displayVaultDetails = async function (vaultAddress, id
         let stageAmount = await vault.stageAmounts.call(stageId);
 
         if(stageId === 1) {
-            stageTokens = await TokenSCADA.getMyTokensInFirstStage.call(vaultAddress);
+            stageTokens = await TokenSCADA.getMyTokensInFirstStage.call(vaultAddress, false);
             PreTokens = stageTokens;
         }
         else if(stageId === 2) {
-            stageTokens = await TokenSCADA.getMyTokensInSecondStage.call(vaultAddress);
+            stageTokens = await TokenSCADA.getMyTokensInSecondStage.call(vaultAddress, false);
             IcoTokens = stageTokens;
         }
 

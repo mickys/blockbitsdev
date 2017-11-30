@@ -40,14 +40,22 @@ contract FundingVault {
     address public managerAddress;
 
     /*
+        Lock and BlackHole settings
+    */
+
+    bool public allFundingProcessed = false;
+    bool public DirectFundingProcessed = false;
+
+    /*
         Assets
     */
-    // ApplicationEntityABI public ApplicationEntity;
+    ApplicationEntityABI public ApplicationEntity;
     Funding public FundingEntity;
     FundingManager public FundingManagerEntity;
     Milestones public MilestonesEntity;
     TokenManager public TokenManagerEntity;
     TokenSCADAGeneric public TokenSCADAEntity;
+    Token public TokenEntity ;
 
     /*
         Globals
@@ -56,6 +64,7 @@ contract FundingVault {
     uint256 public amount_milestone = 0;
 
     bool emergencyFundReleased = false;
+    uint8 emergencyFundPercentage = 0;
 
     struct PurchaseStruct {
         uint256 unix_time;
@@ -100,11 +109,17 @@ contract FundingVault {
         address TokenManagerAddress = FundingEntity.getApplicationAssetAddressByName("TokenManager");
         TokenManagerEntity = TokenManager(TokenManagerAddress);
 
+        address TokenAddress = TokenManagerEntity.TokenEntity();
+        TokenEntity = Token(TokenAddress);
+
         address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
         TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
 
-        // address ApplicationEntityAddress = TokenManagerEntity.owner();
-        // ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
+        // set Emergency Fund Percentage if available.
+        address ApplicationEntityAddress = TokenManagerEntity.owner();
+        ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
+        emergencyFundPercentage = uint8( ApplicationEntity.getBylawUint256("emergency_fund_percentage") );
+
 
         // init
         _initialized = true;
@@ -117,6 +132,7 @@ contract FundingVault {
     */
 
     mapping (uint8 => uint256) public stageAmounts;
+    mapping (uint8 => uint256) public stageAmountsDirect;
 
     function addPayment(
         uint8 _payment_method,
@@ -141,6 +157,7 @@ contract FundingVault {
             // assign payment to direct or milestone
             if(_payment_method == 1) {
                 amount_direct+= purchase.amount;
+                stageAmountsDirect[_funding_stage]+=purchase.amount;
             }
 
             if(_payment_method == 2) {
@@ -151,7 +168,7 @@ contract FundingVault {
             // issue with iterating over them, while processing vaults, would be that someone could create a large
             // number of payments, which would result in an "out of gas" / stack overflow issue, that would lock
             // our contract, so we don't really want to do that.
-            // doing it this way also saves gas
+            // doing it this way also saves some gas
             stageAmounts[_funding_stage]+=purchase.amount;
 
             EventPaymentReceived( purchase.payment_method, purchase.amount, purchase.index );
@@ -163,95 +180,142 @@ contract FundingVault {
 
 
     function getBoughtTokens() public view returns (uint256) {
-        return TokenSCADAEntity.getBoughtTokens( address(this) );
+        return TokenSCADAEntity.getBoughtTokens( address(this), false );
     }
 
+    function getDirectBoughtTokens() public view returns (uint256) {
+        return TokenSCADAEntity.getBoughtTokens( address(this), true );
+    }
+
+    mapping (uint8 => uint256) public etherBalances;
+    mapping (uint8 => uint256) public tokenBalances;
+    uint8 public BalanceNum = 0;
+
+    bool public BalancesInitialised = false;
     function initMilestoneTokenAndEtherBalances() internal
-        pure // remove this shit
     {
+        if(BalancesInitialised == false) {
 
-        // add emergency as primary
-        // init emergency fund if available.
+            uint256 milestoneTokenBalance = TokenEntity.balanceOf(address(this));
+            uint256 milestoneEtherBalance = this.balance;
 
-        // iterate through milestones
-        // based on milestone percentage, create internal token and ether balances
+            // no need to worry about fractions because at the last milestone, we send everything that's left.
+
+            // emergency fund takes it's percentage from initial balances.
+            if(emergencyFundPercentage > 0) {
+                tokenBalances[0] = milestoneTokenBalance / 100 * emergencyFundPercentage;
+                etherBalances[0] = milestoneEtherBalance / 100 * emergencyFundPercentage;
+
+                milestoneTokenBalance-=tokenBalances[0];
+                milestoneEtherBalance-=etherBalances[0];
+            }
+
+            // milestones percentages are then taken from what's left.
+            for(uint8 i = 1; i <= MilestonesEntity.RecordNum(); i++) {
+
+                uint8 perc = MilestonesEntity.getMilestoneFundingPercentage(i);
+                tokenBalances[i] = milestoneTokenBalance / 100 * perc;
+                etherBalances[i] = milestoneEtherBalance / 100 * perc;
+            }
+
+            BalanceNum = i;
+            BalancesInitialised = true;
+        }
     }
 
-    function ReleaseFundsAndTokens(uint8 _managerState)
+    function ReleaseFundsAndTokens()
         public
-        view // remove this shit
         requireInitialised
         onlyManager
         returns (bool)
     {
-        // first make sure cashback is not possible
-        if(!canCashBack()) {
+        // first make sure cashback is not possible, and that we've not processed everything in this vault
+        if(!canCashBack() && allFundingProcessed == false) {
 
-            if(_managerState == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
+            if(FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
-                // get tokens for direct and transfer to investor
+                // case 1, direct funding only
+                if(amount_direct > 0 && amount_milestone == 0) {
 
-                // transfer direct amount to outputAddress
+                    // if we have direct funding and no milestone balance, transfer everything and lock vault
+                    // to save gas in future processing runs.
 
-                // - release direct funding => direct_released = true
+                    // transfer tokens to the investor
+                    TokenEntity.transfer(vaultOwner, TokenEntity.balanceOf(address(this)) );
 
-                initMilestoneTokenAndEtherBalances();
+                    // transfer ether to the owner's wallet
+                    outputAddress.transfer(this.balance);
+
+                    // lock vault.. and enable black hole methods
+                    allFundingProcessed = true;
+
+                } else {
+                // case 2 and 3, direct funding only
+
+                    if(amount_direct > 0 && DirectFundingProcessed == false ) {
+                        TokenEntity.transfer(vaultOwner, getDirectBoughtTokens() );
+                        // transfer "direct funding" ether to the owner's wallet
+                        outputAddress.transfer(amount_direct);
+                        DirectFundingProcessed = true;
+                    }
+
+                    // process and initialize milestone balances, emergency fund, etc, once
+                    initMilestoneTokenAndEtherBalances();
+                }
                 return true;
+
+            } else if(FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("MILESTONE_PROCESS_PROGRESS")) {
+
+                // get current milestone so we know which one we need to release funds for.
+                uint8 milestoneId = MilestonesEntity.currentRecord();
+
+                uint256 transferTokens = tokenBalances[milestoneId];
+                uint256 transferEther = etherBalances[milestoneId];
+
+                if(milestoneId == BalanceNum) {
+                    // we're processing the last milestone and balance, this means we're transferring everything left.
+                    // this is done to make sure we've transferred everything, even "ether that got mistakenly sent to this address"
+                    // as well as the emergency fund if it has not been used.
+                    transferTokens = TokenEntity.balanceOf(address(this));
+                    transferEther = this.balance;
+                }
+
+                // transfer tokens to the investor
+                TokenEntity.transfer(vaultOwner, transferTokens );
+
+                // transfer ether to the owner's wallet
+                outputAddress.transfer(transferEther);
+
+                if(milestoneId == BalanceNum) {
+                    // lock vault.. and enable black hole methods
+                    allFundingProcessed = true;
+                }
             }
-            // else if ( _managerState == FundingManagerEntity.getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
-
-                // get MilestonesEntity.CurrentRecord();
-                // get Record State == "AWAITING RELEASE"
-                // - release funding for said milestone => decrease available funding
-
-            // }
-
         }
 
-
-        // IF Funding Contract is SUCCESSFUL
-
-
-        // check current milestone progress, if any of them is "AWAITING RELEASE"
-        // - release funding for said milestone => decrease available funding
-
-        /*
-
-        Upon successful funding, token manager assigns tokens to this vault.
-
-        Flow:
-            tokenContract.transfer from this => to my owner
-            this.transfer(value) to output address
-        */
         return false;
     }
 
-    /*
-    function releaseTokensAndEtherForEmergencyFund() public {
-        uint256 Emergency_Fund_Exists = ApplicationEntity.getBylawUint256("Emergency_Fund_Exists") ;
 
-        if(Emergency_Fund_Exists == 1 && emergencyFundReleased == false) {
-            // get amount percentage from application bylaws
-            uint256 percentage = ApplicationEntity.getBylawUint256("Emergency_Fund_Percentage") ;
+    function releaseTokensAndEtherForEmergencyFund()
+        public
+        requireInitialised
+        onlyManager
+        returns (bool)
+    {
+        if( emergencyFundReleased == false && emergencyFundPercentage > 0) {
+
+            // transfer tokens to the investor
+            TokenEntity.transfer(vaultOwner, tokenBalances[0] );
+
+            // transfer ether to the owner's wallet
+            outputAddress.transfer(etherBalances[0]);
+
+            emergencyFundReleased = true;
+            return true;
         }
+        return false;
     }
-
-
-   function getTokenAmountByEther() public view {
-
-       var (percentInStage, raisedAmount) = FundingEntity.getFundingStageVariablesRequiredBySCADA(_fundingStage);
-
-       // make sure raisedAmount is higher than 0
-       if(raisedAmount > 0) {
-           uint256 tokensInStage = tokenSupply * percentInStage / 100;
-           uint256 myTokens = (tokensInStage * _ether_amount) / raisedAmount;
-           return myTokens;
-       } else {
-           return 0;
-       }
-
-    }
-    */
 
     function ReleaseFundsToInvestor()
         public
@@ -263,9 +327,6 @@ contract FundingVault {
             // IF we're doing a cashback
             // transfer vault tokens back to owner address
             // send all ether to wallet owner
-
-            address TokenAddress = TokenManagerEntity.TokenEntity();
-            Token TokenEntity = Token(TokenAddress);
 
             // get token balance
             uint256 myBalance = TokenEntity.balanceOf(address(this));

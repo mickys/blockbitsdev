@@ -89,10 +89,10 @@ const setup = {
     assetContractNames: [
         'ListingContract',
         'NewsContract',
-        'Proposals',
         'TokenManager',
-        'FundingManager',
-        'Funding',
+        'Proposals',        // requires TokenManager initialized
+        'FundingManager',   // requires TokenManager initialized
+        'Funding',          // requires TokenManager & FundingManager initialized
         'Milestones',
         'Meetings',
         'GeneralVault',
@@ -128,7 +128,10 @@ tests = [];
 // tests.push("4_Asset_Milestones_Locked");
 // tests.push("4_Asset_Proposals_Creation");
 
-tests.push("4_Asset_Proposals_Type1");
+// tests.push("4_Asset_FundingManager_Successful");
+tests.push("4_Asset_Proposals_Type4");
+
+//tests.push("4_Asset_Proposals_Type1");
 
 /*
 tests.push("4_Asset_Proposals_Type2");

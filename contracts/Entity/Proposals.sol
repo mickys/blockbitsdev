@@ -20,13 +20,13 @@ import "./FundingVault.sol";
 
 contract Proposals is ApplicationAsset {
 
-    ApplicationEntityABI Application;
-    ListingContract ListingContractEntity;
-    Funding FundingEntity;
-    FundingManager FundingManagerEntity;
-    TokenManager TokenManagerEntity;
-    Token TokenEntity;
-    Milestones MilestonesEntity;
+    ApplicationEntityABI public Application;
+    ListingContract public ListingContractEntity;
+    Funding public FundingEntity;
+    FundingManager public FundingManagerEntity;
+    TokenManager public TokenManagerEntity;
+    Token public TokenEntity;
+    Milestones public MilestonesEntity;
 
     function getRecordState(bytes32 name) public view returns (uint8) {
         return RecordStates[name];
@@ -59,7 +59,6 @@ contract Proposals is ApplicationAsset {
 
         setActionTypes();
 
-        // ApplicationEntity States
         RecordStates["NEW"]                 = 1;
         RecordStates["ACCEPTING_VOTES"]     = 2;
         RecordStates["VOTING_ENDED"]        = 3;
@@ -126,8 +125,30 @@ contract Proposals is ApplicationAsset {
     // someone, but at quite a significant cost )
     // - AFTER_COMPLETE_CODE_UPGRADE
 
+    mapping (uint8 => uint256) public ActiveProposalIds;
+    uint8 public ActiveProposalNum = 0;
 
+    function process() public {
+        for(uint8 i = 0; i < ActiveProposalNum; i++) {
+            tryEndVoting( ActiveProposalIds[i] );
+        }
+    }
 
+    function hasRequiredStateChanges() public view returns (bool) {
+        for(uint8 i = 0; i < ActiveProposalNum; i++) {
+            if( canEndVoting( ActiveProposalIds[i] ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function getRequiredStateChanges() public view returns (uint8) {
+        if(hasRequiredStateChanges()) {
+            return ActiveProposalNum;
+        }
+        return 0;
+    }
 
     function addCodeUpgradeProposal(address _addr, bytes32 _sourceCodeUrl)
         external
@@ -307,37 +328,6 @@ contract Proposals is ApplicationAsset {
         }
     }
 
-
-    function runActionAfterAcceptance(uint256 _proposalId) internal {
-
-        ProposalRecord storage proposal = ProposalsById[_proposalId];
-
-        if(proposal.actionType == getActionType("MILESTONE_DEADLINE")) {
-
-
-
-        } else if (proposal.actionType == getActionType("MILESTONE_POSTPONING")) {
-
-
-        } else if (proposal.actionType == getActionType("EMERGENCY_FUND_RELEASE")) {
-
-
-        } else if (proposal.actionType == getActionType("PROJECT_DELISTING")) {
-
-            ListingContractEntity.delistChild( proposal.extra );
-
-
-        } else if (
-            proposal.actionType == getActionType("IN_DEVELOPMENT_CODE_UPGRADE") ||
-            proposal.actionType == getActionType("AFTER_COMPLETE_CODE_UPGRADE")
-        ) {
-
-            // initiate code upgrade
-            acceptCodeUpgrade(_proposalId);
-        }
-
-    }
-
     function acceptCodeUpgrade(uint256 _proposalId) internal {
         ProposalRecord storage proposal = ProposalsById[_proposalId];
         // reinitialize this each time, because we rely on "owner" as the address, and it will change
@@ -379,11 +369,8 @@ contract Proposals is ApplicationAsset {
         result.requiredForResult = result.totalAvailable / 2;   // 50%
 
         proposal.state = getRecordState("ACCEPTING_VOTES");
+        addActiveProposal(_proposalId);
     }
-
-
-
-
 
     /*
 
@@ -417,8 +404,9 @@ contract Proposals is ApplicationAsset {
 
     function RegisterVote(uint256 _proposalId, bool _myVote) public {
         address Voter = msg.sender;
+
         // get voting power
-        uint256 VoterPower = getMyVotingPower(_proposalId, Voter);
+        uint256 VoterPower = getVotingPower(_proposalId, Voter);
 
         // get proposal for state
         ProposalRecord storage proposal = ProposalsById[_proposalId];
@@ -437,7 +425,7 @@ contract Proposals is ApplicationAsset {
 
             registerNewVote(_proposalId, Voter, _myVote, VoterPower);
 
-            // this is where we can end voting before time if totalSoFar > 50% of totalAvailable
+            // this is where we can end voting before time if result.yes or result.no > totalSoFar
             tryEndVoting(_proposalId);
 
         } else {
@@ -464,6 +452,9 @@ contract Proposals is ApplicationAsset {
             previousVoteByProposalId.annulled = true;
 
             ResultRecord storage result = ResultsByProposalId[_proposalId];
+
+            // update total so far as well
+            result.totalSoFar-= previousVoteByProposalId.power;
 
             if(previousVoteByProposalId.vote == true) {
                 result.yes-= previousVoteByProposalId.power;
@@ -501,23 +492,26 @@ contract Proposals is ApplicationAsset {
     }
 
 
-    function getMyVotingPower(uint256 _proposalId, address _voter) public view returns ( uint256 ) {
-
+    function getVotingPower(uint256 _proposalId, address _voter) public view returns ( uint256 ) {
         uint256 VotingPower = 0;
         ProposalRecord storage proposal = ProposalsById[_proposalId];
-        address VaultAddress = FundingManagerEntity.getMyVaultAddress(_voter);
 
-        if(VaultAddress != address(0x0)) {
+        if(proposal.actionType == getActionType("AFTER_COMPLETE_CODE_UPGRADE")) {
 
-            uint256 myVotingPower = TokenEntity.balanceOf(VaultAddress);
+            return TokenEntity.balanceOf(_voter);
 
-            if(proposal.actionType == getActionType("PROJECT_DELISTING")) {
+        } else {
 
-                // for project delisting, we want to also include tokens in the voter's wallet.
-                myVotingPower+= TokenEntity.balanceOf(_voter);
+            address VaultAddress = FundingManagerEntity.getMyVaultAddress(_voter);
+            if(VaultAddress != address(0x0)) {
+                VotingPower = TokenEntity.balanceOf(VaultAddress);
+
+                if( proposal.actionType == getActionType("PROJECT_DELISTING") ) {
+                    // for project delisting, we want to also include tokens in the voter's wallet.
+                    VotingPower+= TokenEntity.balanceOf(_voter);
+                }
             }
         }
-
         return VotingPower;
     }
 
@@ -578,17 +572,29 @@ contract Proposals is ApplicationAsset {
         }
     }
 
-    function tryEndVoting(uint256 _proposalId) internal {
+    function canEndVoting(uint256 _proposalId) public view returns (bool) {
+
         ResultRecord storage result = ResultsByProposalId[_proposalId];
         if(result.requiresCounting == false) {
-            if(result.totalSoFar > result.requiredForResult) {
-                finaliseProposal(_proposalId);
+            if(result.yes > result.requiredForResult || result.no > result.requiredForResult) {
+                return true;
             }
         }
-        else if(ProcessedVotesByProposal[_proposalId] == VotesNumByProposalId[_proposalId]) {
-            if(result.totalSoFar > result.requiredForResult) {
-                finaliseProposal(_proposalId);
+        else {
+
+            if(ProcessedVotesByProposal[_proposalId] == VotesNumByProposalId[_proposalId]) {
+                if(result.yes > result.requiredForResult || result.no > result.requiredForResult) {
+                    return true;
+                }
             }
+
+        }
+        return false;
+    }
+
+    function tryEndVoting(uint256 _proposalId) internal {
+        if(canEndVoting(_proposalId)) {
+            finaliseProposal(_proposalId);
         }
     }
 
@@ -601,13 +607,85 @@ contract Proposals is ApplicationAsset {
         if(result.yes > result.requiredForResult) {
             // voting resulted in YES
             proposal.state = getRecordState("VOTING_RESULT_YES");
-
         } else if (result.no >= result.requiredForResult) {
             // voting resulted in NO
             proposal.state = getRecordState("VOTING_RESULT_NO");
         }
 
-        // lastClosedProposalId = _proposalId;
+        runActionAfterResult(_proposalId);
+
+    }
+
+    function addActiveProposal(uint256 _proposalId) internal {
+        ActiveProposalIds[++ActiveProposalNum]= _proposalId;
+    }
+
+    function removeAndReindexActive(uint256 _proposalId) internal {
+
+        bool found = false;
+        for (uint8 i = 0; i < ActiveProposalNum; i++) {
+            if(ActiveProposalIds[i] == _proposalId) {
+                found = true;
+            }
+            if(found) {
+                ActiveProposalIds[i] = ActiveProposalIds[i+1];
+            }
+        }
+
+        ActiveProposalNum--;
+    }
+
+
+    bool public EmergencyFundingReleaseApproved = false;
+
+    function runActionAfterResult(uint256 _proposalId) internal {
+
+        ProposalRecord storage proposal = ProposalsById[_proposalId];
+
+        if(proposal.state == getRecordState("VOTING_RESULT_YES")) {
+
+            if(proposal.actionType == getActionType("MILESTONE_DEADLINE")) {
+
+
+            } else if (proposal.actionType == getActionType("MILESTONE_POSTPONING")) {
+
+                // MilestonesEntity.updateMilestoneRecord();
+
+            } else if (proposal.actionType == getActionType("EMERGENCY_FUND_RELEASE")) {
+                EmergencyFundingReleaseApproved = true;
+
+            } else if (proposal.actionType == getActionType("PROJECT_DELISTING")) {
+
+                // ListingContractEntity.delistChild( proposal.extra );
+
+
+            } else if (
+                proposal.actionType == getActionType("IN_DEVELOPMENT_CODE_UPGRADE") ||
+                proposal.actionType == getActionType("AFTER_COMPLETE_CODE_UPGRADE")
+            ) {
+
+                // initiate code upgrade
+                acceptCodeUpgrade(_proposalId);
+            }
+
+            removeAndReindexActive(_proposalId);
+
+        } else if(proposal.state == getRecordState("VOTING_RESULT_NO")) {
+
+            //
+            if(proposal.actionType == getActionType("MILESTONE_DEADLINE")) {
+
+            } else {
+
+                removeAndReindexActive(_proposalId);
+            }
+        }
+    }
+
+    // used by vault cash back
+    function getMyVote(uint256 _proposalId, address _voter) public view returns (bool) {
+        VoteStruct storage vote = VotesByCaster[_proposalId][_voter];
+        return vote.vote;
     }
 
 }

@@ -18,8 +18,8 @@ module.exports = function (setup) {
 
             TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts);
 
-            TestBuildHelper.deploy("Funding");
-            // TestBuildHelper.deploy("FundingManager");
+            // TestBuildHelper.deploy("Funding");
+            TestBuildHelper.deploy("FundingManager");
 
             /*
             assetContract = await TestBuildHelper.deployAndInitializeAsset( assetName, ["TokenManager", "Milestones"] );

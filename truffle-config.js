@@ -28,8 +28,10 @@ module.exports = {
             network_id: 15,
             host: 'localhost',
             port: 8545,
-            gas: 4.7e6,
-            gasPrice: 10000000 // 0.1 gwei
+            // gas: 4.7e6,
+            // gas: 6.7e6, < max @ nov 29 2017
+            gas: 6.1e6,
+            gasPrice: 100000000 // 0.1 gwei -> 100 mil wei
         },
         ropsten: {
             network_id: 3,

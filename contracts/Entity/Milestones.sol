@@ -160,6 +160,11 @@ contract Milestones is ApplicationAsset {
         rec.index               = RecordNum;
     }
 
+    function getMilestoneFundingPercentage(uint8 recordId) public view returns (uint8){
+        Record storage rec = Collection[recordId];
+        return rec.funding_percentage;
+    }
+
     function doStateChanges() public {
 
         var (CurrentRecordState, RecordStateRequired, EntityStateRequired) = getRequiredStateChanges();
