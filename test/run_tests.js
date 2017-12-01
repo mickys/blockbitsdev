@@ -128,8 +128,8 @@ tests.push("4_Asset_Proposals_Type4");
 
 //tests.push("3_ApplicationEntity_States");
 
-// tests = [];
-// tests.push("integration_Gateway_and_ApplicationEntity");
+tests = [];
+tests.push("integration_Gateway_and_ApplicationEntity");
 
 // tests.push("4_Asset_Milestones_Locked");
 

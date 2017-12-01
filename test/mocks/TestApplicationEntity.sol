@@ -60,4 +60,7 @@ contract TestApplicationEntity is ApplicationEntity {
     }
     function setTestTimestamp(uint256 i) external { _mockTime = i; }
 
+    function addTestUpgradeAllowAddress(address _addr) external {
+        testAddressAllowUpgradeFrom = _addr;
+    }
 }

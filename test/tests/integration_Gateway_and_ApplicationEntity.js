@@ -58,7 +58,6 @@ module.exports = function(setup) {
                 assert.isTrue(await app._locked.call(), 'app1 _lock should be true');
             });
 
-
             it('second upgrade', async () => {
                 app2 = await contracts.ApplicationEntity.new();
                 await app2.addAssetProposals(proposals.address);
@@ -98,6 +97,31 @@ module.exports = function(setup) {
                 assert.isTrue(await app3._initialized.call(), 'app3 _initialized should be true');
                 assert.isTrue(await app2._locked.call(), 'app2 _lock should be true');
                 assert.equal(await proposals.owner.call(), app3.address, 'proposal asset should have returned correct owner address');
+
+            });
+
+            it('throws if an upgrade request is received from an account that does not pass validCodeUpgradeInitiator check', async () => {
+                let thirdPartyDeployer = accounts[1];
+                app2 = await contracts.ApplicationEntity.new({from: thirdPartyDeployer});
+                await app2.addAssetProposals(proposals.address, {from: thirdPartyDeployer});
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await app2.linkToGateway(gateway.address, settings.sourceCodeUrl, {from: thirdPartyDeployer})
+                });
+            });
+
+            it('mock: works if an upgrade request is received and current ApplicationEntity canInitiateCodeUpgrade allows it', async () => {
+                let thirdPartyDeployer = accounts[1];
+                await app.addTestUpgradeAllowAddress( thirdPartyDeployer );
+
+                app2 = await contracts.ApplicationEntity.new( {from: thirdPartyDeployer} );
+                await app2.addAssetProposals(proposals.address, {from: thirdPartyDeployer} );
+
+                let eventFilter = await helpers.utils.hasEvent(
+                    await app2.linkToGateway(gateway.address, settings.sourceCodeUrl, {from: thirdPartyDeployer}),
+                    'EventNewProposalCreated(bytes32,uint256)'
+                );
+                assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
 
             });
         });

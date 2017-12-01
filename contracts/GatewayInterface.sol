@@ -25,7 +25,6 @@ contract GatewayInterface {
     ApplicationEntity private currentApp;
 
     address public deployerAddress;
-    //
 
     // constructor
     function GatewayInterface() public {
@@ -46,6 +45,7 @@ contract GatewayInterface {
     *
     * @param        address _newAddress
     * @param        bytes32 _sourceCodeUrl
+    * @modifier     validCodeUpgradeInitiator
     */
     function requestCodeUpgrade( address _newAddress, bytes32 _sourceCodeUrl )
         external
@@ -83,7 +83,6 @@ contract GatewayInterface {
         }
     }
 
-
     /*
     * ApplicationEntity Contract approves code Upgrade
     *
@@ -103,7 +102,6 @@ contract GatewayInterface {
 
     /*
     * Locks current Application Entity
-    *
     */
     function lockCurrentApp() internal {
         if(!currentApp.lock()) {
@@ -127,7 +125,6 @@ contract GatewayInterface {
         return true;
     }
 
-
     /*
     * Get current News Contract address
     *
@@ -137,10 +134,38 @@ contract GatewayInterface {
         return currentApp.NewsContractEntity();
     }
 
+    /*
+    * Get current Listing Contract address
+    *
+    * @return       address ListingContractEntity
+    */
+    function getNewsContractAddress() external view returns (address) {
+        return currentApp.ListingContractEntity();
+    }
+
+    /*
+    * Validates if new application's deployer is allowed to upgrade current app
+    */
     modifier validCodeUpgradeInitiator() {
+        bool valid = false;
+
         ApplicationEntity newDeployedApp = ApplicationEntity(msg.sender);
         address newDeployer = newDeployedApp.deployerAddress();
-        require(newDeployer == deployerAddress || newDeployedApp.canInitiateCodeUpgrade(newDeployer) == true);
+
+        if(newDeployer == deployerAddress) {
+            valid = true;
+        } else {
+            if(currentApplicationEntityAddress != address(0x0)) {
+                currentApp = ApplicationEntity(currentApplicationEntityAddress);
+                if(currentApp.canInitiateCodeUpgrade(newDeployer)) {
+                    valid = true;
+                }
+            }
+        }
+
+        // ok if current app accepts newDeployer as a token holder that can do a code upgrade
+        // ok if newDeployer is oldDeployer
+        require( valid == true );
         _;
     }
 }

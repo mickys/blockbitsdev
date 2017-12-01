@@ -287,10 +287,12 @@ contract ApplicationEntity {
         DUMMY METHOD, to be replaced in a future Code Upgrade with a check to determine if sender should be able to initiate a code upgrade
         specifically used after milestone development completes
     */
+    address testAddressAllowUpgradeFrom;
     function canInitiateCodeUpgrade(address _sender) public view returns(bool) {
         // suppress warning
-        _sender = 0;
-        if(_initialized) { }
+        if(testAddressAllowUpgradeFrom != 0x0 && testAddressAllowUpgradeFrom == _sender) {
+            return true;
+        }
         return false;
     }
 
@@ -330,7 +332,6 @@ contract ApplicationEntity {
         _;
     }
 
-
     event DebugApplicationRequiredChanges( uint8 indexed _current, uint8 indexed _required );
     event EventApplicationEntityProcessor(uint8 indexed _current, uint8 indexed _required);
 
@@ -352,6 +353,7 @@ contract ApplicationEntity {
 
         // pretty similar to FundingManager
     */
+
     function doStateChanges() public {
 
         // process assets first so we can initialize them from NEW to WAITING
