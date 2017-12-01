@@ -66,7 +66,7 @@ contract Proposals is ApplicationAsset {
         RecordStates["VOTING_RESULT_NO"]    = 20;
     }
 
-    event EventNewProposalCreated ( bytes32 _hash, uint256 _proposalId );
+    event EventNewProposalCreated ( bytes32 indexed _hash, uint256 indexed _proposalId );
 
     function runBeforeApplyingSettings()
         internal

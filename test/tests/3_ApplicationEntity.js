@@ -241,7 +241,7 @@ module.exports = function(setup) {
                 assert.equal(eventFilter.length, 1, 'EventApplicationReady event not received.')
             });
 
-            it('will emit EventProposalsCodeUpgradeNew if a previous ApplicationEntity is already linked', async () => {
+            it('will emit EventNewProposalCreated if a previous ApplicationEntity is already linked', async () => {
                 let proposals = await contracts.Proposals.new();
                 await proposals.setInitialApplicationAddress(app.address);
                 await app.addAssetProposals(proposals.address);
@@ -249,9 +249,9 @@ module.exports = function(setup) {
                 app2 = await contracts.ApplicationEntity.new();
                 let eventFilter = await helpers.utils.hasEvent(
                     await app2.linkToGateway(gateway.address, settings.sourceCodeUrl),
-                    'EventProposalsCodeUpgradeNew(bytes32,uint256)'
+                    'EventNewProposalCreated(bytes32,uint256)'
                 );
-                assert.equal(eventFilter.length, 1, 'EventProposalsCodeUpgradeNew event not received.')
+                assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.')
             });
         });
 

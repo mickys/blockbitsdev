@@ -118,7 +118,7 @@ module.exports = function(setup) {
         });
 
 
-        /*
+
         it( "current proposal matches IN_DEVELOPMENT_CODE_UPGRADE settings", async () => {
 
             let RecordNum = await ProposalsAsset.RecordNum.call();
@@ -143,8 +143,8 @@ module.exports = function(setup) {
             assert(ResultRecord[5].toString(), "false", "Vote Recounting is not false.");
 
         });
-        */
 
+        /*
         context("Voting", async () => {
 
             it( "placing a vote ", async () => {
@@ -168,49 +168,49 @@ module.exports = function(setup) {
                 console.log("Power:           ", PowerInFull.toString());
 
 
-                /*
-                tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: wallet1} );
-                await helpers.utils.showGasUsage(helpers, tx, "RegisterVote 1 - wallet 1");
 
-                let hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
-                console.log("afterVoteHasRequiredStateChanges:", hasRequiredStateChanges.toString());
-
-
-
-                tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: wallet4} );
-                await helpers.utils.showGasUsage(helpers, tx, "RegisterVote 2 - wallet 4");
-
-                hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
-                console.log("afterVoteHasRequiredStateChanges:", hasRequiredStateChanges.toString());
-
-
-                let CurrentVoteNum =  await ProposalsAsset.VotesNumByProposalId.call( ProposalId );
-                console.log("CurrentVoteNum:", CurrentVoteNum.toString());
-
-                let ProposalResultRecord = await ProposalsAsset.ResultsByProposalId.call( ProposalId );
-                console.log("totalAvailable:    ", ProposalResultRecord[0].toString());
-                console.log("requiredForResult: ", ProposalResultRecord[1].toString());
-                console.log("totalSoFar:        ", ProposalResultRecord[2].toString());
-                console.log("yes:               ", ProposalResultRecord[3].toString());
-                console.log("no:                ", ProposalResultRecord[4].toString());
-                console.log("requiresCounting:  ", ProposalResultRecord[5].toString());
-
-
-                let LockedTokens = await FundingManagerAsset.LockedVotingTokens.call();
-                let LockedTokensInFull = helpers.web3util.fromWei(LockedTokens, "ether");
-                console.log("LockedTokens:      ", LockedTokensInFull.toString());
-                */
-
-                /*
-                ActiveProposalNum = await ProposalsAsset.ActiveProposalNum.call();
-                ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(0);
-                console.log("ActiveProposalNum:", ActiveProposalNum.toString());
-                console.log("ActiveProposalId: ", ActiveProposalId.toString());
-                */
 
             });
 
         });
+
+        */
+
+
+        /*
+         tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: wallet1} );
+         await helpers.utils.showGasUsage(helpers, tx, "RegisterVote 1 - wallet 1");
+
+         let hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
+         console.log("afterVoteHasRequiredStateChanges:", hasRequiredStateChanges.toString());
+
+
+
+         tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: wallet4} );
+         await helpers.utils.showGasUsage(helpers, tx, "RegisterVote 2 - wallet 4");
+
+         hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
+         console.log("afterVoteHasRequiredStateChanges:", hasRequiredStateChanges.toString());
+
+
+         let CurrentVoteNum =  await ProposalsAsset.VotesNumByProposalId.call( ProposalId );
+         console.log("CurrentVoteNum:", CurrentVoteNum.toString());
+
+         let ProposalResultRecord = await ProposalsAsset.ResultsByProposalId.call( ProposalId );
+         console.log("totalAvailable:    ", ProposalResultRecord[0].toString());
+         console.log("requiredForResult: ", ProposalResultRecord[1].toString());
+         console.log("totalSoFar:        ", ProposalResultRecord[2].toString());
+         console.log("yes:               ", ProposalResultRecord[3].toString());
+         console.log("no:                ", ProposalResultRecord[4].toString());
+         console.log("requiresCounting:  ", ProposalResultRecord[5].toString());
+
+
+         let LockedTokens = await FundingManagerAsset.LockedVotingTokens.call();
+         let LockedTokensInFull = helpers.web3util.fromWei(LockedTokens, "ether");
+         console.log("LockedTokens:      ", LockedTokensInFull.toString());
+         */
+
+
 
         /*
         context("states", async () => {

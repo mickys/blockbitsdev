@@ -73,9 +73,9 @@ module.exports = function(setup) {
                 await testapp2.setTestGatewayInterfaceEntity(gateway.address);
                 const eventFilter = helpers.utils.hasEvent(
                     await testapp2.callTestRequestCodeUpgrade(testapp2.address, settings.sourceCodeUrl),
-                    'EventProposalsCodeUpgradeNew(bytes32,uint256)'
+                    'EventNewProposalCreated(bytes32,uint256)'
                 );
-                assert.equal(eventFilter.length, 1, 'EventProposalsCodeUpgradeNew event not received.')
+                assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.')
             })
         });
 

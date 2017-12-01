@@ -280,6 +280,42 @@ module.exports = function(setup) {
 
             });
 
+            context('misc for extra coverage', async () => {
+
+                it('getRequiredStateChanges', async () => {
+                    await ProposalsAsset.getRequiredStateChanges.call();
+                });
+
+                it('hasRequiredStateChanges', async () => {
+                    await ProposalsAsset.hasRequiredStateChanges.call();
+                });
+
+                it('process', async () => {
+                    await ProposalsAsset.process();
+                });
+
+                it('getMyVote', async () => {
+                    await ProposalsAsset.getMyVote( 1, wallet1);
+                });
+
+                it('getProposalState', async () => {
+                    await ProposalsAsset.getProposalState.call(1);
+                });
+
+                it('getBylawsMilestoneMinPostponing', async () => {
+                    await ProposalsAsset.getBylawsMilestoneMinPostponing.call();
+                });
+
+                it('getBylawsMilestoneMaxPostponing', async () => {
+                    await ProposalsAsset.getBylawsMilestoneMaxPostponing.call();
+                });
+
+                it('getVotingPower for non existent investor', async () => {
+                    let Power = await ProposalsAsset.getVotingPower.call(1, accounts[0]);
+                    assert.equal(Power.toNumber(), 0, "Power is not 0");
+                });
+
+            });
 
 
         });

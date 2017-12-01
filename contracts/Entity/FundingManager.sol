@@ -343,6 +343,7 @@ contract FundingManager is ApplicationAsset {
         } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_START") ) {
             currentTask = getHash("MILESTONE_PROCESS_START", getCurrentMilestoneIdHash() );
             CurrentEntityState = getEntityState("MILESTONE_PROCESS_PROGRESS");
+
         } else if ( EntityStateRequired == getEntityState("MILESTONE_PROCESS_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
 
@@ -397,21 +398,25 @@ contract FundingManager is ApplicationAsset {
                 }
                 else if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL")) {
 
-                    // We can only process milestones, if Funding is successful, and has been processed.
-
-                    // for milestones
-                    // if we have a milestone that meets requirements, then we need to process it.
-                    // EntityStateRequired = getEntityState("MILESTONE_PROCESS_START");
-
-                    // else, check if all milestones have been processed and try finalising development process
-                    // EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
-
+                    if ( processMilestoneFinished() == false) {
+                        if(
+                            MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("VOTING_ENDED_YES") ||
+                            MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("VOTING_ENDED_NO_FINAL")
+                        ) {
+                            EntityStateRequired = getEntityState("MILESTONE_PROCESS_START");
+                        }
+                    }
 
                     if(processEmergencyFundReleaseFinished() == false) {
                         if(ProposalsEntity.EmergencyFundingReleaseApproved() == true) {
                             EntityStateRequired = getEntityState("EMERGENCY_PROCESS_START");
                         }
                     }
+
+                    // else, check if all milestones have been processed and try finalising development process
+                    // EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
+
+
                 }
 
             } else if ( CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
@@ -444,6 +449,15 @@ contract FundingManager is ApplicationAsset {
                     EntityStateRequired = getEntityState("MILESTONE_PROCESS_PROGRESS");
                 }
 
+            } else if ( CurrentEntityState == getEntityState("MILESTONE_PROCESS_DONE") ) {
+
+                if(processMilestoneFinished() == false) {
+                    EntityStateRequired = getEntityState("WAITING");
+
+                } else if(MilestonesEntity.currentRecord() == MilestonesEntity.RecordNum()) {
+                    EntityStateRequired = getEntityState("COMPLETE_PROCESS_START");
+                }
+
     // Emergency funding release
             } else if ( CurrentEntityState == getEntityState("EMERGENCY_PROCESS_PROGRESS") ) {
                 // still in progress? check if we should move to done
@@ -453,6 +467,8 @@ contract FundingManager is ApplicationAsset {
                 } else {
                     EntityStateRequired = getEntityState("EMERGENCY_PROCESS_PROGRESS");
                 }
+            } else if ( CurrentEntityState == getEntityState("EMERGENCY_PROCESS_DONE") ) {
+                EntityStateRequired = getEntityState("WAITING");
 
     // Completion
             } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {

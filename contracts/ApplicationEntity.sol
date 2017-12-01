@@ -367,15 +367,6 @@ contract ApplicationEntity {
             callAgain = true;
         }
 
-
-
-        /*
-        if(recursive && callAgain) {
-            if(hasRequiredStateChanges()) {
-                doStateChanges(recursive);
-            }
-        }
-        */
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
@@ -404,6 +395,10 @@ contract ApplicationEntity {
         if( MilestonesEntity.hasRequiredStateChanges() ) {
             return true;
         }
+        if( ProposalsEntity.hasRequiredStateChanges() ) {
+            return true;
+        }
+
 
     }
 
@@ -452,6 +447,10 @@ contract ApplicationEntity {
 
             if(MilestonesEntity.hasRequiredStateChanges()) {
                 MilestonesEntity.doStateChanges();
+            }
+
+            if(ProposalsEntity.hasRequiredStateChanges()) {
+                ProposalsEntity.process();
             }
 
         }

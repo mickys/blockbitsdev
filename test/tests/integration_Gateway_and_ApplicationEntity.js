@@ -38,29 +38,33 @@ module.exports = function(setup) {
 
                 app2 = await contracts.ApplicationEntity.new();
                 await app2.addAssetProposals(proposals.address);
+
                 let eventFilter = await helpers.utils.hasEvent(
                     await app2.linkToGateway(gateway.address, settings.sourceCodeUrl),
-                    'EventProposalsCodeUpgradeNew(bytes32,uint256)'
+                    'EventNewProposalCreated(bytes32,uint256)'
                 );
+
                 const requestId = helpers.utils.getProposalRequestId(eventFilter);
+
                 eventFilter = helpers.utils.hasEvent(
                     await proposals.callTestAcceptCodeUpgrade(requestId),
                     'EventGatewayNewAddress(address)'
                 );
+
                 assert.equal(eventFilter.length, 1, 'EventGatewayNewAddress event not received.');
                 assert.equal(await gateway.getApplicationAddress.call(), app2.address, 'gateway should have returned correct app address');
                 assert.equal(await app2.getParentAddress.call(), gateway.address, 'app2 should have returned gateway app address');
                 assert.isTrue(await app2._initialized.call(), 'app2 _initialized should be true');
                 assert.isTrue(await app._locked.call(), 'app1 _lock should be true');
-
             });
+
 
             it('second upgrade', async () => {
                 app2 = await contracts.ApplicationEntity.new();
                 await app2.addAssetProposals(proposals.address);
                 let eventFilter = await helpers.utils.hasEvent(
                     await app2.linkToGateway(gateway.address, settings.sourceCodeUrl),
-                    'EventProposalsCodeUpgradeNew(bytes32,uint256)'
+                    'EventNewProposalCreated(bytes32,uint256)'
                 );
                 let requestId = helpers.utils.getProposalRequestId(eventFilter);
                 eventFilter = helpers.utils.hasEvent(
@@ -79,7 +83,7 @@ module.exports = function(setup) {
 
                 eventFilter = await helpers.utils.hasEvent(
                     await app3.linkToGateway(gateway.address, settings.sourceCodeUrl),
-                    'EventProposalsCodeUpgradeNew(bytes32,uint256)'
+                    'EventNewProposalCreated(bytes32,uint256)'
                 );
                 requestId = helpers.utils.getProposalRequestId(eventFilter);
 

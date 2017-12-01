@@ -280,6 +280,10 @@ contract FundingVault {
                     transferEther = this.balance;
                 }
 
+                // set balances to 0 so we can't transfer multiple times.
+                // tokenBalances[milestoneId] = 0;
+                // etherBalances[milestoneId] = 0;
+
                 // transfer tokens to the investor
                 TokenEntity.transfer(vaultOwner, transferTokens );
 
@@ -290,6 +294,8 @@ contract FundingVault {
                     // lock vault.. and enable black hole methods
                     allFundingProcessed = true;
                 }
+
+                return true;
             }
         }
 
@@ -337,6 +343,9 @@ contract FundingVault {
 
             // now transfer all remaining ether back to investor address
             vaultOwner.transfer(this.balance);
+
+
+            // update FundingManager Locked Token Amount, so we don't break voting
         }
     }
 

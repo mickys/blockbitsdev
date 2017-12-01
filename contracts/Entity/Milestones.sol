@@ -65,6 +65,11 @@ contract Milestones is ApplicationAsset {
         // EntityStates["VOTING_ENDED"]                 = 21;
         EntityStates["VOTING_ENDED_YES"]             = 22;
         EntityStates["VOTING_ENDED_NO"]              = 23;
+        EntityStates["VOTING_ENDED_NO_FINAL"]        = 25;
+
+        EntityStates["VOTING_FUNDS_PROCESSED"]       = 30;
+
+
 
         EntityStates["FINAL"]                        = 50;
 
@@ -182,25 +187,20 @@ contract Milestones is ApplicationAsset {
 
         if(EntityStateRequired != getEntityState("__IGNORED__") ) {
             // process entity changes.
-            // if(CurrentEntityState != EntityStateRequired) {
             EntityProcessor(EntityStateRequired);
             DebugCallAgain(1);
             callAgain = true;
-            //}
         }
 
-        /*
-        if(recursive && callAgain) {
-            if(hasRequiredStateChanges()) {
-                doStateChanges(recursive);
-            }
-        }
-        */
 
     }
 
     function MilestonesCanChange() internal view returns (bool) {
-        if(CurrentEntityState == getEntityState("WAITING") || CurrentEntityState == getEntityState("IN_DEVELOPMENT")) {
+        if(
+            CurrentEntityState == getEntityState("WAITING") ||
+            CurrentEntityState == getEntityState("IN_DEVELOPMENT") ||
+            CurrentEntityState == getEntityState("VOTING_FUNDS_PROCESSED")
+        ) {
             return true;
         }
         return false;
@@ -229,7 +229,7 @@ contract Milestones is ApplicationAsset {
 
             } else if( record.state == getRecordState("IN_PROGRESS") ) {
 
-                if( getTimestamp() >= record.time_end) {
+                if( getTimestamp() >= record.time_end || ( getTimestamp() >= record.meeting_time && record.meeting_time > 0 ) ) {
                     RecordStateRequired = getRecordState("FINAL");
                 }
             }
@@ -263,14 +263,8 @@ contract Milestones is ApplicationAsset {
     function RecordProcessor(uint8 CurrentRecordState, uint8 RecordStateRequired) internal {
         EventRecordProcessor( assetName, CurrentRecordState, RecordStateRequired );
         updateRecord( RecordStateRequired );
-
-        if (
-            CurrentEntityState == getEntityState("VOTING_ENDED_YES")
-            || CurrentEntityState == getEntityState("VOTING_ENDED_NO")
-        ) {
-            startNextMilestone();
-        }
     }
+
 
     function EntityProcessor(uint8 EntityStateRequired) internal {
         EventEntityProcessor( assetName, CurrentEntityState, EntityStateRequired );
@@ -283,32 +277,57 @@ contract Milestones is ApplicationAsset {
             // create meeting
             // Meetings.create("internal", "MILESTONE_END", "");
 
-        } else if( EntityStateRequired == getEntityState("VOTING_IN_PROGRESS") ) {
+        } else if( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
             // create proposal and start voting on it
-            if(MilestoneAcceptanceProposalCreated == false) {
-                createMilestoneAcceptanceProposal();
-            }
+            createMilestoneAcceptanceProposal();
 
-        } else if( EntityStateRequired == getEntityState("VOTING_ENDED") ) {
+        } else if( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
 
-            // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
-            // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
+        } else if( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
 
-        } else if( EntityStateRequired == getEntityState("DEVELOPMENT_ENDED") ) {
+            // possible cashback time starts from now
+            MilestoneCashBackTime = getTimestamp();
 
+        } else if( CurrentEntityState == getEntityState("VOTING_FUNDS_PROCESSED") ) {
+            MilestoneCashBackTime = 0;
+            startNextMilestone();
+
+        } else if( CurrentEntityState == getEntityState("DEVELOPMENT_ENDED") ) {
+            MilestoneCashBackTime = 0;
         }
 
     }
 
-    uint256 currentProposalId = 0;
-    bool MilestoneAcceptanceProposalCreated = false;
-    function createMilestoneAcceptanceProposal() internal {
+    uint256 public MilestoneCashBackTime = 0;
 
-        currentProposalId = 10;
-        // ProposalsEntity.create
-        MilestoneAcceptanceProposalCreated = true;
+    function afterVoteNoCashBackTime() public view returns ( bool ) {
+        uint256 time =  MilestoneCashBackTime + getBylawsCashBackVoteRejectedDuration();
+        // after cash back time
+        if(getTimestamp() > time) {
+            return true;
+        }
+        return false;
     }
 
+
+    function getHash(uint8 actionType, bytes32 arg1, bytes32 arg2) public pure returns ( bytes32 ) {
+        return keccak256(actionType, arg1, arg2);
+    }
+
+    function getCurrentHash() public view returns ( bytes32 ) {
+        return getHash(1, bytes32(currentRecord), 0);
+    }
+
+    mapping (bytes32 => uint256) public ProposalIdByHash;
+    function createMilestoneAcceptanceProposal() internal {
+        if(ProposalIdByHash[ getCurrentHash() ] == 0x0 ) {
+            ProposalIdByHash[ getCurrentHash() ] = ProposalsEntity.createMilestoneAcceptanceProposal();
+        }
+    }
+
+    function getCurrentProposalId() internal view returns ( uint256 ) {
+        return ProposalIdByHash[ getCurrentHash() ];
+    }
 
     function setCurrentMilestoneMeetingTime(uint256 _meeting_time) public onlyDeployer {
         if ( CurrentEntityState == getEntityState("WAITING_MEETING_TIME") ) {
@@ -331,19 +350,20 @@ contract Milestones is ApplicationAsset {
 
     function startNextMilestone() internal {
         Record storage rec = Collection[currentRecord];
-        if(rec.state == getRecordState("FINAL") ) {
-            if(currentRecord < RecordNum) {
-                // set current record end date etc
-                rec.time_ended = getTimestamp();
 
-                // jump to next milestone
-                currentRecord++;
+        // set current record end date etc
+        rec.time_ended = getTimestamp();
+        rec.state = getRecordState("FINAL");
 
-                Record storage nextRec = Collection[currentRecord];
-                    nextRec.time_start = rec.time_ended;
-                    nextRec.time_end = rec.time_ended + nextRec.duration;
-            }
+        if(currentRecord < RecordNum) {
+            // jump to next milestone
+            currentRecord++;
+
+            Record storage nextRec = Collection[currentRecord];
+                nextRec.time_start = rec.time_ended;
+                nextRec.time_end = rec.time_ended + nextRec.duration;
         }
+
     }
 
     /*
@@ -471,37 +491,44 @@ contract Milestones is ApplicationAsset {
 
             } else if ( CurrentEntityState == getEntityState("VOTING_IN_PROGRESS") ) {
 
-                uint8 ProposalRecordState = ProposalsEntity.getProposalState( currentProposalId );
-                if (
-                    ProposalRecordState == ProposalsEntity.getEntityState("VOTING_ACCEPTED") ||
-                    ProposalRecordState == ProposalsEntity.getEntityState("VOTING_REJECTED")
-                ) {
-                    EntityStateRequired = getEntityState("VOTING_ENDED");
+                uint8 ProposalRecordState = ProposalsEntity.getProposalState( getCurrentProposalId() );
+
+                if ( ProposalRecordState == ProposalsEntity.getRecordState("VOTING_RESULT_YES") ) {
+                    EntityStateRequired = getEntityState("VOTING_ENDED_YES");
                 }
 
-            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED") ) {
-
-                // check if voting ended, if so based on result set
-                // EntityStateRequired = getEntityState("VOTING_ENDED_YES");
-                // EntityStateRequired = getEntityState("VOTING_ENDED_NO");
+                if (ProposalRecordState == ProposalsEntity.getRecordState("VOTING_RESULT_NO") ) {
+                    EntityStateRequired = getEntityState("VOTING_ENDED_NO");
+                }
 
             } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
 
-                // check funding manager has processed the FUNDING_SUCCESSFUL Task, if true => FUNDING_SUCCESSFUL_DONE
-                /*
-                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
-                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("MILESTONE_PROCESS_DONE")) {
+                    EntityStateRequired = getEntityState("VOTING_FUNDS_PROCESSED");
                 }
-                */
 
             } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
 
                 // check if milestone cashout period has passed and if so process fund releases
-                /*
-                if(FundingManagerEntity.taskByHash( FundingManagerEntity.getHash("FUNDING_SUCCESSFUL_START", "") ) == true) {
-                    EntityStateRequired = getEntityState("SUCCESSFUL_FINAL");
+                if(afterVoteNoCashBackTime()) {
+                    EntityStateRequired = getEntityState("VOTING_ENDED_NO_FINAL");
                 }
-                */
+
+            } else if ( CurrentEntityState == getEntityState("VOTING_ENDED_NO_FINAL") ) {
+
+                if( FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("MILESTONE_PROCESS_DONE")) {
+                    EntityStateRequired = getEntityState("VOTING_FUNDS_PROCESSED");
+                }
+
+            } else if ( CurrentEntityState == getEntityState("VOTING_FUNDS_PROCESSED") ) {
+
+                // RecordStateRequired = getRecordState("FINAL");
+
+                if(currentRecord < RecordNum) {
+                    EntityStateRequired = getEntityState("IN_DEVELOPMENT");
+                } else {
+                    EntityStateRequired = getEntityState("FINAL");
+                }
 
             } else if ( CurrentEntityState == getEntityState("FINAL") ) {
 

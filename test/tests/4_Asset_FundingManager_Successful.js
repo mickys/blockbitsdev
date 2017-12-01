@@ -71,7 +71,6 @@ module.exports = function (setup) {
 
         context('Successful funding - Token distribution', async () => {
 
-            /*
             context('Milestone Payments only', async () => {
 
                 it('SoftCap reached in pre-ico, 1 payment, 1 payment in pre-ico, 0 payments in ico', async () => {
@@ -317,7 +316,7 @@ module.exports = function (setup) {
                 });
 
             });
-            */
+
             //
 
             context('Mixed Direct and Milestone Payments', async () => {
@@ -366,7 +365,7 @@ module.exports = function (setup) {
                     );
                     assert.isTrue(validation, 'State validation failed..');
 
-                    await TestBuildHelper.displayAllVaultDetails();
+                    // await TestBuildHelper.displayAllVaultDetails();
 
                     // @TODO Validate result
 
@@ -385,7 +384,7 @@ module.exports = function (setup) {
 
         });
 
-        /*
+
         context('misc for extra coverage', async () => {
             let tx;
             it('should run doStateChanges even if no changes are required', async () => {
@@ -448,7 +447,7 @@ module.exports = function (setup) {
                 });
             });
         });
-        */
+
     });
 };
 

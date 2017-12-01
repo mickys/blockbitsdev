@@ -10,7 +10,7 @@ module.exports = function(setup) {
     let snapshotsEnabled = true;
     let snapshots = [];
 
-    contract('Proposals Asset - Type 4 - EMERGENCY_FUND_RELEASE', accounts => {
+    contract('Proposals Asset - Type 2 - MILESTONE_DEADLINE', accounts => {
         let tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, ProposalsAsset,
             MilestonesAsset, ApplicationEntity, beforeProposalRequiredStateChanges, FundingAsset, FundingManagerAsset,
             TokenManagerAsset, TokenEntity, validation = {};
@@ -85,14 +85,21 @@ module.exports = function(setup) {
                 await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
                 await TestBuildHelper.doApplicationStateChanges("Development Started", false);
 
-                ProposalsAsset = await TestBuildHelper.getDeployedByName("Proposals");
-                beforeProposalRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
+                // time travel to end of milestone
+                let duration = settings.milestones[0].duration;
+                let time = settings.bylaws["development_start"] + duration +1;
 
-                let eventFilter = helpers.utils.hasEvent(
-                    await ProposalsAsset.createEmergencyFundReleaseProposal(),
-                    'EventNewProposalCreated(bytes32,uint256)'
-                );
-                assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
+                MilestonesAsset = await TestBuildHelper.getDeployedByName("Milestones");
+
+                let currentTime = await MilestonesAsset.getTimestamp.call();
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
+
+                await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
+
+                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+
+                await TestBuildHelper.doApplicationStateChanges("At Meeting time", false);
 
                 // create snapshot
                 if (snapshotsEnabled) {
@@ -112,15 +119,15 @@ module.exports = function(setup) {
             TokenEntity = await TokenEntityContract.at(TokenEntityAddress);
         });
 
-        it( "current proposal matches EMERGENCY_FUND_RELEASE settings", async () => {
+        it( "current proposal matches MILESTONE_DEADLINE settings", async () => {
 
             let RecordNum = await ProposalsAsset.RecordNum.call();
-            assert.equal(RecordNum, 1, 'RecordNum does not match');
+            assert.equal(RecordNum.toNumber(), 1, 'RecordNum does not match');
 
             let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
             assert.equal(
                 ProposalRecord[2].toString(),
-                helpers.utils.getActionIdByName("Proposals", "EMERGENCY_FUND_RELEASE").toString(),
+                helpers.utils.getActionIdByName("Proposals", "MILESTONE_DEADLINE").toString(),
                 'Proposal record type does not match'
             );
 
@@ -132,20 +139,20 @@ module.exports = function(setup) {
 
             let ResultRecord = await ProposalsAsset.ResultsByProposalId.call(1);
 
-            // EMERGENCY_FUND_RELEASE is only voted by "locked" tokens
+            // MILESTONE_DEADLINE is only voted by "locked" tokens
             assert(ResultRecord[5].toString(), "false", "Vote Recounting is not false.");
 
         });
 
-        it( "throws if EMERGENCY_FUND_RELEASE proposal was already created once", async () => {
+        it( "throws if MILESTONE_DEADLINE proposal was already created once", async () => {
             return helpers.assertInvalidOpcode(async () => {
-                await ProposalsAsset.createEmergencyFundReleaseProposal()
+                await MilestonesAsset.callTestCreateMilestoneAcceptanceProposal()
             });
         });
 
-
         context("Proposal Created - Voting Started", async () => {
             let ProposalId = 1;
+
 
             // await TestBuildHelper.displayAllVaultDetails();
             // await TestBuildHelper.displayOwnerAddressDetails();
@@ -399,34 +406,44 @@ module.exports = function(setup) {
                     let etherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
                     // total funding ether
                     let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
-                    // emergency fund percent
+
+                    // first milestone percent
                     let EmergencyAmount = MilestoneAmountRaised.div(100);
                     EmergencyAmount = EmergencyAmount.mul(settings.bylaws["emergency_fund_percentage"]);
+
+                    let MilestoneAmountLeft = MilestoneAmountRaised.sub(EmergencyAmount);
+
+                    let MilestoneOneAmount = MilestoneAmountLeft.div(100);
+                    MilestoneOneAmount = MilestoneOneAmount.mul(settings.milestones[0].funding_percentage);
 
                     // save wallet1 state so we can validate after
                     let walletTokenBalance = await TestBuildHelper.getTokenBalance( wallet1 ) ;
 
-                    // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper) );z
-                    // await TestBuildHelper.displayAllVaultDetails();
-                    // await TestBuildHelper.displayOwnerAddressDetails();
+                    let currentRecordId = await MilestonesAsset.currentRecord.call();
 
-                    await TestBuildHelper.doApplicationStateChanges("EMERGENCY_FUND_RELEASE", false);
+                    await TestBuildHelper.doApplicationStateChanges("MILESTONE_DEADLINE", false);
 
                     let tokenBalanceAfter = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
                     let etherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
 
-                    let initialPlusEmergency = etherBalance.add(EmergencyAmount);
+                    let initialPlusMilestone = etherBalance.add(MilestoneOneAmount);
 
                     assert.equal(tokenBalance.toString(), tokenBalanceAfter.toString(), "tokenBalances should match");
-                    assert.equal(etherBalanceAfter.toString(), initialPlusEmergency.toString(), "etherBalanceAfter should match initialPlusEmergency ");
+                    assert.equal(etherBalanceAfter.toString(), initialPlusMilestone.toString(), "etherBalanceAfter should match initialPlusMilestone ");
 
                     let walletTokenBalanceAfter = await TestBuildHelper.getTokenBalance( wallet1 ) ;
                     let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
-                    let vaultReleaseTokenBalance = await vault.tokenBalances.call(0);
-                    let walletInitialPlusEmergency = walletTokenBalance.add(vaultReleaseTokenBalance);
+                    let vaultReleaseTokenBalance = await vault.tokenBalances.call(1);
+                    let walletInitialPlusMilestone = walletTokenBalance.add(vaultReleaseTokenBalance);
 
-                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusEmergency.toString(), "walletTokenBalanceAfter should match walletInitialPlusEmergency ");
+                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusMilestone.toString(), "walletTokenBalanceAfter should match walletInitialPlusMilestone ");
 
+                    let currentRecordIdAfter = await MilestonesAsset.currentRecord.call();
+                    let currentRecordIdCheck = currentRecordId.add(1);
+
+                    assert.equal(currentRecordIdCheck.toString(), currentRecordIdAfter.toString(), "currentRecordIdAfter should match currentRecordId + 1 ");
+
+                    // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper) );
                 });
 
             });
