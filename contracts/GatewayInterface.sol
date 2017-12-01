@@ -139,7 +139,7 @@ contract GatewayInterface {
     *
     * @return       address ListingContractEntity
     */
-    function getNewsContractAddress() external view returns (address) {
+    function getListingContractAddress() external view returns (address) {
         return currentApp.ListingContractEntity();
     }
 

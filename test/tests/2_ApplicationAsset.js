@@ -154,5 +154,39 @@ module.exports = function(setup) {
                 });
             });
         });
+
+
+        context('Application Bylaws in Application Asset', async () => {
+            let TestBuildHelper, TestAsset;
+            let platformWalletAddress = accounts[19];
+
+            beforeEach(async () => {
+
+                TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
+                await TestBuildHelper.linkToRealGateway();
+                await TestBuildHelper.deployAndInitializeApplication();
+                await TestBuildHelper.AddAllAssetSettingsAndLock();
+                TestAsset = await TestBuildHelper.getDeployedByName("NewsContract");
+
+            });
+
+            it('getAppBylawBytes32 returns correct value set by project settings', async () => {
+                let bylaw_name = "tokenSCADA";
+                let bylaw_value = settings.bylaws[bylaw_name];
+
+                let val = helpers.web3util.toUtf8( await TestAsset.getAppBylawBytes32.call(bylaw_name) );
+                assert.equal(val, bylaw_value, "Value should be " + bylaw_value.toString());
+            });
+
+            it('getAppBylawUint256 returns correct value set by project settings', async () => {
+                let bylaw_name = "funding_global_soft_cap";
+                let bylaw_value = settings.bylaws[bylaw_name];
+
+                let val = await TestAsset.getAppBylawUint256.call(bylaw_name) ;
+                assert.equal(val.toString(), bylaw_value.toString(), "Value should be " + bylaw_value.toString());
+            });
+
+        });
+
     });
 };

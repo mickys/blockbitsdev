@@ -10,7 +10,7 @@ module.exports = function(setup) {
     let snapshotsEnabled = true;
     let snapshots = [];
 
-    contract('Proposals Asset - Type 2 - EMERGENCY_FUND_RELEASE', accounts => {
+    contract('Proposals Asset - Type 3 - MILESTONE_POSTPONING', accounts => {
         let tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, ProposalsAsset,
             MilestonesAsset, ApplicationEntity, beforeProposalRequiredStateChanges, FundingAsset, FundingManagerAsset,
             TokenManagerAsset, TokenEntity, validation = {};
@@ -24,6 +24,7 @@ module.exports = function(setup) {
         let wallet4 = accounts[13];
         let wallet5 = accounts[14];
 
+        let postponing_duration = settings.bylaws.min_postponing + 1000;
 
         beforeEach(async () => {
 
@@ -85,14 +86,12 @@ module.exports = function(setup) {
                 await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
                 await TestBuildHelper.doApplicationStateChanges("Development Started", false);
 
-                ProposalsAsset = await TestBuildHelper.getDeployedByName("Proposals");
-                beforeProposalRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
+                // time travel to end of milestone
+                let duration = settings.milestones[0].duration;
+                let time = settings.bylaws["development_start"] + duration +1;
 
-                let eventFilter = helpers.utils.hasEvent(
-                    await ProposalsAsset.createEmergencyFundReleaseProposal(),
-                    'EventNewProposalCreated(bytes32,uint256)'
-                );
-                assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
+                ProposalsAsset = await TestBuildHelper.getDeployedByName("Proposals");
+                await ProposalsAsset.createMilestonePostponingProposal( postponing_duration );
 
                 // create snapshot
                 if (snapshotsEnabled) {
@@ -112,15 +111,15 @@ module.exports = function(setup) {
             TokenEntity = await TokenEntityContract.at(TokenEntityAddress);
         });
 
-        it( "current proposal matches EMERGENCY_FUND_RELEASE settings", async () => {
+        it( "current proposal matches MILESTONE_POSTPONING settings", async () => {
 
             let RecordNum = await ProposalsAsset.RecordNum.call();
-            assert.equal(RecordNum, 1, 'RecordNum does not match');
+            assert.equal(RecordNum.toNumber(), 1, 'RecordNum does not match');
 
             let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
             assert.equal(
                 ProposalRecord[2].toString(),
-                helpers.utils.getActionIdByName("Proposals", "EMERGENCY_FUND_RELEASE").toString(),
+                helpers.utils.getActionIdByName("Proposals", "MILESTONE_POSTPONING").toString(),
                 'Proposal record type does not match'
             );
 
@@ -132,17 +131,16 @@ module.exports = function(setup) {
 
             let ResultRecord = await ProposalsAsset.ResultsByProposalId.call(1);
 
-            // EMERGENCY_FUND_RELEASE is only voted by "locked" tokens
+            // MILESTONE_POSTPONING is only voted by "locked" tokens
             assert(ResultRecord[5].toString(), "false", "Vote Recounting is not false.");
 
         });
 
-        it( "throws if EMERGENCY_FUND_RELEASE proposal was already created once", async () => {
+        it( "throws if MILESTONE_POSTPONING proposal was already created once", async () => {
             return helpers.assertInvalidOpcode(async () => {
-                await ProposalsAsset.createEmergencyFundReleaseProposal()
+                await ProposalsAsset.createMilestonePostponingProposal( settings.bylaws.min_postponing + 1 );
             });
         });
-
 
         context("Proposal Created - Voting Started", async () => {
             let ProposalId = 1;
@@ -392,46 +390,24 @@ module.exports = function(setup) {
                     });
                 });
 
-                it("FundingManagerAsset state processed, releases ether to owner, tokens to investors, validates balances", async () => {
+                it("MilestoneAsset state processed, record time_end increased", async () => {
 
-                    // save platformWalletAddress initial balances
-                    let tokenBalance = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
-                    let etherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
-                    // total funding ether
-                    let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
-                    // emergency fund percent
-                    let EmergencyAmount = MilestoneAmountRaised.div(100);
-                    EmergencyAmount = EmergencyAmount.mul(settings.bylaws["emergency_fund_percentage"]);
+                    let currentRecord = await MilestonesAsset.currentRecord.call();
+                    let record = await MilestonesAsset.Collection.call(currentRecord);
+                    let time_end_initial = record[6];
 
-                    // save wallet1 state so we can validate after
-                    let walletTokenBalance = await TestBuildHelper.getTokenBalance( wallet1 ) ;
+                    await TestBuildHelper.doApplicationStateChanges("MILESTONE_POSTPONING", false);
 
-                    // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper) );z
-                    // await TestBuildHelper.displayAllVaultDetails();
-                    // await TestBuildHelper.displayOwnerAddressDetails();
+                    record = await MilestonesAsset.Collection.call(currentRecord);
+                    let time_end_after = record[6];
 
-                    await TestBuildHelper.doApplicationStateChanges("EMERGENCY_FUND_RELEASE", false);
+                    let initial_plus_postponing = time_end_initial.add(postponing_duration);
 
-                    let tokenBalanceAfter = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
-                    let etherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
-
-                    let initialPlusEmergency = etherBalance.add(EmergencyAmount);
-
-                    assert.equal(tokenBalance.toString(), tokenBalanceAfter.toString(), "tokenBalances should match");
-                    assert.equal(etherBalanceAfter.toString(), initialPlusEmergency.toString(), "etherBalanceAfter should match initialPlusEmergency ");
-
-                    let walletTokenBalanceAfter = await TestBuildHelper.getTokenBalance( wallet1 ) ;
-                    let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
-                    let vaultReleaseTokenBalance = await vault.tokenBalances.call(0);
-                    let walletInitialPlusEmergency = walletTokenBalance.add(vaultReleaseTokenBalance);
-
-                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusEmergency.toString(), "walletTokenBalanceAfter should match walletInitialPlusEmergency ");
+                    assert.equal(time_end_after.toString(), initial_plus_postponing.toString(), "time_end_after should match initial_plus_postponing ");
 
                 });
 
             });
-
-
 
         });
 

@@ -122,14 +122,19 @@ tests.push("4_Asset_Milestones_NotLocked");
 tests.push("4_Asset_Milestones_Locked");
 
 tests.push("4_Asset_Proposals_Creation");
-tests.push("4_Asset_Proposals_Type1");
-tests.push("4_Asset_Proposals_Type2");
-tests.push("4_Asset_Proposals_Type4");
+tests.push("4_Asset_Proposals_Type_1_Dev_CodeUpgrade");
+tests.push("4_Asset_Proposals_Type_2_EmergencyRelease");
+tests.push("4_Asset_Proposals_Type_3_MilestonePostponing");
+tests.push("4_Asset_Proposals_Type_4_MilestoneRelease");
 
 //tests.push("3_ApplicationEntity_States");
 
 tests = [];
-tests.push("integration_Gateway_and_ApplicationEntity");
+
+tests.push("3_ApplicationEntity");
+
+// tests.push("integration_Gateway_and_ApplicationEntity");
+// tests.push("4_Asset_Proposals_Type_3_MilestonePostponing");
 
 // tests.push("4_Asset_Milestones_Locked");
 

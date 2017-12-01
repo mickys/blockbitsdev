@@ -136,19 +136,17 @@ module.exports = function(setup) {
 
             });
 
+            context("type 2 - EMERGENCY_FUND_RELEASE - Voting Type - Milestone", async () => {
 
-            context("type 2 - MILESTONE_DEADLINE - Voting Type - Milestone", async () => {
-
-                it( "throws if called by any address other than MilestoneAsset", async () => {
+                it( "throws if called by any address other than deployer", async () => {
                     return helpers.assertInvalidOpcode(async () => {
-                        await ProposalsAsset.createMilestoneAcceptanceProposal();
+                        await ProposalsAsset.createEmergencyFundReleaseProposal( {from: accounts[2] } );
                     });
                 });
 
-                it( "creates the proposal if called by the current MilestoneAsset", async () => {
-
+                it( "creates the proposal if called by the current deployer", async () => {
                     let eventFilter = helpers.utils.hasEvent(
-                        await MilestonesAsset.callTestCreateMilestoneAcceptanceProposal(),
+                        await ProposalsAsset.createEmergencyFundReleaseProposal(),
                         'EventNewProposalCreated(bytes32,uint256)'
                     );
                     assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
@@ -159,7 +157,7 @@ module.exports = function(setup) {
                     let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
                     assert.equal(
                         ProposalRecord[2].toString(),
-                        helpers.utils.getActionIdByName("Proposals", "MILESTONE_DEADLINE").toString(),
+                        helpers.utils.getActionIdByName("Proposals", "EMERGENCY_FUND_RELEASE").toString(),
                         'Proposal record type does not match'
                     );
 
@@ -207,21 +205,20 @@ module.exports = function(setup) {
                     );
 
                 });
-
-
             });
 
-            context("type 4 - EMERGENCY_FUND_RELEASE - Voting Type - Milestone", async () => {
+            context("type 4 - MILESTONE_DEADLINE - Voting Type - Milestone", async () => {
 
-                it( "throws if called by any address other than deployer", async () => {
+                it( "throws if called by any address other than MilestoneAsset", async () => {
                     return helpers.assertInvalidOpcode(async () => {
-                        await ProposalsAsset.createEmergencyFundReleaseProposal( {from: accounts[2] } );
+                        await ProposalsAsset.createMilestoneAcceptanceProposal();
                     });
                 });
 
-                it( "creates the proposal if called by the current deployer", async () => {
+                it( "creates the proposal if called by the current MilestoneAsset", async () => {
+
                     let eventFilter = helpers.utils.hasEvent(
-                        await ProposalsAsset.createEmergencyFundReleaseProposal(),
+                        await MilestonesAsset.callTestCreateMilestoneAcceptanceProposal(),
                         'EventNewProposalCreated(bytes32,uint256)'
                     );
                     assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
@@ -232,7 +229,7 @@ module.exports = function(setup) {
                     let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
                     assert.equal(
                         ProposalRecord[2].toString(),
-                        helpers.utils.getActionIdByName("Proposals", "EMERGENCY_FUND_RELEASE").toString(),
+                        helpers.utils.getActionIdByName("Proposals", "MILESTONE_DEADLINE").toString(),
                         'Proposal record type does not match'
                     );
 

@@ -62,15 +62,12 @@ contract Milestones is ApplicationAsset {
         EntityStates["DEADLINE_MEETING_TIME_FAILED"] = 12;
 
         EntityStates["VOTING_IN_PROGRESS"]           = 20;
-        // EntityStates["VOTING_ENDED"]                 = 21;
+        // EntityStates["VOTING_ENDED"]              = 21;
         EntityStates["VOTING_ENDED_YES"]             = 22;
         EntityStates["VOTING_ENDED_NO"]              = 23;
         EntityStates["VOTING_ENDED_NO_FINAL"]        = 25;
 
         EntityStates["VOTING_FUNDS_PROCESSED"]       = 30;
-
-
-
         EntityStates["FINAL"]                        = 50;
 
         EntityStates["CASHBACK_OWNER_MIA"]           = 99;
@@ -281,6 +278,10 @@ contract Milestones is ApplicationAsset {
             // create proposal and start voting on it
             createMilestoneAcceptanceProposal();
 
+        } else if( CurrentEntityState == getEntityState("WAITING_MEETING_TIME") ) {
+
+            PostponeMeetingIfApproved();
+
         } else if( CurrentEntityState == getEntityState("VOTING_ENDED_YES") ) {
 
         } else if( CurrentEntityState == getEntityState("VOTING_ENDED_NO") ) {
@@ -298,6 +299,28 @@ contract Milestones is ApplicationAsset {
 
     }
 
+    mapping (bytes32 => bool) public MilestonePostponingHash;
+
+    function PostponeMeetingIfApproved() internal {
+        if(MilestonePostponingHash[ bytes32(currentRecord) ] == false ) {
+            if(PostponeForCurrentMilestoneIsApproved()) {
+                uint256 time = ProposalsEntity.getCurrentMilestonePostponingProposalDuration();
+                Record storage record = Collection[currentRecord];
+                record.time_end = record.time_end + time;
+                MilestonePostponingHash[ bytes32(currentRecord) ] = true;
+            }
+        }
+    }
+
+    function PostponeForCurrentMilestoneIsApproved() internal view returns ( bool ) {
+        uint8 ProposalActionType = ProposalsEntity.getActionType("MILESTONE_POSTPONING");
+        uint8 ProposalRecordState = ProposalsEntity.getCurrentMilestoneProposalStatusForType( ProposalActionType  );
+        if(ProposalRecordState == ProposalsEntity.getRecordState("VOTING_RESULT_YES") ) {
+            return true;
+        }
+        return false;
+    }
+
     uint256 public MilestoneCashBackTime = 0;
 
     function afterVoteNoCashBackTime() public view returns ( bool ) {
@@ -308,7 +331,6 @@ contract Milestones is ApplicationAsset {
         }
         return false;
     }
-
 
     function getHash(uint8 actionType, bytes32 arg1, bytes32 arg2) public pure returns ( bytes32 ) {
         return keccak256(actionType, arg1, arg2);
@@ -471,6 +493,12 @@ contract Milestones is ApplicationAsset {
                     EntityStateRequired = getEntityState("DEADLINE_MEETING_TIME_YES");
 
                 } else {
+
+                    if(MilestonePostponingHash[ bytes32(currentRecord) ] == false) {
+                        if(PostponeForCurrentMilestoneIsApproved()) {
+                            EntityStateRequired = getEntityState("WAITING_MEETING_TIME");
+                        }
+                    }
 
                     if(MeetingTimeSetFailure()) {
                         // Force Owner Missing in Action - Cash Back Procedure

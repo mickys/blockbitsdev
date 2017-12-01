@@ -10,7 +10,7 @@ module.exports = function(setup) {
     let snapshotsEnabled = true;
     let snapshots = [];
 
-    contract('Proposals Asset - Type 2 - MILESTONE_DEADLINE', accounts => {
+    contract('Proposals Asset - Type 4 - MILESTONE_DEADLINE', accounts => {
         let tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, ProposalsAsset,
             MilestonesAsset, ApplicationEntity, beforeProposalRequiredStateChanges, FundingAsset, FundingManagerAsset,
             TokenManagerAsset, TokenEntity, validation = {};

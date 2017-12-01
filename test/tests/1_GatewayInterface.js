@@ -168,6 +168,32 @@ module.exports = function(setup) {
                     await appBad.callTestApproveCodeUpgrade(testapp2.address);
                 });
             });
+
+            context('misc for extra coverage', async () => {
+                let TestBuildHelper, GatewayInterface;
+                let platformWalletAddress = accounts[19];
+
+                beforeEach(async () => {
+                    TestBuildHelper = new helpers.TestBuildHelper(setup, assert, accounts, platformWalletAddress);
+                    await TestBuildHelper.linkToRealGateway();
+                    await TestBuildHelper.deployAndInitializeApplication();
+                    await TestBuildHelper.AddAllAssetSettingsAndLock();
+                    GatewayInterface = await TestBuildHelper.getDeployedByName("GatewayInterface");
+                });
+
+                it('getNewsContractAddress returns actual linked NewsContract Asset address', async () => {
+                    let NewsContractAsset = await TestBuildHelper.getDeployedByName("NewsContract");
+                    let checkAddress = await GatewayInterface.getNewsContractAddress.call();
+                    assert.equal( NewsContractAsset.address, checkAddress, "News contract address does not match!");
+                });
+
+                it('getListingContractAddress returns actual linked ListingContract Asset address', async () => {
+                    let ListingContractAsset = await TestBuildHelper.getDeployedByName("ListingContract");
+                    let checkAddress = await GatewayInterface.getListingContractAddress.call();
+                    assert.equal( ListingContractAsset.address, checkAddress, "News contract address does not match!");
+                });
+
+            });
         });
     });
 };

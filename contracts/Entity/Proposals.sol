@@ -222,6 +222,34 @@ contract Proposals is ApplicationAsset {
         }
     }
 
+    function getCurrentMilestonePostponingProposalDuration() public view returns (uint256) {
+        uint8 recordId = MilestonesEntity.currentRecord();
+        bytes32 hash = getHash( getActionType("MILESTONE_POSTPONING"), bytes32( recordId ), 0 );
+        ProposalRecord memory proposal = ProposalsById[ ProposalIdByHash[hash] ];
+        return proposal.extra;
+    }
+
+    function getCurrentMilestoneProposalStatusForType(uint8 _actionType ) public view returns (uint8) {
+
+        if(_actionType == getActionType("MILESTONE_DEADLINE") || _actionType == getActionType("MILESTONE_POSTPONING")) {
+            uint8 recordId = MilestonesEntity.currentRecord();
+            bytes32 hash = getHash( _actionType, bytes32( recordId ), 0 );
+            uint256 ProposalId = ProposalIdByHash[hash];
+            ProposalRecord memory proposal = ProposalsById[ProposalId];
+            return proposal.state;
+        }
+        return 0;
+    }
+
+    function getCurrentMilestoneProposalIdForType(uint8 _actionType ) public view returns (uint256) {
+        if(_actionType == getActionType("MILESTONE_DEADLINE") || _actionType == getActionType("MILESTONE_POSTPONING")) {
+            uint8 recordId = MilestonesEntity.currentRecord();
+            bytes32 hash = getHash( _actionType, bytes32( recordId ), 0 );
+            return ProposalIdByHash[hash];
+        }
+        return 0;
+    }
+
     function createEmergencyFundReleaseProposal()
         external
         onlyDeployer
