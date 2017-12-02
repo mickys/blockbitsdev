@@ -54,7 +54,7 @@ contract ListingContract is ApplicationAsset {
     * @return       address NewsContractEntity
     */
     function getNewsContractAddress(uint256 _childId) external view returns (address) {
-        item storage child = items[_childId];
+        item memory child = items[_childId];
         if(child.itemAddress != address(0x0)) {
             ApplicationEntityABI ChildApp = ApplicationEntityABI(child.itemAddress);
             return ChildApp.NewsContractEntity();
@@ -63,12 +63,30 @@ contract ListingContract is ApplicationAsset {
         }
     }
 
-    function getItemStatus(uint256 _childId) public view returns (bool) {
-        return items[_childId].status;
+    function canBeDelisted(uint256 _childId) public view returns (bool) {
+
+        item memory child = items[_childId];
+        if(child.status == true) {
+            ApplicationEntityABI ChildApp = ApplicationEntityABI(child.itemAddress);
+            if(
+                ChildApp.CurrentEntityState() == ChildApp.getEntityState("WAITING") ||
+                ChildApp.CurrentEntityState() == ChildApp.getEntityState("NEW"))
+            {
+                return true;
+            }
+        }
+        return ;
+    }
+
+    function getChildStatus( uint256 _childId ) public view returns (bool) {
+        item memory child = items[_childId];
+        return child.status;
     }
 
     // update so that this checks the child status, and only delists IF funding has not started yet.
     function delistChild( uint256 _childId ) public onlyAsset("Proposals") requireInitialised {
+        require(canBeDelisted(_childId) == true );
+
         item storage child = items[_childId];
             child.status = false;
     }

@@ -128,15 +128,27 @@ contract Proposals is ApplicationAsset {
     mapping (uint8 => uint256) public ActiveProposalIds;
     uint8 public ActiveProposalNum = 0;
 
-    function process() public {
+    mapping (uint256 => bool) public ExpiredProposalIds;
+
+    function process() public onlyApplicationEntity {
         for(uint8 i = 0; i < ActiveProposalNum; i++) {
-            tryEndVoting( ActiveProposalIds[i] );
+
+            if(
+                getProposalType(ActiveProposalIds[i]) == getActionType("PROJECT_DELISTING") ||
+                getProposalType(ActiveProposalIds[i]) == getActionType("AFTER_COMPLETE_CODE_UPGRADE")
+            ) {
+                ProcessVoteTotals( ActiveProposalIds[i], VoteCountPerProcess );
+            } else {
+                // try expiry ending
+                tryEndVoting(ActiveProposalIds[i]);
+            }
+
         }
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
         for(uint8 i = 0; i < ActiveProposalNum; i++) {
-            if( canEndVoting( ActiveProposalIds[i] ) ) {
+            if( needsProcessing( ActiveProposalIds[i] ) ) {
                 return true;
             }
         }
@@ -241,15 +253,6 @@ contract Proposals is ApplicationAsset {
         return 0;
     }
 
-    function getCurrentMilestoneProposalIdForType(uint8 _actionType ) public view returns (uint256) {
-        if(_actionType == getActionType("MILESTONE_DEADLINE") || _actionType == getActionType("MILESTONE_POSTPONING")) {
-            uint8 recordId = MilestonesEntity.currentRecord();
-            bytes32 hash = getHash( _actionType, bytes32( recordId ), 0 );
-            return ProposalIdByHash[hash];
-        }
-        return 0;
-    }
-
     function createEmergencyFundReleaseProposal()
         external
         onlyDeployer
@@ -272,7 +275,8 @@ contract Proposals is ApplicationAsset {
         returns (uint256)
     {
         // let's validate the project is actually listed first in order to remove any spamming ability.
-        if( ListingContractEntity.getItemStatus(_projectId) == true) {
+        if( ListingContractEntity.canBeDelisted(_projectId) == true) {
+
             return createProposal(
                 msg.sender,
                 "PROJECT_DELISTING",
@@ -288,7 +292,7 @@ contract Proposals is ApplicationAsset {
     }
 
     modifier onlyTokenHolder() {
-        require( TokenEntity.balanceOf(msg.sender) > 0 );
+        require( getTotalTokenVotingPower(msg.sender) > 0 );
         _;
     }
 
@@ -512,7 +516,12 @@ contract Proposals is ApplicationAsset {
         addVoteIntoResult(_proposalId, _myVote, _power );
     }
 
+    event EventAddVoteIntoResult ( uint256 indexed _proposalId, bool indexed _type, uint256 indexed _power );
+
     function addVoteIntoResult(uint256 _proposalId, bool _type, uint256 _power ) internal {
+
+        EventAddVoteIntoResult(_proposalId, _type, _power );
+
         ResultRecord storage newResult = ResultsByProposalId[_proposalId];
         newResult.totalSoFar+= _power;
         if(_type == true) {
@@ -522,6 +531,12 @@ contract Proposals is ApplicationAsset {
         }
     }
 
+    function getTotalTokenVotingPower(address _voter) public view returns ( uint256 ) {
+        address VaultAddress = FundingManagerEntity.getMyVaultAddress(_voter);
+        uint256 VotingPower = TokenEntity.balanceOf(VaultAddress);
+        VotingPower+= TokenEntity.balanceOf(_voter);
+        return VotingPower;
+    }
 
     function getVotingPower(uint256 _proposalId, address _voter) public view returns ( uint256 ) {
         uint256 VotingPower = 0;
@@ -547,21 +562,31 @@ contract Proposals is ApplicationAsset {
     }
 
 
-    uint256 public VoteCountPerProcess = 256;
     mapping( uint256 => uint256 ) public lastProcessedVoteIdByProposal;
     mapping( uint256 => uint256 ) public ProcessedVotesByProposal;
-
     mapping( uint256 => uint256 ) public VoteCountAtProcessingStartByProposal;
+    uint256 public VoteCountPerProcess = 10;
 
-    function ProcessVoteTotals(uint256 _proposalId, uint256 length) public {
+    function setVoteCountPerProcess(uint256 _perProcess) external onlyDeployer {
+        if(_perProcess > 0) {
+            VoteCountPerProcess = _perProcess;
+        } else {
+            revert();
+        }
+    }
 
+    event EventProcessVoteTotals ( uint256 indexed _proposalId, uint256 indexed start, uint256 indexed end );
+
+    function ProcessVoteTotals(uint256 _proposalId, uint256 length) public onlyApplicationEntity {
 
         uint256 start = lastProcessedVoteIdByProposal[_proposalId] + 1;
         uint256 end = start + length - 1;
         if(end > VotesNumByProposalId[_proposalId]) {
             end = VotesNumByProposalId[_proposalId];
         }
-        
+
+        EventProcessVoteTotals(_proposalId, start, end);
+
         // first run
         if(start == 1) {
             // save vote count at start, so we can reset if it changes
@@ -585,7 +610,7 @@ contract Proposals is ApplicationAsset {
 
         for(uint256 i = start; i <= end; i++) {
 
-            VoteStruct storage vote = VotesByProposalId[_proposalId][i];
+            VoteStruct storage vote = VotesByProposalId[_proposalId][i - 1];
             // process vote into totals.
             if(vote.annulled != true) {
                 addVoteIntoResult(_proposalId, vote.vote, vote.power );
@@ -605,7 +630,7 @@ contract Proposals is ApplicationAsset {
 
     function canEndVoting(uint256 _proposalId) public view returns (bool) {
 
-        ResultRecord storage result = ResultsByProposalId[_proposalId];
+        ResultRecord memory result = ResultsByProposalId[_proposalId];
         if(result.requiresCounting == false) {
             if(result.yes > result.requiredForResult || result.no > result.requiredForResult) {
                 return true;
@@ -623,9 +648,45 @@ contract Proposals is ApplicationAsset {
         return false;
     }
 
+    function getProposalType(uint256 _proposalId) public view returns (uint8) {
+        return ProposalsById[_proposalId].actionType;
+    }
+
+    function expiryChangesState(uint256 _proposalId) public view returns (bool) {
+        ProposalRecord memory proposal = ProposalsById[_proposalId];
+        if( proposal.state == getRecordState("ACCEPTING_VOTES") && proposal.time_end < getTimestamp() ) {
+            return true;
+        }
+        return false;
+    }
+
+    function needsProcessing(uint256 _proposalId) public view returns (bool) {
+        if( expiryChangesState(_proposalId) ) {
+            return true;
+        }
+
+        ResultRecord memory result = ResultsByProposalId[_proposalId];
+        if(result.requiresCounting == true) {
+            if( lastProcessedVoteIdByProposal[_proposalId] < VotesNumByProposalId[_proposalId] ) {
+                if(ProcessedVotesByProposal[_proposalId] == VotesNumByProposalId[_proposalId]) {
+                    return false;
+                }
+            }
+
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
     function tryEndVoting(uint256 _proposalId) internal {
         if(canEndVoting(_proposalId)) {
             finaliseProposal(_proposalId);
+        }
+
+        if(expiryChangesState(_proposalId) ) {
+            finaliseExpiredProposal(_proposalId);
         }
     }
 
@@ -647,8 +708,27 @@ contract Proposals is ApplicationAsset {
 
     }
 
+    function finaliseExpiredProposal(uint256 _proposalId) internal {
+
+        ResultRecord storage result = ResultsByProposalId[_proposalId];
+        ProposalRecord storage proposal = ProposalsById[_proposalId];
+
+        // read results,
+        if(result.yes > result.no) {
+            // voting resulted in YES
+            proposal.state = getRecordState("VOTING_RESULT_YES");
+        } else if (result.no >= result.yes) {
+            // tie equals no
+            // voting resulted in NO
+            proposal.state = getRecordState("VOTING_RESULT_NO");
+        }
+        runActionAfterResult(_proposalId);
+    }
+
+
+
     function addActiveProposal(uint256 _proposalId) internal {
-        ActiveProposalIds[++ActiveProposalNum]= _proposalId;
+        ActiveProposalIds[ActiveProposalNum++]= _proposalId;
     }
 
     function removeAndReindexActive(uint256 _proposalId) internal {
@@ -677,18 +757,14 @@ contract Proposals is ApplicationAsset {
 
             if(proposal.actionType == getActionType("MILESTONE_DEADLINE")) {
 
-
             } else if (proposal.actionType == getActionType("MILESTONE_POSTPONING")) {
-
-                // MilestonesEntity.updateMilestoneRecord();
 
             } else if (proposal.actionType == getActionType("EMERGENCY_FUND_RELEASE")) {
                 EmergencyFundingReleaseApproved = true;
 
             } else if (proposal.actionType == getActionType("PROJECT_DELISTING")) {
 
-                // ListingContractEntity.delistChild( proposal.extra );
-
+                ListingContractEntity.delistChild( proposal.extra );
 
             } else if (
                 proposal.actionType == getActionType("IN_DEVELOPMENT_CODE_UPGRADE") ||
@@ -707,7 +783,6 @@ contract Proposals is ApplicationAsset {
             if(proposal.actionType == getActionType("MILESTONE_DEADLINE")) {
 
             } else {
-
                 removeAndReindexActive(_proposalId);
             }
         }

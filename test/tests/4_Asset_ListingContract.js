@@ -6,7 +6,7 @@ module.exports = function(setup) {
     let token_settings = setup.settings.token;
 
     contract('ListingContract Asset', accounts => {
-        let assetContract, tx, TestBuildHelper = {};
+        let assetContract, tx, TestBuildHelper, ApplicationEntity = {};
         let assetName = "ListingContract";
         let platformWalletAddress = accounts[19];
 
@@ -15,6 +15,7 @@ module.exports = function(setup) {
             await TestBuildHelper.deployAndInitializeApplication();
             await TestBuildHelper.AddAllAssetSettingsAndLockExcept(assetName);
             assetContract = await TestBuildHelper.getDeployedByName(assetName);
+            ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
         });
 
         context("addItem()", async () => {
@@ -91,16 +92,55 @@ module.exports = function(setup) {
 
         context("delistChild()", async () => {
 
+            let ChildItemId;
+
             beforeEach(async () => {
 
+                // first we need to add a listing.
+
                 let testName = "TestName";
-                let application = await TestBuildHelper.getDeployedByName("ApplicationEntity");
+                let thisTime = await ApplicationEntity.getTimestamp.call();
 
-                let TestBuildHelperSecond = new helpers.TestBuildHelper(setup, assert, accounts);
-                let ChildNewsContract = await TestBuildHelperSecond.deployAndInitializeAsset("NewsContract");
+                let child_funding_periods = settings.funding_periods;
+                let child_bylaws = settings.bylaws;
+
+                // update funding periods and milestone start times, and development start time bylaw
+                child_funding_periods[0].start_time = thisTime.toNumber() + (86400 * 7) ;
+                child_funding_periods[0].end_time = thisTime.toNumber() + (86400 * 14);
+
+                child_funding_periods[1].start_time = thisTime.toNumber() + (86400 * 21);
+                child_funding_periods[1].end_time = thisTime.toNumber() + (86400 * 60);
+
+                // development_start
+                child_bylaws["development_start"] = child_funding_periods[1].end_time + (86400 * 14);
+
+                let childSettings = {
+                    bylaws:          child_bylaws,
+                    funding_periods: child_funding_periods,
+                    milestones:      settings.milestones,
+                    token:           settings.token,
+                    tokenSCADA:      settings.tokenSCADA,
+                    solidity:        settings.solidity,
+                    doDeployments:   settings.doDeployments
+                };
+
+                let childSetup = helpers.utils.getSetupClone(setup, childSettings);
+
+                let TestBuildHelperSecond = new helpers.TestBuildHelper(childSetup, assert, accounts, accounts[0]);
+                await TestBuildHelperSecond.deployAndInitializeApplication();
+                await TestBuildHelperSecond.AddAllAssetSettingsAndLock();
+                await TestBuildHelperSecond.doApplicationStateChanges("BEFORE Funding Start", false);
+
                 let childApplication = await TestBuildHelperSecond.getDeployedByName("ApplicationEntity");
+                let childApplicationState = await childApplication.CurrentEntityState.call();
+                let requiredAppState = await helpers.utils.getEntityStateIdByName("ApplicationEntity", "WAITING");
+                assert.equal(childApplicationState.toString(), requiredAppState.toString(), 'Child application state should be WAITING.');
 
-                await application.callTestListingContractAddItem(testName, await childApplication.address.toString());
+                await ApplicationEntity.callTestListingContractAddItem(testName, childApplication.address);
+
+                ChildItemId = await assetContract.itemNum.call();
+                // Listing exists, now we create the delisting proposal.
+
             });
 
             it('throws if called by any address other than Proposals Asset', async () => {
@@ -117,12 +157,12 @@ module.exports = function(setup) {
 
                 let ProposalsAsset = TestBuildHelper.getDeployedByName("Proposals");
 
-                let itemStatus = await assetContract.getItemStatus.call(1);
+                let itemStatus = await assetContract.getChildStatus.call(ChildItemId);
                 assert.isTrue(itemStatus, "Status should be true!");
 
-                await ProposalsAsset.callTestListingContractDelistChild(1);
+                await ProposalsAsset.callTestListingContractDelistChild(ChildItemId);
 
-                itemStatus = await assetContract.getItemStatus.call(1);
+                itemStatus = await assetContract.getChildStatus.call(ChildItemId);
                 assert.isFalse(itemStatus, "Status should be false!");
             });
 

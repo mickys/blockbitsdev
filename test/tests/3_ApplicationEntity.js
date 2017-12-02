@@ -269,6 +269,14 @@ module.exports = function(setup) {
                 });
             });
 
+            it('throws if called by any other address than initial deployer', async () => {
+                let asset = assetContractNames[0];
+                let contract = await helpers.getContract("Test" + asset).new();
+                return helpers.assertInvalidOpcode(async () => {
+                    let assetInsertionTx = await app["addAsset" + asset](contract.address, {from: accounts[1]});
+                });
+            });
+
             it('linking an asset will emit EventAppEntityInitAsset event', async () => {
                 let asset = assetContractNames[0];
                 let contract = await helpers.getContract("Test" + asset).new();
@@ -285,6 +293,29 @@ module.exports = function(setup) {
                 }));
                 assert.equal(eventCollection.length, assetContractNames.length, 'EventAppEntityInitAsset event not received.')
             });
+
+            it('linking an asset, then linking the same asset again, will replace it in mapping', async () => {
+                let asset = assetContractNames[0];
+                let contract = await helpers.getContract("Test" + asset).new();
+                let contract2 = await helpers.getContract("Test" + asset).new();
+
+                let assetInsertionTx = await app["addAsset" + asset](contract.address);
+                let eventFilter = helpers.utils.hasEvent(assetInsertionTx, 'EventAppEntityInitAsset(bytes32,address)');
+                assert.equal(eventFilter.length, 1, 'EventAppEntityInitAsset event not received.');
+
+                let initialAddress = await app.AssetCollection.call(asset);
+
+                let assetInsertionTx2 = await app["addAsset" + asset](contract2.address);
+                eventFilter = helpers.utils.hasEvent(assetInsertionTx, 'EventAppEntityInitAsset(bytes32,address)');
+                assert.equal(eventFilter.length, 1, 'EventAppEntityInitAsset event not received.');
+
+                let newAddress = await app.AssetCollection.call(asset);
+
+                assert.equal(newAddress, contract2.address, 'newAddress should match contract address.')
+                assert.notEqual(initialAddress, newAddress, 'newAddress should replace old one.');
+
+            });
+
         });
 
         context('initializeAssetsToThisApplication()', async () => {

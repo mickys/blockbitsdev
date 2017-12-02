@@ -161,11 +161,19 @@ contract FundingManager is ApplicationAsset {
 
     mapping (bytes32 => bool) public taskByHash;
 
+    function setVaultCountPerProcess(uint8 _perProcess) external onlyDeployer {
+        if(_perProcess > 0) {
+            VaultCountPerProcess = _perProcess;
+        } else {
+            revert();
+        }
+    }
+
     function getHash(bytes32 actionType, bytes32 arg1) public pure returns ( bytes32 ) {
         return keccak256(actionType, arg1);
     }
 
-    function ProcessVaultList(uint8 length) public {
+    function ProcessVaultList(uint8 length) internal {
 
         if(taskByHash[currentTask] == false) {
             if(

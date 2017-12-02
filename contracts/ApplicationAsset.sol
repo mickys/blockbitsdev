@@ -154,10 +154,12 @@ contract ApplicationAsset {
         _;
     }
 
+    /*
     modifier requireSettingsApplied() {
         require(_settingsApplied == true);
         _;
     }
+    */
 
     modifier requireSettingsNotApplied() {
         require(_settingsApplied == false);

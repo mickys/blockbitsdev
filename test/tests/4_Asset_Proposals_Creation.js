@@ -12,7 +12,7 @@ module.exports = function(setup) {
 
     contract('Proposals Asset - Settings Locked', accounts => {
         let assetContract, tx, TestBuildHelper, FundingInputDirect, FundingInputMilestone, ProposalsAsset,
-            MilestonesAsset, ApplicationEntity, validation = {};
+            MilestonesAsset, ApplicationEntity, ListingContractAsset, validation = {};
 
         let assetName = "Proposals";
         let platformWalletAddress = accounts[19];
@@ -94,8 +94,10 @@ module.exports = function(setup) {
             ProposalsAsset = assetContract;
             MilestonesAsset = await TestBuildHelper.getDeployedByName("Milestones");
             ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
+            ListingContractAsset = await TestBuildHelper.getDeployedByName("ListingContract");
 
         });
+
 
         it( "Asset deploys and initialises properly", async () => {
             let getActionType = await ProposalsAsset.getActionType.call("MILESTONE_DEADLINE");
@@ -135,6 +137,7 @@ module.exports = function(setup) {
                 });
 
             });
+
 
             context("type 2 - EMERGENCY_FUND_RELEASE - Voting Type - Milestone", async () => {
 
@@ -239,12 +242,129 @@ module.exports = function(setup) {
 
             context("type 5 - PROJECT_DELISTING - Voting Type - Tokens", async () => {
 
-                // wallet2, wallet3 have direct funding
-                // wallet1, wallet4 have milestone.
-                // all should be able to vote.
+                let ChildItemId, TestBuildHelperSecond, childSettings;
 
-                context("createDelistingProposal", async () => {
-                    // proposals.createDelistingProposal( projectId )
+                beforeEach(async () => {
+                    // first we need to add a listing.
+                    let testName = "TestName";
+
+                    let thisTime = await ApplicationEntity.getTimestamp.call();
+
+                    let child_funding_periods = settings.funding_periods;
+                    let child_bylaws = settings.bylaws;
+
+                    // update funding periods and milestone start times, and development start time bylaw
+                    child_funding_periods[0].start_time = thisTime.toNumber() + (86400 * 7) ;
+                    child_funding_periods[0].end_time = thisTime.toNumber() + (86400 * 14);
+
+                    child_funding_periods[1].start_time = thisTime.toNumber() + (86400 * 21);
+                    child_funding_periods[1].end_time = thisTime.toNumber() + (86400 * 60);
+
+                    // development_start
+                    child_bylaws["development_start"] = child_funding_periods[1].end_time + (86400 * 14);
+
+                    childSettings = {
+                        bylaws:          child_bylaws,
+                        funding_periods: child_funding_periods,
+                        milestones:      settings.milestones,
+                        token:           settings.token,
+                        tokenSCADA:      settings.tokenSCADA,
+                        solidity:        settings.solidity,
+                        doDeployments:   settings.doDeployments
+                    };
+
+                    let childSetup = helpers.utils.getSetupClone(setup, childSettings);
+
+                    TestBuildHelperSecond = new helpers.TestBuildHelper(childSetup, assert, accounts, accounts[0]);
+                    await TestBuildHelperSecond.deployAndInitializeApplication();
+                    await TestBuildHelperSecond.AddAllAssetSettingsAndLock();
+                    await TestBuildHelperSecond.doApplicationStateChanges("BEFORE Funding Start", false);
+
+                    let childApplication = await TestBuildHelperSecond.getDeployedByName("ApplicationEntity");
+                    let childApplicationState = await childApplication.CurrentEntityState.call();
+                    let requiredAppState = await helpers.utils.getEntityStateIdByName("ApplicationEntity", "WAITING");
+                    assert.equal(childApplicationState.toString(), requiredAppState.toString(), 'Child application state should be WAITING.');
+
+                    await ApplicationEntity.callTestListingContractAddItem(testName, childApplication.address);
+
+                    ChildItemId = await ListingContractAsset.itemNum.call();
+                    // Listing exists, now we create the delisting proposal.
+                });
+
+
+                it( "throws if called by an address that does not hold any tokens. ( none in wallet / none in vault )", async () => {
+                    return helpers.assertInvalidOpcode(async () => {
+                        await ProposalsAsset.createDelistingProposal( ChildItemId )
+                    });
+                });
+
+                it( "throws if child application is beyond FUNDING_STARTED state.", async () => {
+
+                    // time travel to pre ico start time
+                    await TestBuildHelperSecond.timeTravelTo( childSettings.funding_periods[0].start_time + 1 );
+                    await TestBuildHelperSecond.doApplicationStateChanges("After PRE ICO START", false);
+
+                    return helpers.assertInvalidOpcode(async () => {
+                        await ProposalsAsset.createDelistingProposal( ChildItemId, {from: wallet1} )
+                    });
+
+                });
+
+                it( "creates the proposal if called by a token holder, (tokens locked in vault)", async () => {
+
+                    let eventFilter = helpers.utils.hasEvent(
+                        await ProposalsAsset.createDelistingProposal( ChildItemId, {from: wallet1} ),
+                        'EventNewProposalCreated(bytes32,uint256)'
+                    );
+                    assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
+
+                    let RecordNum = await ProposalsAsset.RecordNum.call();
+                    assert.equal(RecordNum, 1, 'RecordNum does not match');
+
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
+                    assert.equal(
+                        ProposalRecord[2].toString(),
+                        helpers.utils.getActionIdByName("Proposals", "PROJECT_DELISTING").toString(),
+                        'Proposal record type does not match'
+                    );
+                });
+
+                it( "creates the proposal if called by a token holder, (tokens locked in vault)", async () => {
+
+                    let eventFilter = helpers.utils.hasEvent(
+                        await ProposalsAsset.createDelistingProposal( ChildItemId, {from: wallet1} ),
+                        'EventNewProposalCreated(bytes32,uint256)'
+                    );
+                    assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
+
+                    let RecordNum = await ProposalsAsset.RecordNum.call();
+                    assert.equal(RecordNum, 1, 'RecordNum does not match');
+
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
+                    assert.equal(
+                        ProposalRecord[2].toString(),
+                        helpers.utils.getActionIdByName("Proposals", "PROJECT_DELISTING").toString(),
+                        'Proposal record type does not match'
+                    );
+                });
+
+                it( "creates the proposal if called by a token holder, (tokens in wallet)", async () => {
+
+                    let eventFilter = helpers.utils.hasEvent(
+                        await ProposalsAsset.createDelistingProposal( ChildItemId, {from: wallet2} ),
+                        'EventNewProposalCreated(bytes32,uint256)'
+                    );
+                    assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
+
+                    let RecordNum = await ProposalsAsset.RecordNum.call();
+                    assert.equal(RecordNum, 1, 'RecordNum does not match');
+
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(1);
+                    assert.equal(
+                        ProposalRecord[2].toString(),
+                        helpers.utils.getActionIdByName("Proposals", "PROJECT_DELISTING").toString(),
+                        'Proposal record type does not match'
+                    );
                 });
 
             });
@@ -279,152 +399,44 @@ module.exports = function(setup) {
 
             context('misc for extra coverage', async () => {
 
-                it('getRequiredStateChanges', async () => {
+                it('getRequiredStateChanges()', async () => {
                     await ProposalsAsset.getRequiredStateChanges.call();
                 });
 
-                it('hasRequiredStateChanges', async () => {
+                it('hasRequiredStateChanges()', async () => {
                     await ProposalsAsset.hasRequiredStateChanges.call();
                 });
 
-                it('process', async () => {
-                    await ProposalsAsset.process();
+                it('process() throws if called by any other than ApplicationEntity', async () => {
+                    return helpers.assertInvalidOpcode(async () => {
+                        await ProposalsAsset.process();
+                    });
                 });
 
-                it('getMyVote', async () => {
+                it('getMyVote()', async () => {
                     await ProposalsAsset.getMyVote( 1, wallet1);
                 });
 
-                it('getProposalState', async () => {
+                it('getProposalState()', async () => {
                     await ProposalsAsset.getProposalState.call(1);
                 });
 
-                it('getBylawsMilestoneMinPostponing', async () => {
+                it('getBylawsMilestoneMinPostponing()', async () => {
                     await ProposalsAsset.getBylawsMilestoneMinPostponing.call();
                 });
 
-                it('getBylawsMilestoneMaxPostponing', async () => {
+                it('getBylawsMilestoneMaxPostponing()', async () => {
                     await ProposalsAsset.getBylawsMilestoneMaxPostponing.call();
                 });
 
-                it('getVotingPower for non existent investor', async () => {
+                it('getVotingPower() for non existent investor', async () => {
                     let Power = await ProposalsAsset.getVotingPower.call(1, accounts[0]);
                     assert.equal(Power.toNumber(), 0, "Power is not 0");
                 });
 
             });
 
-
         });
 
-        /*
-        context("states", async () => {
-
-
-             it('handles ENTITY state change from WAITING to WAITING_MEETING_TIME when current time is after development start', async () => {
-
-             tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-             await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-             validation = await TestBuildHelper.ValidateEntityAndRecordState(
-             assetName,
-             helpers.utils.getEntityStateIdByName(assetName, "WAITING_MEETING_TIME").toString(),
-             helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-             );
-             assert.isTrue(validation, 'State validation failed..');
-
-             });
-
-             it('handles ENTITY state change from WAITING_MEETING_TIME to DEADLINE_MEETING_TIME_FAILED when current time is after milestone end, and meeting time was not set', async () => {
-
-             tx = await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-             await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-             // time travel to end of milestone
-             let duration = settings.milestones[0].duration;
-             let time = settings.bylaws["development_start"] + 1 + duration;
-             tx = await TestBuildHelper.timeTravelTo(time);
-
-             await TestBuildHelper.doApplicationStateChanges("Milestone End", false);
-             // await helpers.utils.showCurrentState(helpers, assetContract);
-
-
-             validation = await TestBuildHelper.ValidateEntityAndRecordState(
-             assetName,
-             helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_FAILED").toString(),
-             helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-             );
-             assert.isTrue(validation, 'State validation failed..');
-
-             });
-
-             it('handles ENTITY state change from WAITING_MEETING_TIME to DEADLINE_MEETING_TIME_YES when current time is after milestone end, and meeting time was set', async () => {
-
-             await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-             await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-             // time travel to end of milestone
-             let duration = settings.milestones[0].duration;
-             let time = settings.bylaws["development_start"] + duration +1;
-
-             let currentTime = await MilestonesContract.getTimestamp.call();
-             let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
-
-             await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
-             await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
-
-             validation = await TestBuildHelper.ValidateEntityAndRecordState(
-             assetName,
-             helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_YES").toString(),
-             helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-             helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-             );
-             assert.isTrue(validation, 'State validation failed..');
-
-             // validate meeting created
-
-             });
-
-
-
-            it('handles ENTITY state change from DEADLINE_MEETING_TIME_YES to VOTING_IN_PROGRESS when current time is after meeting time', async () => {
-
-                await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
-                await TestBuildHelper.doApplicationStateChanges("Development Started", false);
-
-                // time travel to end of milestone
-                let duration = settings.milestones[0].duration;
-                let time = settings.bylaws["development_start"] + duration +1;
-
-                let currentTime = await MilestonesContract.getTimestamp.call();
-                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
-
-                await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
-                await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
-
-                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
-
-                await TestBuildHelper.doApplicationStateChanges("At Meeting time", false);
-
-                validation = await TestBuildHelper.ValidateEntityAndRecordState(
-                    assetName,
-                    helpers.utils.getEntityStateIdByName(assetName, "VOTING_IN_PROGRESS").toString(),
-                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
-                    helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
-                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
-                );
-                assert.isTrue(validation, 'State validation failed..');
-
-
-            });
-
-
-        });
-         */
     });
 };

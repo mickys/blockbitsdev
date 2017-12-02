@@ -360,7 +360,7 @@ module.exports = function(setup) {
                 assert.equal(RecordNum, 2, 'RecordNum does not match');
 
                 let NumberOfActiveProposals = await ProposalsAsset.ActiveProposalNum.call();
-                let ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(1);
+                let ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(0);
 
                 assert.equal(
                     NumberOfActiveProposals,
@@ -376,7 +376,7 @@ module.exports = function(setup) {
 
             });
 
-            context("Voting Successful", async () => {
+            context("Voting Successful - Processed before voting expiry time", async () => {
 
                 beforeEach(async () => {
                     // stake above 50%
@@ -396,6 +396,35 @@ module.exports = function(setup) {
                     let record = await MilestonesAsset.Collection.call(currentRecord);
                     let time_end_initial = record[6];
 
+                    await TestBuildHelper.doApplicationStateChanges("MILESTONE_POSTPONING", false);
+
+                    record = await MilestonesAsset.Collection.call(currentRecord);
+                    let time_end_after = record[6];
+
+                    let initial_plus_postponing = time_end_initial.add(postponing_duration);
+
+                    assert.equal(time_end_after.toString(), initial_plus_postponing.toString(), "time_end_after should match initial_plus_postponing ");
+
+                });
+
+            });
+
+            context("Voting Successful - Voting time expired", async () => {
+
+                beforeEach(async () => {
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: wallet4});
+                });
+
+                it("MilestoneAsset state processed, record time_end increased", async () => {
+
+                    let currentRecord = await MilestonesAsset.currentRecord.call();
+                    let record = await MilestonesAsset.Collection.call(currentRecord);
+                    let time_end_initial = record[6];
+
+                    // increase time so that we get an expiry end
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
                     await TestBuildHelper.doApplicationStateChanges("MILESTONE_POSTPONING", false);
 
                     record = await MilestonesAsset.Collection.call(currentRecord);

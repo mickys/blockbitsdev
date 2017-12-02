@@ -63,8 +63,12 @@ contract FundingVault {
     uint256 public amount_direct = 0;
     uint256 public amount_milestone = 0;
 
+    // bylaws
     bool emergencyFundReleased = false;
     uint8 emergencyFundPercentage = 0;
+    uint256 public BylawsCashBackOwnerMiaDuration;
+    uint256 public BylawsCashBackVoteRejectedDuration;
+    uint256 public BylawsProposalVotingDuration;
 
     struct PurchaseStruct {
         uint256 unix_time;
@@ -118,13 +122,19 @@ contract FundingVault {
         // set Emergency Fund Percentage if available.
         address ApplicationEntityAddress = TokenManagerEntity.owner();
         ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
-        emergencyFundPercentage = uint8( ApplicationEntity.getBylawUint256("emergency_fund_percentage") );
 
+        // get Application Bylaws
+        emergencyFundPercentage             = uint8( ApplicationEntity.getBylawUint256("emergency_fund_percentage") );
+        BylawsCashBackOwnerMiaDuration      = ApplicationEntity.getBylawUint256("cashback_owner_mia_dur") ;
+        BylawsCashBackVoteRejectedDuration  = ApplicationEntity.getBylawUint256("cashback_investor_no") ;
+        BylawsProposalVotingDuration        = ApplicationEntity.getBylawUint256("proposal_voting_duration") ;
 
         // init
         _initialized = true;
         return true;
     }
+
+
 
     /*
         The funding contract decides if a vault should receive payments or not, since it's the one that creates them,

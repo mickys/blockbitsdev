@@ -338,6 +338,8 @@ module.exports = function(setup) {
                 assert.equal( totalSoFar.toString(), calcTotals.toString(), "calcTotals should match totalSoFar" );
             });
 
+
+
             it("While more than 1 proposal is active, properly re-indexes active proposals once one is closed", async () => {
 
                 ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
@@ -369,7 +371,7 @@ module.exports = function(setup) {
                 assert.equal(RecordNum, 2, 'RecordNum does not match');
 
                 let NumberOfActiveProposals = await ProposalsAsset.ActiveProposalNum.call();
-                let ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(1);
+                let ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(0);
 
                 assert.equal(
                     NumberOfActiveProposals,
@@ -383,9 +385,10 @@ module.exports = function(setup) {
                     'Active Proposal record ID should be 2'
                 );
 
+
             });
 
-            context("Voting Successful", async () => {
+            context("Voting Successful - Processed before voting expiry time", async () => {
 
                 beforeEach(async () => {
                     // stake above 50%
@@ -448,6 +451,62 @@ module.exports = function(setup) {
 
             });
 
+
+            context("Voting Successful - Voting time expired", async () => {
+
+                beforeEach(async () => {
+                    tx = await ProposalsAsset.RegisterVote( ProposalId, true, {from: wallet4} );
+                });
+
+                it("FundingManagerAsset state processed, releases ether to owner, tokens to investors, validates balances", async () => {
+
+                    // save platformWalletAddress initial balances
+                    let tokenBalance = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
+                    let etherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
+                    // total funding ether
+                    let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
+
+                    // first milestone percent
+                    let EmergencyAmount = MilestoneAmountRaised.div(100);
+                    EmergencyAmount = EmergencyAmount.mul(settings.bylaws["emergency_fund_percentage"]);
+
+                    let MilestoneAmountLeft = MilestoneAmountRaised.sub(EmergencyAmount);
+
+                    let MilestoneOneAmount = MilestoneAmountLeft.div(100);
+                    MilestoneOneAmount = MilestoneOneAmount.mul(settings.milestones[0].funding_percentage);
+
+                    // save wallet1 state so we can validate after
+                    let walletTokenBalance = await TestBuildHelper.getTokenBalance( wallet1 ) ;
+
+                    let currentRecordId = await MilestonesAsset.currentRecord.call();
+
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("MILESTONE_DEADLINE", false);
+
+                    let tokenBalanceAfter = await TestBuildHelper.getTokenBalance( platformWalletAddress ) ;
+                    let etherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
+
+                    let initialPlusMilestone = etherBalance.add(MilestoneOneAmount);
+
+                    assert.equal(tokenBalance.toString(), tokenBalanceAfter.toString(), "tokenBalances should match");
+                    assert.equal(etherBalanceAfter.toString(), initialPlusMilestone.toString(), "etherBalanceAfter should match initialPlusMilestone ");
+
+                    let walletTokenBalanceAfter = await TestBuildHelper.getTokenBalance( wallet1 ) ;
+                    let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
+                    let vaultReleaseTokenBalance = await vault.tokenBalances.call(1);
+                    let walletInitialPlusMilestone = walletTokenBalance.add(vaultReleaseTokenBalance);
+
+                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusMilestone.toString(), "walletTokenBalanceAfter should match walletInitialPlusMilestone ");
+
+                    let currentRecordIdAfter = await MilestonesAsset.currentRecord.call();
+                    let currentRecordIdCheck = currentRecordId.add(1);
+
+                    assert.equal(currentRecordIdCheck.toString(), currentRecordIdAfter.toString(), "currentRecordIdAfter should match currentRecordId + 1 ");
+                });
+
+            });
 
 
         });

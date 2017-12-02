@@ -260,7 +260,7 @@ TestBuildHelper.prototype.doFundingManagerStateChanges = async function () {
 
 TestBuildHelper.prototype.showApplicationStates = async function () {
     console.log( await this.setup.helpers.utils.showAllStates(this.setup.helpers, this) );
-}
+};
 
 TestBuildHelper.prototype.doApplicationStateChanges = async function (name, debug) {
     if(typeof debug === "undefined") {
@@ -292,6 +292,10 @@ TestBuildHelper.prototype.doApplicationStateChanges = async function (name, debu
         table.push( [ after ] );
         console.log( table.toString() );
         console.log();
+
+        // let ProposalsAsset = this.getDeployedByName("Proposals");
+        // await this.setup.helpers.utils.displayProposal(this.setup.helpers, ProposalsAsset, 1);
+
     }
 
     let hasChanges = await ApplicationEntity.hasRequiredStateChanges.call();

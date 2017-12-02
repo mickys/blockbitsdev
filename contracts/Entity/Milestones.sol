@@ -103,25 +103,9 @@ contract Milestones is ApplicationAsset {
         return getAppBylawUint256("meeting_time_set_req");
     }
 
-    function getBylawsProposalVotingDuration() public view returns (uint256) {
-        return getAppBylawUint256("proposal_voting_duration");
-    }
-
-    function getBylawsCashBackOwnerMiaDuration() public view returns (uint256) {
-        return getAppBylawUint256("cashback_owner_mia_dur");
-    }
-
     function getBylawsCashBackVoteRejectedDuration() public view returns (uint256) {
         return getAppBylawUint256("cashback_investor_no");
     }
-
-    function getProposalVotingResult(uint8 _recordId) public pure returns (bool) {
-        // ProposalsEntity
-        _recordId = 0;
-        return true;
-    }
-
-
 
     /*
     * Add Record

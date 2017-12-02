@@ -153,6 +153,13 @@ module.exports = function(setup) {
                     await assetContract.transferToNewOwner(app.address, {from:accounts[1]})
                 });
             });
+
+            it('throws if new address is 0x0', async () => {
+                await assetContract.setInitialOwnerAndName(assetName);
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.transferToNewOwner(0x0)
+                });
+            });
         });
 
 

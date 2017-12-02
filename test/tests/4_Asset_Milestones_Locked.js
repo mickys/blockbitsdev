@@ -214,6 +214,36 @@ module.exports = function(setup) {
 
                  */
             });
+
+            it('throws if trying to set Meeting time after it was already set.', async () => {
+
+                await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
+                await TestBuildHelper.doApplicationStateChanges("Development Started", false);
+
+                // time travel to end of milestone
+                let duration = settings.milestones[0].duration;
+                let time = settings.bylaws["development_start"] + duration +1;
+
+                let currentTime = await MilestonesContract.getTimestamp.call();
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
+
+                await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime);
+                await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
+
+                validation = await TestBuildHelper.ValidateEntityAndRecordState(
+                    assetName,
+                    helpers.utils.getEntityStateIdByName(assetName, "DEADLINE_MEETING_TIME_YES").toString(),
+                    helpers.utils.getEntityStateIdByName(assetName, "NONE").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "IN_PROGRESS").toString(),
+                    helpers.utils.getRecordStateIdByName(assetName, "NONE").toString()
+                );
+                assert.isTrue(validation, 'State validation failed..');
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime + 10);
+                });
+            });
+
         });
     });
 };

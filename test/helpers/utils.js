@@ -179,6 +179,51 @@ module.exports = {
     getProposalRequestId(receipt) {
         return web3util.toDecimal( receipt[0].topics[2] );
     },
+    getProposalEventData(receipt) {
+
+        let eventMapping = [
+            {
+                name: "EventAddVoteIntoResult(uint256,bool,uint256)",
+                sha: web3util.sha3("EventAddVoteIntoResult(uint256,bool,uint256)"),
+                type: 1
+            },
+            {
+                name: "EventProcessVoteTotals(uint256,uint256,uint256)",
+                sha: web3util.sha3("EventProcessVoteTotals(uint256,uint256,uint256)"),
+                type: 2
+            }
+        ];
+
+        let result = [];
+        for(let i = 0; i < receipt.logs.length; i++)
+        {
+            let event = receipt.logs[i];
+            let current = eventMapping.filter(x => x.sha === event.topics[0])[0];
+
+            if(current.type === 2) {
+                console.log(
+                    "EventProcessVoteTotals( ",
+                    web3util.toDecimal( event.topics[1] ), ",",
+                    web3util.toDecimal( event.topics[2] ), ",",
+                    web3util.toDecimal( event.topics[3] ),
+                    " )"
+                );
+            }
+
+            else if(current.type === 1) {
+
+                console.log(
+                    "EventAddVoteIntoResult( ",
+                    web3util.toDecimal( event.topics[1] ), ",",
+                    web3util.toDecimal( event.topics[2] ), ",",
+                    web3util.fromWei(event.topics[3], "ether"),
+                    " )"
+                );
+            }
+        }
+
+        return result;
+    },
     colors,
     toLog( what ) {
         console.log(colors.white, what, colors.none);
@@ -1182,6 +1227,19 @@ module.exports = {
 
         let hasRequiredStateChanges = await ProposalsAsset.hasRequiredStateChanges.call();
         helpers.utils.toLog(logPre + "RequiredStateChanges:"+ hasRequiredStateChanges.toString() );
+
+        let ActiveProposalNum = await ProposalsAsset.ActiveProposalNum.call();
+        helpers.utils.toLog(logPre + "ActiveProposalNum:   "+ ActiveProposalNum.toString() );
+
+        let ActiveProposalId = await ProposalsAsset.ActiveProposalIds.call(0);
+        helpers.utils.toLog(logPre + "ActiveProposalIds[0]:"+ ActiveProposalId.toString() );
+
+        let needsProcessing = await ProposalsAsset.needsProcessing.call( ActiveProposalId );
+        helpers.utils.toLog(logPre + "needsProcessing:    "+ needsProcessing.toString() );
+
+        let expiryChangesState = await ProposalsAsset.expiryChangesState.call( ActiveProposalId );
+        helpers.utils.toLog(logPre + "expiryChangesState: "+ expiryChangesState.toString() );
+
         helpers.utils.toLog(logPre + "" );
 
     },
@@ -1219,7 +1277,14 @@ module.exports = {
     getActionIdByName(_type, _name) {
         return ActionArray[_type].filter(x => x.name === _name)[0].key;
     },
-
+    getSetupClone(setup, newSettings) {
+        return {
+            helpers: setup.helpers,
+            contracts: setup.contracts,
+            assetContractNames: setup.assetContractNames,
+            settings: newSettings
+        };
+    },
 
     async getContractBalance(helpers, address) {
         return await helpers.utils.getBalance(helpers.artifacts, address);

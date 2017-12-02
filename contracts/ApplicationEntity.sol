@@ -175,12 +175,14 @@ contract ApplicationEntity {
     }
 
     function assetInitialized(bytes32 name, address _assetAddresses) internal {
-        require(AssetCollection[name] == 0x0);
-     
-        AssetCollectionIdToName[AssetCollectionNum] = name;
-        AssetCollection[name] = _assetAddresses;
-        AssetCollectionNum++;
-
+        if(AssetCollection[name] == 0x0) {
+            AssetCollectionIdToName[AssetCollectionNum] = name;
+            AssetCollection[name] = _assetAddresses;
+            AssetCollectionNum++;
+        } else {
+            // just replace
+            AssetCollection[name] = _assetAddresses;
+        }
         EventAppEntityInitAsset(name, _assetAddresses);
     }
 
@@ -454,7 +456,12 @@ contract ApplicationEntity {
             if(ProposalsEntity.hasRequiredStateChanges()) {
                 ProposalsEntity.process();
             }
+        }
+        else if ( CurrentEntityState == getEntityState("DEVELOPMENT_COMPLETE") ) {
 
+            if(ProposalsEntity.hasRequiredStateChanges()) {
+                ProposalsEntity.process();
+            }
         }
     }
 
