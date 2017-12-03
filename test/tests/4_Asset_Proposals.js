@@ -5,32 +5,25 @@ module.exports = function(setup) {
     let assetContractNames = setup.assetContractNames;
 
     contract('Proposals Asset', accounts => {
-        let app = {};
+        let app, assetContract, assetName = {};
+
         beforeEach(async () => {
             app = await contracts.ApplicationEntity.new();
+            assetName = "Proposals";
+            assetContract = await helpers.getContract("Test" + assetName).new();
         });
 
-        context("setInitialOwnerAndName()", async () => {
-            let assetContract, assetName = {};
-            beforeEach(async () => {
-                assetName = assetContractNames[0];
-                assetContract = await helpers.getContract("Test" + assetName).new();
-            });
+        it("setVoteCountPerProcess properly sets value", async () => {
+            let newValue = 50;
+            await assetContract.setVoteCountPerProcess(newValue);
+            let VoteCountPerProcessAfter = await assetContract.VoteCountPerProcess.call();
+            assert.equal(VoteCountPerProcessAfter.toNumber(), newValue, 'VoteCountPerProcessAfter should be newValue');
+        });
 
-            it('works if linking an asset for the first time', async () => {
-                let eventFilter = helpers.utils.hasEvent(
-                    await assetContract.setInitialOwnerAndName(assetName),
-                    'EventAppAssetOwnerSet(bytes32,address)'
-                );
-                assert.equal(eventFilter.length, 1, 'EventAppAssetOwnerSet event not received.');
-                assert.equal(await assetContract.owner.call(), accounts[0], 'Asset Owner is not accounts[0]')
-            });
-
-            it('throws if already owned', async () => {
-                await assetContract.setInitialOwnerAndName(assetName);
-                return helpers.assertInvalidOpcode(async () => {
-                    await assetContract.setInitialOwnerAndName(assetName);
-                });
+        it("setVoteCountPerProcess throws if value is not higher than 0", async () => {
+            let newValue = 0x0;
+            helpers.assertInvalidOpcode(async () => {
+                await assetContract.setVoteCountPerProcess(newValue);
             });
         });
     });

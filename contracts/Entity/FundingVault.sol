@@ -282,7 +282,7 @@ contract FundingVault {
                 uint256 transferTokens = tokenBalances[milestoneId];
                 uint256 transferEther = etherBalances[milestoneId];
 
-                if(milestoneId == BalanceNum) {
+                if(milestoneId == BalanceNum - 1) {
                     // we're processing the last milestone and balance, this means we're transferring everything left.
                     // this is done to make sure we've transferred everything, even "ether that got mistakenly sent to this address"
                     // as well as the emergency fund if it has not been used.
@@ -300,7 +300,7 @@ contract FundingVault {
                 // transfer ether to the owner's wallet
                 outputAddress.transfer(transferEther);
 
-                if(milestoneId == BalanceNum) {
+                if(milestoneId == BalanceNum - 1) {
                     // lock vault.. and enable black hole methods
                     allFundingProcessed = true;
                 }

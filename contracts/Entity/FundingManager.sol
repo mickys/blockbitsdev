@@ -173,6 +173,12 @@ contract FundingManager is ApplicationAsset {
         return keccak256(actionType, arg1);
     }
 
+    function getCurrentMilestoneProcessed() public view returns (bool) {
+        return taskByHash[ getHash("MILESTONE_PROCESS_START", getCurrentMilestoneIdHash() ) ];
+    }
+
+
+
     function ProcessVaultList(uint8 length) internal {
 
         if(taskByHash[currentTask] == false) {
@@ -189,6 +195,12 @@ contract FundingManager is ApplicationAsset {
 
                 if(end > vaultNum) {
                     end = vaultNum;
+                }
+
+                // first run
+                if(start == 1) {
+                    // reset LockedVotingTokens, as we reindex them
+                    LockedVotingTokens = 0;
                 }
 
                 for(uint256 i = start; i <= end; i++) {
@@ -242,16 +254,7 @@ contract FundingManager is ApplicationAsset {
     function ProcessFundingVault(address vaultAddress ) internal {
         FundingVault vault = FundingVault(vaultAddress);
 
-        if(CurrentEntityState == getEntityState("FUNDING_FAILED_PROGRESS")) {
-
-            /*
-            // release all tokens back to owner
-            if(!vault.ReleaseFundsToOutputAddress()) {
-                revert();
-            }
-            */
-
-        } else if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
+        if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
             // step 1 -  transfer bought token share from "manager" to "vault"
             TokenEntity.transfer( vaultAddress, vault.getBoughtTokens() );
@@ -282,10 +285,6 @@ contract FundingManager is ApplicationAsset {
                 }
             }
 
-        } else if(CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS")) {
-            /*
-                not much to do here, except get vault to transfer black hole tokens to investors, or output address
-            */
         }
 
         // For proposal voting, we need to know how many investor locked tokens remain.
@@ -480,12 +479,7 @@ contract FundingManager is ApplicationAsset {
 
     // Completion
             } else if ( CurrentEntityState == getEntityState("COMPLETE_PROCESS_PROGRESS") ) {
-                // still in progress? check if we should move to done
-                if ( processCompleteFinished() ) {
-                    EntityStateRequired = getEntityState("COMPLETE_PROCESS_DONE");
-                } else {
-                    EntityStateRequired = getEntityState("COMPLETE_PROCESS_PROGRESS");
-                }
+                EntityStateRequired = getEntityState("COMPLETE_PROCESS_PROGRESS");
             }
         } else {
 

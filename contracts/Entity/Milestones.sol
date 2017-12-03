@@ -534,15 +534,23 @@ contract Milestones is ApplicationAsset {
 
             } else if ( CurrentEntityState == getEntityState("VOTING_FUNDS_PROCESSED") ) {
 
-                // RecordStateRequired = getRecordState("FINAL");
 
                 if(currentRecord < RecordNum) {
                     EntityStateRequired = getEntityState("IN_DEVELOPMENT");
                 } else {
-                    EntityStateRequired = getEntityState("FINAL");
+
+                    if(FundingManagerEntity.getCurrentMilestoneProcessed() == true) {
+                        if(FundingManagerEntity.CurrentEntityState() == FundingManagerEntity.getEntityState("COMPLETE_PROCESS_DONE")) {
+                            EntityStateRequired = getEntityState("DEVELOPMENT_COMPLETE");
+                        } else {
+                            EntityStateRequired = getEntityState("VOTING_FUNDS_PROCESSED");
+                        }
+                    } else {
+                        EntityStateRequired = getEntityState("IN_DEVELOPMENT");
+                    }
                 }
 
-            } else if ( CurrentEntityState == getEntityState("FINAL") ) {
+            } else if ( CurrentEntityState == getEntityState("DEVELOPMENT_COMPLETE") ) {
 
             }
 
