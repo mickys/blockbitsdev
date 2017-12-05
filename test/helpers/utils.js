@@ -351,6 +351,10 @@ module.exports = {
             tx.receipt.cumulativeGasUsed
         );
     },
+    async getGasPrice(helpers) {
+        let stub = await helpers.getContract("EmptyStub");
+        return stub.class_defaults.gasPrice;
+    },
     async getGasUsage(helpers, tx, name) {
         return(name + "GAS USAGE: " +
             helpers.utils.colors.purple +
@@ -1241,6 +1245,25 @@ module.exports = {
         helpers.utils.toLog(logPre + "expiryChangesState: "+ expiryChangesState.toString() );
 
         helpers.utils.toLog(logPre + "" );
+
+    },
+    async displayCashBackStatus(helpers, TestBuildHelper, wallet) {
+
+        let vault = await TestBuildHelper.getMyVaultAddress(wallet);
+        let canCashBack = await vault.canCashBack.call();
+
+        let checkFundingStateFailed                         = await vault.checkFundingStateFailed.call();
+        let checkOwnerFailedToSetTimeOnMeeting              = await vault.checkOwnerFailedToSetTimeOnMeeting.call();
+        let checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+
+        let etherBalance = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+        let etherBalanceInFull = helpers.web3util.fromWei(etherBalance, "ether");
+
+        console.log("canCashBack: ", canCashBack.toString());
+        console.log("checkFundingStateFailed:   ", checkFundingStateFailed.toString());
+        console.log("checkOwnerFailedToSetTime: ", checkOwnerFailedToSetTimeOnMeeting.toString());
+        console.log("checkMVotedNoVotingEndedNo:", checkMilestoneStateInvestorVotedNoVotingEndedNo.toString());
+        console.log("ether balance:             ", etherBalanceInFull.toString());
 
     },
     getInTotal( helpers, bigNumber ) {

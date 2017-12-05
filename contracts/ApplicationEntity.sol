@@ -577,6 +577,10 @@ contract ApplicationEntity {
                 EntityStateRequired = getEntityState("DEVELOPMENT_COMPLETE");
             }
 
+            if(MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("DEADLINE_MEETING_TIME_FAILED")) {
+                EntityStateRequired = getEntityState("IN_GLOBAL_CASHBACK");
+            }
+
         } else if ( CurrentEntityState == getEntityState("START_CODE_UPGRADE") ) {
 
             // check stuff to move into IN_CODE_UPGRADE

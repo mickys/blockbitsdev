@@ -789,8 +789,26 @@ contract Proposals is ApplicationAsset {
     }
 
     // used by vault cash back
+    function getMyVoteForCurrentMilestoneRelease(address _voter) public view returns (bool) {
+        // find proposal id for current milestone
+        uint8 recordId = MilestonesEntity.currentRecord();
+        bytes32 hash = getHash( getActionType("MILESTONE_DEADLINE"), bytes32( recordId ), 0 );
+        uint256 proposalId = ProposalIdByHash[hash];
+        // based on that proposal id, find my vote
+        VoteStruct memory vote = VotesByCaster[proposalId][_voter];
+        return vote.vote;
+    }
+
+    function getHasVoteForCurrentMilestoneRelease(address _voter) public view returns (bool) {
+        // find proposal id for current milestone
+        uint8 recordId = MilestonesEntity.currentRecord();
+        bytes32 hash = getHash( getActionType("MILESTONE_DEADLINE"), bytes32( recordId ), 0 );
+        uint256 proposalId = ProposalIdByHash[hash];
+        return hasPreviousVote(proposalId, _voter);
+    }
+
     function getMyVote(uint256 _proposalId, address _voter) public view returns (bool) {
-        VoteStruct storage vote = VotesByCaster[_proposalId][_voter];
+        VoteStruct memory vote = VotesByCaster[_proposalId][_voter];
         return vote.vote;
     }
 

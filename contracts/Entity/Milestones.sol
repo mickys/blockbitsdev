@@ -554,28 +554,6 @@ contract Milestones is ApplicationAsset {
 
             }
 
-            // Record State Overrides
-            // if(CurrentRecordState != RecordStateRequired) {
-            /*
-            if(RecordStateRequired != getRecordState("__IGNORED__"))
-            {
-                // direct state overrides by record state
-                if (RecordStateRequired == getRecordState("FINAL")) {
-                    // funding stage moves to FINAL
-
-                    if (currentRecord == RecordNum) {
-                        // if current funding is last
-                        EntityStateRequired = getEntityState("DEVELOPMENT_ENDED");
-                    }
-                    else {
-                        // start voting period
-                        // EntityStateRequired = getEntityState("COOLDOWN");
-                    }
-                }
-            }
-            */
-
-
         } else {
 
             if( CurrentEntityState == getEntityState("NEW") ) {

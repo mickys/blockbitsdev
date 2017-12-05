@@ -105,15 +105,23 @@ module.exports = function(setup) {
 
         it("Development started, processes all milestones, and after last one sets application into DEVELOPMENT_COMPLETE state, validates balances each step", async () => {
 
+
+
             let ProposalId = 0;
             let MilestoneNum = await MilestonesAsset.RecordNum.call();
 
             for(let i = 1; i <= MilestoneNum.toNumber(); i++ ) {
 
+                // console.log("Processing milestone id: ", i);
+                // await TestBuildHelper.displayAllVaultDetails();
+
                 // >>> initial values
                 // save platformWalletAddress initial balances
                 let tokenBalance = await TestBuildHelper.getTokenBalance(platformWalletAddress);
                 let etherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
+
+                let etherBalanceInFull = helpers.web3util.fromWei(etherBalance, "ether");
+
                 // total funding ether
                 let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
                 // first milestone percent
@@ -163,6 +171,7 @@ module.exports = function(setup) {
                 tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: wallet1});
 
                 await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
+                // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
 
                 // >>> new values, validation
                 let etherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);

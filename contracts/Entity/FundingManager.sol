@@ -113,7 +113,8 @@ contract FundingManager is ApplicationAsset {
                     _sender,
                     FundingEntity.multiSigOutputAddress(),
                     address(FundingEntity),
-                    address(getApplicationAssetAddressByName('Milestones'))
+                    address(getApplicationAssetAddressByName('Milestones')),
+                    address(getApplicationAssetAddressByName('Proposals'))
                 )) {
                     // store new vault address.
                     vaultList[_sender] = vault;
@@ -232,11 +233,6 @@ contract FundingManager is ApplicationAsset {
         return taskByHash[thisHash];
     }
 
-    function processCompleteFinished() public view returns (bool) {
-        bytes32 thisHash = getHash("COMPLETE_PROCESS_START", "");
-        return taskByHash[thisHash];
-    }
-
     function getCurrentMilestoneIdHash() internal view returns (bytes32) {
         return bytes32(MilestonesEntity.currentRecord());
     }
@@ -254,42 +250,72 @@ contract FundingManager is ApplicationAsset {
     function ProcessFundingVault(address vaultAddress ) internal {
         FundingVault vault = FundingVault(vaultAddress);
 
-        if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
+        if(vault.allFundingProcessed() == false) {
 
-            // step 1 -  transfer bought token share from "manager" to "vault"
-            TokenEntity.transfer( vaultAddress, vault.getBoughtTokens() );
+            if(CurrentEntityState == getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
 
-            // vault should now hold as many tokens as the investor bought using direct and milestone funding,
-            // as well as the ether they sent
+                // step 1 -  transfer bought token share from "manager" to "vault"
+                TokenEntity.transfer( vaultAddress, vault.getBoughtTokens() );
 
-            // "direct funding" release -> funds to owner / tokens to investor
-            if(!vault.ReleaseFundsAndTokens()) {
-                revert();
-            }
+                // vault should now hold as many tokens as the investor bought using direct and milestone funding,
+                // as well as the ether they sent
+                // "direct funding" release -> funds to owner / tokens to investor
+                if(!vault.ReleaseFundsAndTokens()) {
+                    revert();
+                }
 
-        } else if(CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS")) {
-
-            if(vault.allFundingProcessed() == false) {
+            } else if(CurrentEntityState == getEntityState("MILESTONE_PROCESS_PROGRESS")) {
                 // release funds to owner / tokens to investor
                 if(!vault.ReleaseFundsAndTokens()) {
                     revert();
                 }
-            }
 
-        } else if(CurrentEntityState == getEntityState("EMERGENCY_PROCESS_PROGRESS")) {
-
-            if(vault.allFundingProcessed() == false) {
+            } else if(CurrentEntityState == getEntityState("EMERGENCY_PROCESS_PROGRESS")) {
                 // release emergency funds to owner / tokens to investor
                 if(!vault.releaseTokensAndEtherForEmergencyFund()) {
                     revert();
                 }
             }
 
+            // For proposal voting, we need to know how many investor locked tokens remain.
+            LockedVotingTokens+= getAfterTransferLockedTokenBalances(vaultAddress, true);
+
+        }
+    }
+
+    function getAfterTransferLockedTokenBalances(address vaultAddress, bool excludeCurrent) public view returns (uint256) {
+        FundingVault vault = FundingVault(vaultAddress);
+        uint8 currentMilestone = MilestonesEntity.currentRecord();
+
+        uint256 LockedBalance = 0;
+        // handle emergency funding first
+        if(vault.emergencyFundReleased() == false) {
+            LockedBalance+=vault.tokenBalances(0);
         }
 
-        // For proposal voting, we need to know how many investor locked tokens remain.
-        LockedVotingTokens+= TokenEntity.balanceOf(vaultAddress);
+        // get token balances starting from current
+        uint8 start = currentMilestone;
 
+        if(CurrentEntityState != getEntityState("FUNDING_SUCCESSFUL_PROGRESS")) {
+            if(excludeCurrent == true) {
+                start++;
+            }
+        }
+
+        for(uint8 i = start; i < vault.BalanceNum() ; i++) {
+            LockedBalance+=vault.tokenBalances(i);
+        }
+        return LockedBalance;
+
+    }
+
+    function VaultRequestedUpdateForLockedVotingTokens(address owner) public {
+        // validate sender
+        address vaultAddress = vaultList[owner];
+        if(msg.sender == vaultAddress){
+            // get token balances starting from current
+            LockedVotingTokens-= getAfterTransferLockedTokenBalances(vaultAddress, false);
+        }
     }
 
     function doStateChanges() public {
@@ -342,7 +368,7 @@ contract FundingManager is ApplicationAsset {
                 CurrentEntityState = getEntityState("FUNDING_SUCCESSFUL_PROGRESS");
             } else {
                 // something went really wrong, just bail out for now
-                CurrentEntityState = getEntityState("FUNDING_FAILED_START");
+                // CurrentEntityState = getEntityState("FUNDING_FAILED_START");
             }
         } else if ( EntityStateRequired == getEntityState("FUNDING_SUCCESSFUL_PROGRESS") ) {
             ProcessVaultList(VaultCountPerProcess);
@@ -502,4 +528,7 @@ contract FundingManager is ApplicationAsset {
         }
         return false;
     }
+
+
+
 }

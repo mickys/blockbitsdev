@@ -12,7 +12,7 @@ module.exports = function(setup) {
         let investorAddress = accounts[1];
         let assetContract;
         let assetName = "FundingVault";
-        let FundingContract, MilestonesContract, TokenManagerContract;
+        let FundingContract, MilestonesContract, TokenManagerContract, ProposalsContract;
         let FUNDING_DIRECT_METHOD = 1;
         let FUNDING_MILESTONE_METHOD = 2;
 
@@ -26,6 +26,7 @@ module.exports = function(setup) {
 
             FundingContract = await TestBuildHelper.getDeployedByName("Funding");
             MilestonesContract = await TestBuildHelper.getDeployedByName("Milestones");
+            ProposalsContract = await TestBuildHelper.getDeployedByName("Proposals");
             TokenManagerContract = await TestBuildHelper.getDeployedByName("TokenManager");
             assetContract = await helpers.getContract("Test" + assetName).new();
         });
@@ -53,6 +54,7 @@ module.exports = function(setup) {
                         platformWalletAddress,
                         await FundingContract.address,
                         await MilestonesContract.address,
+                        await ProposalsContract.address,
                         {from: deploymentAddress}
                     );
                 });
@@ -64,6 +66,7 @@ module.exports = function(setup) {
                     platformWalletAddress,
                     await FundingContract.address,
                     await MilestonesContract.address,
+                    await ProposalsContract.address,
                     {from: deploymentAddress}
                 );
                 assert.equal(await assetContract.vaultOwner.call(), investorAddress, 'vaultOwner address should not be empty');
@@ -81,6 +84,7 @@ module.exports = function(setup) {
                     platformWalletAddress,
                     await FundingContract.address,
                     await MilestonesContract.address,
+                    await ProposalsContract.address,
                     {from: deploymentAddress}
                 );
                 assert.equal(await assetContract.vaultOwner.call(), investorAddress, 'vaultOwner address should not be empty');

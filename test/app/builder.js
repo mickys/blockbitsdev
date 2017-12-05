@@ -334,6 +334,72 @@ TestBuildHelper.prototype.displayOwnerAddressDetails = async function () {
 
 };
 
+TestBuildHelper.prototype.displayMilestoneVaultDetails = async function () {
+    let FundingManager = await this.getDeployedByName("FundingManager");
+    let vaultNum = await FundingManager.vaultNum.call();
+    let FundingVault = await this.getContract("TestFundingVault");
+
+    let total = new this.setup.helpers.BigNumber(0);
+    let locked = new this.setup.helpers.BigNumber(0);
+
+    for (let i = 1; i <= vaultNum; i++) {
+        let vaultAddress = await FundingManager.vaultById.call(i);
+        let vault = await FundingVault.at(vaultAddress);
+        let BalanceNum = await vault.BalanceNum.call();
+        if(BalanceNum > 0) {
+
+            let VaultTokenBalance = await this.getTokenBalance(vaultAddress);
+            let VaultTokenBalanceInFull = this.setup.helpers.web3util.fromWei(VaultTokenBalance, "ether");
+            this.setup.helpers.utils.toLog(logPre + "Vault TK Bal  ["+i+"]:   " + VaultTokenBalanceInFull);
+
+            total = total.add( VaultTokenBalance );
+            locked = locked.add( VaultTokenBalance );
+
+            let walletAddress = await vault.vaultOwner.call();
+            let TokenBalance = await this.getTokenBalance(walletAddress);
+            let TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
+            this.setup.helpers.utils.toLog(logPre + "Wallet TK Bal ["+i+"]:  " + TokenBalanceInFull);
+
+            total = total.add( TokenBalance );
+
+            this.setup.helpers.utils.toLog(logPre + "Milestone Breakdown [" + BalanceNum.toString() + "]");
+            for (let c = 0; c < BalanceNum; c++) {
+
+                let TokenBalances = await vault.tokenBalances.call(c);
+                let TokenBalancesInFull = this.setup.helpers.web3util.fromWei(TokenBalances, "ether");
+                this.setup.helpers.utils.toLog(logPre + "Token Balance [" + c + "]:  " + TokenBalancesInFull);
+
+                //let EthBalance = await vault.etherBalances.call(c);
+                //let EthBalanceInFull = this.setup.helpers.web3util.fromWei(EthBalance, "ether");
+                //this.setup.helpers.utils.toLog(logPre + "Eth Balance   [" + c + "]:  " + EthBalanceInFull);
+            }
+            this.setup.helpers.utils.toLog("");
+        }
+    }
+
+    let totalInFull = this.setup.helpers.web3util.fromWei(total, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Tokens ADDED:        " + totalInFull.toString());
+
+    let FundingManagerTokenBalance = await this.getTokenBalance(FundingManager.address.toString());
+    let FundingManagerTokenBalanceInFull = this.setup.helpers.web3util.fromWei(FundingManagerTokenBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "FundingManager:      " + FundingManagerTokenBalanceInFull);
+
+    let FundingManagerLocked = await FundingManager.LockedVotingTokens.call();
+    let FundingManagerLockedInFull = this.setup.helpers.web3util.fromWei(FundingManagerLocked, "ether");
+    this.setup.helpers.utils.toLog(logPre + "FundingManagerLocked:" + FundingManagerLockedInFull);
+
+
+    let totalBalance = new this.setup.helpers.BigNumber(0);
+    totalBalance = totalBalance.add( FundingManagerTokenBalance );
+    totalBalance = totalBalance.add( total );
+
+    let totalBalanceInFull = this.setup.helpers.web3util.fromWei(totalBalance, "ether");
+    this.setup.helpers.utils.toLog(logPre + "Total Balance:       " + totalBalanceInFull);
+
+    this.setup.helpers.utils.toLog(logPre + "Milestone Locked:    " + locked.toString());
+
+};
+
 TestBuildHelper.prototype.displayAllVaultDetails = async function () {
     let FundingManager = await this.getDeployedByName("FundingManager");
     let vaultNum = await FundingManager.vaultNum.call();
@@ -369,19 +435,21 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
 
     this.setup.helpers.utils.toLog("");
     let total = new this.setup.helpers.BigNumber(0);
+    let locked = new this.setup.helpers.BigNumber(0);
 
     for (let i = 1; i <= vaultNum; i++) {
         let vaultAddress = await FundingManager.vaultById.call(i);
-        let TokenBalance = await this.getTokenBalance(vaultAddress);
-        let TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
-        this.setup.helpers.utils.toLog(logPre + "Vault Balance  ["+i+"]:  " + TokenBalanceInFull);
+        let VaultTokenBalance = await this.getTokenBalance(vaultAddress);
+        let VaultTokenBalanceInFull = this.setup.helpers.web3util.fromWei(VaultTokenBalance, "ether");
+        this.setup.helpers.utils.toLog(logPre + "Vault Balance  ["+i+"]:  " + VaultTokenBalanceInFull);
 
-        total = total.add( this.setup.helpers.web3util.fromWei(TokenBalance, "wei") );
+        total = total.add( this.setup.helpers.web3util.fromWei(VaultTokenBalance, "wei") );
+        locked = locked.add( this.setup.helpers.web3util.fromWei(VaultTokenBalance, "wei") )
 
         vault = await FundingVault.at(vaultAddress);
         let walletAddress = await vault.vaultOwner.call();
-        TokenBalance = await this.getTokenBalance(walletAddress);
-        TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
+        let TokenBalance = await this.getTokenBalance(walletAddress);
+        let TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
         this.setup.helpers.utils.toLog(logPre + "Wallet Balance ["+i+"]:  " + TokenBalanceInFull);
 
         total = total.add( this.setup.helpers.web3util.fromWei(TokenBalance, "wei") );
@@ -392,9 +460,9 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
         this.setup.helpers.utils.toLog(logPre + "Milestone Breakdown ["+BalanceNum.toString()+"]");
         for (let c = 0; c < BalanceNum; c++) {
 
-            TokenBalance = await vault.tokenBalances.call(c);
-            TokenBalanceInFull = this.setup.helpers.web3util.fromWei(TokenBalance, "ether");
-            this.setup.helpers.utils.toLog(logPre + "Token Balance ["+c+"]:  " + TokenBalanceInFull);
+            let TokenBalances = await vault.tokenBalances.call(c);
+            TokenBalancesInFull = this.setup.helpers.web3util.fromWei(TokenBalances, "ether");
+            this.setup.helpers.utils.toLog(logPre + "Token Balance ["+c+"]:  " + TokenBalancesInFull);
 
             let EthBalance = await vault.etherBalances.call(c);
             let EthBalanceInFull = this.setup.helpers.web3util.fromWei(EthBalance, "ether");
@@ -418,6 +486,9 @@ TestBuildHelper.prototype.displayAllVaultDetails = async function () {
 
     let totalBalanceInFull = this.setup.helpers.web3util.fromWei(totalBalance, "ether");
     this.setup.helpers.utils.toLog(logPre + "Total Balance:       " + totalBalanceInFull);
+
+    this.setup.helpers.utils.toLog(logPre + "Milestone Locked Balance: " + locked.toString());
+
 };
 
 TestBuildHelper.prototype.displayVaultDetails = async function (vaultAddress, id) {

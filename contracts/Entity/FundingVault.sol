@@ -53,6 +53,7 @@ contract FundingVault {
     Funding public FundingEntity;
     FundingManager public FundingManagerEntity;
     Milestones public MilestonesEntity;
+    Proposals public ProposalsEntity;
     TokenManager public TokenManagerEntity;
     TokenSCADAGeneric public TokenSCADAEntity;
     Token public TokenEntity ;
@@ -64,7 +65,7 @@ contract FundingVault {
     uint256 public amount_milestone = 0;
 
     // bylaws
-    bool emergencyFundReleased = false;
+    bool public emergencyFundReleased = false;
     uint8 emergencyFundPercentage = 0;
     uint256 public BylawsCashBackOwnerMiaDuration;
     uint256 public BylawsCashBackVoteRejectedDuration;
@@ -91,7 +92,8 @@ contract FundingVault {
         address _owner,
         address _output,
         address _fundingAddress,
-        address _milestoneAddress
+        address _milestoneAddress,
+        address _proposalsAddress
     )
         public
         requireNotInitialised
@@ -109,6 +111,7 @@ contract FundingVault {
         FundingEntity = Funding(_fundingAddress);
         FundingManagerEntity = FundingManager(managerAddress);
         MilestonesEntity = Milestones(_milestoneAddress);
+        ProposalsEntity = Proposals(_proposalsAddress);
 
         address TokenManagerAddress = FundingEntity.getApplicationAssetAddressByName("TokenManager");
         TokenManagerEntity = TokenManager(TokenManagerAddress);
@@ -354,25 +357,21 @@ contract FundingVault {
             // now transfer all remaining ether back to investor address
             vaultOwner.transfer(this.balance);
 
-
             // update FundingManager Locked Token Amount, so we don't break voting
+            FundingManagerEntity.VaultRequestedUpdateForLockedVotingTokens( vaultOwner );
+
+            // disallow further processing, so we don't break Funding Manager.
+            // this method can still be called to collect future black hole ether to this vault.
+            allFundingProcessed = true;
         }
     }
 
     /*
-        1 - if the funding of the project Failed, and releases all locked ethereum back to the Investor.
+        1 - if the funding of the project Failed, allows investors to claim their locked ether back.
         2 - if the Investor votes NO to a Development Milestone Completion Proposal, where the majority
-            also votes NO and releases remaining locked ethereum back to the Investor.
-
-        3 - project owner misses a Development Milestone Completion Meeting and releases remaining locked
-            ethereum back to the Investor.
-
-        4 - checks if project is stuck in "development" ?!
-
-        Can be manually triggered by anyone if the project remains stuck at any state
-        other than "Development Finalised" for whatever reason. ( Never be possible in
-        theory but cannot be ruled out )
-
+            also votes NO allows investors to claim their locked ether back.
+        3 - project owner misses to set the time for a Development Milestone Completion Meeting allows investors
+        to claim their locked ether back.
     */
     function canCashBack() public view requireInitialised returns (bool) {
 
@@ -388,15 +387,12 @@ contract FundingVault {
         if(checkOwnerFailedToSetTimeOnMeeting()) {
             return true;
         }
-        // case 4
-        if(checkIfAppOrAnyAssetFailedToChangeState()) {
-            return true;
-        }
+
         return false;
     }
 
     function checkFundingStateFailed() public view returns (bool) {
-        if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED") ) {
+        if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED_FINAL") ) {
             return true;
         }
         return false;
@@ -404,29 +400,26 @@ contract FundingVault {
 
     function checkMilestoneStateInvestorVotedNoVotingEndedNo() public view returns (bool) {
         if(MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("VOTING_ENDED_NO") ) {
-            // check if we voted NO, and if so return true
-            return true;
+            // first we need to make sure we actually voted.
+            if( ProposalsEntity.getHasVoteForCurrentMilestoneRelease(vaultOwner) == true) {
+                // now make sure we voted NO, and if so return true
+                if( ProposalsEntity.getMyVoteForCurrentMilestoneRelease( vaultOwner ) == false) {
+                    return true;
+                }
+            }
         }
         return false;
     }
 
     function checkOwnerFailedToSetTimeOnMeeting() public view returns (bool) {
-        // probably need to check all state change rules on all assets.
+        // Looks like the project owner is missing in action
+        // they only have to do 1 thing, which is set the meeting time 7 days before the end of the milestone so that
+        // investors know when they need to show up for a progress report meeting
 
-        uint8 currentMilestoneId = MilestonesEntity.currentRecord();
-        currentMilestoneId = 0;
-        // get record times
-
-        // get bylaws from app
-
-        // check if time has passed.
-
-        return false;
-    }
-
-    // change to view once we do things
-    function checkIfAppOrAnyAssetFailedToChangeState() public pure returns (bool) {
-        // probably need to check all state change rules on all assets.
+        // as they did not, we consider them missing in action and allow investors to retrieve their locked ether back
+        if( MilestonesEntity.CurrentEntityState() == MilestonesEntity.getEntityState("DEADLINE_MEETING_TIME_FAILED") ) {
+            return true;
+        }
         return false;
     }
 
