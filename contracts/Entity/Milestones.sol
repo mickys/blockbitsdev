@@ -276,9 +276,6 @@ contract Milestones is ApplicationAsset {
         } else if( CurrentEntityState == getEntityState("VOTING_FUNDS_PROCESSED") ) {
             MilestoneCashBackTime = 0;
             startNextMilestone();
-
-        } else if( CurrentEntityState == getEntityState("DEVELOPMENT_ENDED") ) {
-            MilestoneCashBackTime = 0;
         }
 
     }
@@ -550,9 +547,12 @@ contract Milestones is ApplicationAsset {
                     }
                 }
 
-            } else if ( CurrentEntityState == getEntityState("DEVELOPMENT_COMPLETE") ) {
+            }
+            /*
+            else if ( CurrentEntityState == getEntityState("DEVELOPMENT_COMPLETE") ) {
 
             }
+            */
 
         } else {
 

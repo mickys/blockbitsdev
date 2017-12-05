@@ -119,6 +119,7 @@ module.exports = function(setup) {
         // NOTE: testing uint256 wrapping is impossible in this standard token since you can't supply > 2^256 -1
         // todo: transfer max amounts
 
+        /*
         it('transfer: msg.sender should transfer 100 to SampleRecipient and then NOTIFY SampleRecipient. It should succeed.', async () => {
             let SRS = await SampleRecipientSuccess.new({from: accounts[0]});
             await HST.transferAndCall(SRS.address, 100, {from: accounts[0]});
@@ -135,6 +136,7 @@ module.exports = function(setup) {
                 await HST.transferAndCall(SRS.address, 100, {from: accounts[0]})
             });
         });
+        */
 
         // APPROVALS
         it('approvals: msg.sender should approve 100 to accounts[1]', async () => {

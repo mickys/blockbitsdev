@@ -201,7 +201,6 @@ module.exports = function(setup) {
 
             });
 
-
             it("Funding Vaults allow all investors to CashBack", async () => {
 
                 tx = await TestBuildHelper.timeTravelTo(end_time);
@@ -265,14 +264,13 @@ module.exports = function(setup) {
                 assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
             });
 
-
             it("MIA @ Milestone 3 - CashBack transfers all locked ether back to the investor, and locked tokens to platform owner, validates balances and gas usage", async () => {
 
                 let ProposalId = 0;
                 let MilestoneNum = await MilestonesAsset.RecordNum.call();
                 let tx;
 
-                for(let i = 1; i <= 3; i++ ) {
+                for(let i = 1; i < 3; i++ ) {
 
                     let MilestoneId = await MilestonesAsset.currentRecord.call();
                     let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
@@ -296,19 +294,22 @@ module.exports = function(setup) {
 
                     tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
                     await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
-
-                    await TestBuildHelper.doApplicationStateChanges("timeTravelTo", false);
                     ProposalId++;
 
                     // vote yes
                     tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor1wallet});
 
-                    await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
                     // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
                 }
 
                 let MilestoneId = await MilestonesAsset.currentRecord.call();
                 let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+                assert.equal(MilestoneId.toString(), 3, "MilestoneId should be 3");
 
                 await TestBuildHelper.timeTravelTo( MilestoneRecord[6] );
                 await TestBuildHelper.doApplicationStateChanges("Owner MIA", false);
@@ -353,7 +354,6 @@ module.exports = function(setup) {
                 assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
             });
 
-
             it("MIA @ Milestone LAST - CashBack transfers all locked ether back to the investor, and locked tokens to platform owner, validates balances and gas usage", async () => {
 
                 let ProposalId = 0;
@@ -391,7 +391,12 @@ module.exports = function(setup) {
                     // vote yes
                     tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor1wallet});
 
-                    await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+
                     // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
                 }
 
@@ -441,20 +446,16 @@ module.exports = function(setup) {
                 let vaultTokenBalanceAfter = await TestBuildHelper.getTokenBalance(vault.address);
                 assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
             });
-
         });
-
-
         // cashback at funding failed
         // cashback at mia milestone 1
         // cashback at mia milestone 3
         // cashback at mia milestone last
+
         // cashback at vote no milestone 1
-        // cashback at vote no milestone 2
+        // cashback at vote no milestone 3
         // cashback at vote no milestone last
-
-
-
+        // cashback at vote no milestone 3 investor 1 / cashback at vote no milestone 4 investor 4, no more locked, complete
 
 
         context("Platform Funding Successful - Cashback Type 3 - Milestone Release", async () => {
@@ -514,225 +515,797 @@ module.exports = function(setup) {
 
             it("Proposal processed. Funding Vault allows the investor to CashBack if majority voted NO and investor also voted NO", async () => {
 
-                tx = await TestBuildHelper.timeTravelTo(end_time);
-                await TestBuildHelper.doApplicationStateChanges("Owner MIA", false);
+                let currentTime = await MilestonesAsset.getTimestamp.call();
+                // set meeting time 10 days from now.
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("At Milestone Release Voting", false);
+
+                let ProposalId = 1;
+                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: investor1wallet});
+
+                // time travel to end of proposal
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                let proposalEndTime = ProposalRecord[9].toNumber();
+                tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
 
                 let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
                 let canCashBack = await vault.canCashBack.call();
-                let checkOwnerFailedToSetTimeOnMeeting  = await vault.checkOwnerFailedToSetTimeOnMeeting.call();
+                let checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
                 assert.isTrue(canCashBack, "Should be able to CashBack");
-                assert.isTrue(checkOwnerFailedToSetTimeOnMeeting, "checkOwnerFailedToSetTimeOnMeeting should be able true");
+                assert.isTrue(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be true");
 
-                // vault 2 used direct funding, so balances should be empty, but since we want to allow people to retrieve
-                // black hole ether sent to vaults, we allow cashback
-                vault = await TestBuildHelper.getMyVaultAddress(investor2wallet);
+                // vault 4 has locked tokens, but should not be allowed to cash back since they did not vote NO
+                vault = await TestBuildHelper.getMyVaultAddress(investor4wallet);
                 canCashBack = await vault.canCashBack.call();
-                checkOwnerFailedToSetTimeOnMeeting = await vault.checkOwnerFailedToSetTimeOnMeeting.call();
-                assert.isTrue(canCashBack, "Should be able to CashBack");
-                assert.isTrue(checkOwnerFailedToSetTimeOnMeeting, "checkOwnerFailedToSetTimeOnMeeting should be able true");
+                checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isFalse(canCashBack, "Should not be able to CashBack");
+                assert.isFalse(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be false");
+
+                // continue
+                currentTime = await MilestonesAsset.getTimestamp.call();
+                let cashback_duration = await MilestonesAsset.getBylawsCashBackVoteRejectedDuration.call( );
+                let after_cashback = currentTime.add(cashback_duration);
+                tx = await TestBuildHelper.timeTravelTo(after_cashback + 1);
+                await TestBuildHelper.doApplicationStateChanges("after cashback", false);
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), 2, "Milestone Id should be 2");
+
             });
 
 
-            it("Proposal processed. Investor uses CashBack, validate balances", async () => {
 
-                let usedWallet = wallet1;
+            it("VOTE NO @ Milestone 1 - Proposal processed. Investor uses CashBack, validate balances", async () => {
+
+                let ProposalId = 0;
+                let MilestoneNum = await MilestonesAsset.RecordNum.call();
+                let tx;
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), 1, "MilestoneId should be 1");
+
+                let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                await TestBuildHelper.timeTravelTo( MilestoneRecord[6] );
+                await TestBuildHelper.doApplicationStateChanges("Owner MIA", false);
 
 
-                // save initial balances
-                let platformOwnerTokenBalance = await TestBuildHelper.getTokenBalance(platformWalletAddress);
-                let platformOwnerEtherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
-                let walletTokenBalance = await TestBuildHelper.getTokenBalance(usedWallet);
-                let walletEtherBalance = await helpers.utils.getBalance(helpers.artifacts, usedWallet);
+                let platformTokenBalanceInitial = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let FMLockedTokensInitial = await FundingManagerAsset.LockedVotingTokens.call();
 
-                // time travel to development start
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let EtherBalanceInitial = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceLeft = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                let vaultTokenBalanceInitial = await TestBuildHelper.getTokenBalance(vault.address);
+
+                // since the investor calls this, we need to take GasUsage into account.
+                tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
+                let gasUsed = new helpers.BigNumber( tx.receipt.cumulativeGasUsed );
+                let gasPrice = await helpers.utils.getGasPrice(helpers);
+                let gasDifference = gasUsed.mul(gasPrice);
+
+                // validate investor ether balances
+                let EtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceInitialPlusLeft = EtherBalanceInitial.add(EtherBalanceLeft);
+                // sub used gas from initial
+                EtherBalanceInitialPlusLeft = EtherBalanceInitialPlusLeft.sub(gasDifference);
+                assert.equal(EtherBalanceAfter.toString(), EtherBalanceInitialPlusLeft.toString(), "EtherBalanceAfter should match EtherBalanceInitialPlusContributed");
+
+                // validate Funding Manager Locked Token value
+                let FMLockedTokensAfter = await FundingManagerAsset.LockedVotingTokens.call();
+                let FMLockedTokensValidate = await FMLockedTokensAfter.add(vaultTokenBalanceInitial);
+                assert.equal(FMLockedTokensInitial.toString(), FMLockedTokensValidate.toString(), "Funding Manager Locked Token value does not match");
+
+                // validate platform owner wallet new token balances
+                let platformTokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let platformTokenBalanceValidate = await platformTokenBalanceInitial.add( vaultTokenBalanceInitial );
+                assert.equal(platformTokenBalanceAfter.toString(), platformTokenBalanceValidate.toString(), "Platform Owner wallet token balance does not match");
+
+                // validate vault balances, all should be 0
+                let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
+                let vaultTokenBalanceAfter = await TestBuildHelper.getTokenBalance(vault.address);
+                assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
+
+            });
+
+
+            it("VOTE NO @ Milestone 1 - Proposal processed. Investor uses CashBack, validate balances, can continue with next milestones", async () => {
+
+                let ProposalId = 0;
+                let MilestoneNum = await MilestonesAsset.RecordNum.call();
+                let tx;
+
+                let i = 1;
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+
+                // time travel to start of milestone
+
                 let start_time = settings.bylaws["development_start"] + 1;
-                await TestBuildHelper.timeTravelTo( start_time );
+                await TestBuildHelper.timeTravelTo(start_time);
+                await TestBuildHelper.doApplicationStateChanges("at dev start time", false);
+
+                ProposalId++;
+
+                MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), 1, "MilestoneId should be 1");
 
                 let currentTime = await MilestonesAsset.getTimestamp.call();
                 // set meeting time 10 days from now.
                 let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
-
                 await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
-                await TestBuildHelper.doApplicationStateChanges("set meeting time", false);
+                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("At Milestone Release Voting", false);
 
-                // time travel after meeting time
-                let tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
-                await TestBuildHelper.doApplicationStateChanges("timeTravelTo", false);
+                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: investor1wallet});
 
-                // Milestone Release Proposal should exist here
-                let ProposalId = 1;
-                // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
+                // time travel to end of proposal
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                let proposalEndTime = ProposalRecord[9].toNumber();
+                tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
 
-                // vote no
-                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: wallet1});
-
-                await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
-
-                let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
-
-                tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
-
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
                 let canCashBack = await vault.canCashBack.call();
-                let checkFundingStateFailed = await vault.checkFundingStateFailed.call();
                 let checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
-                let checkOwnerFailedToSetTimeOnMeeting = await vault.checkOwnerFailedToSetTimeOnMeeting.call();
-                /*
-                console.log("canCashBack: ", canCashBack.toString());
-                console.log("checkFundingStateFailed: ", checkFundingStateFailed.toString());
-                console.log("checkMilestoneStateInvestorVotedNoVotingEndedNo: ", checkMilestoneStateInvestorVotedNoVotingEndedNo.toString());
-                console.log("checkOwnerFailedToSetTimeOnMeeting: ", checkOwnerFailedToSetTimeOnMeeting.toString());
-                console.log("");
-                */
-                let getMyVoteForCurrentMilestoneRelease = await ProposalsAsset.getMyVoteForCurrentMilestoneRelease.call( wallet1 );
+                assert.isTrue(canCashBack, "Should be able to CashBack");
+                assert.isTrue(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be true");
 
-                /*
-                console.log("getMyVoteForCurrentMilestoneRelease: ", getMyVoteForCurrentMilestoneRelease.toString());
+                // vault 4 has locked tokens, but should not be allowed to cash back since they did not vote NO
+                vault = await TestBuildHelper.getMyVaultAddress(investor4wallet);
+                canCashBack = await vault.canCashBack.call();
+                checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isFalse(canCashBack, "Should not be able to CashBack");
+                assert.isFalse(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be false");
 
-                let currentRecord = await MilestonesAsset.currentRecord.call();
-                let actionType = await ProposalsAsset.getActionType.call( "MILESTONE_DEADLINE" );
-                let hash = await ProposalsAsset.getHash( actionType, currentRecord, 0 );
-                let proposalId = await ProposalsAsset.ProposalIdByHash.call(hash);
-                let getMyVote = await ProposalsAsset.getMyVote.call(proposalId, wallet1);
+                // cashback validated
+                // now do it
 
-                console.log("currentRecord: ", currentRecord.toString());
-                console.log("actionType: ", actionType.toString());
-                console.log("hash: ", hash.toString());
-                console.log("proposalId: ", proposalId.toString());
-                console.log("getMyVote: ", getMyVote.toString());
+                let platformTokenBalanceInitial = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let FMLockedTokensInitial = await FundingManagerAsset.LockedVotingTokens.call();
+                vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let EtherBalanceInitial = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceLeft = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                let vaultTokenBalanceInitial = await TestBuildHelper.getTokenBalance(vault.address);
 
+                // since the investor calls this, we need to take GasUsage into account.
+                tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
+                let gasUsed = new helpers.BigNumber( tx.receipt.cumulativeGasUsed );
+                let gasPrice = await helpers.utils.getGasPrice(helpers);
+                let gasDifference = gasUsed.mul(gasPrice);
 
-                let vault4 = await TestBuildHelper.getMyVaultAddress(wallet4);
-                canCashBack = await vault4.canCashBack.call();
-                checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault4.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
-                console.log("vault4");
-                console.log("canCashBack: ", canCashBack.toString());
-                console.log("checkMilestoneStateInvestorVotedNoVotingEndedNo: ", checkMilestoneStateInvestorVotedNoVotingEndedNo.toString());
-                */
+                // validate investor ether balances
+                let EtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceInitialPlusLeft = EtherBalanceInitial.add(EtherBalanceLeft);
+                // sub used gas from initial
+                EtherBalanceInitialPlusLeft = EtherBalanceInitialPlusLeft.sub(gasDifference);
+                assert.equal(EtherBalanceAfter.toString(), EtherBalanceInitialPlusLeft.toString(), "EtherBalanceAfter should match EtherBalanceInitialPlusContributed");
 
-            });
+                // validate Funding Manager Locked Token value
+                let FMLockedTokensAfter = await FundingManagerAsset.LockedVotingTokens.call();
+                let FMLockedTokensValidate = await FMLockedTokensAfter.add(vaultTokenBalanceInitial);
+                assert.equal(FMLockedTokensInitial.toString(), FMLockedTokensValidate.toString(), "Funding Manager Locked Token value does not match");
 
-        });
+                // validate platform owner wallet new token balances
+                let platformTokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let platformTokenBalanceValidate = await platformTokenBalanceInitial.add( vaultTokenBalanceInitial );
+                assert.equal(platformTokenBalanceAfter.toString(), platformTokenBalanceValidate.toString(), "Platform Owner wallet token balance does not match");
 
-
-
-        /*
-        it("Development started, processes all milestones, and after last one sets application into DEVELOPMENT_COMPLETE state, validates balances each step", async () => {
-
-            let ProposalId = 0;
-            let MilestoneNum = await MilestonesAsset.RecordNum.call();
-
-            for(let i = 1; i <= MilestoneNum.toNumber(); i++ ) {
-
-                // >>> initial values
-                // save platformWalletAddress initial balances
-                let tokenBalance = await TestBuildHelper.getTokenBalance(platformWalletAddress);
-                let etherBalance = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
-                // total funding ether
-                let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
-                // first milestone percent
-                let EmergencyAmount = MilestoneAmountRaised.div(100);
-                EmergencyAmount = EmergencyAmount.mul(settings.bylaws["emergency_fund_percentage"]);
-                let MilestoneAmountLeft = MilestoneAmountRaised.sub(EmergencyAmount);
-                let MilestoneActualAmount = MilestoneAmountLeft.div(100);
-                MilestoneActualAmount = MilestoneActualAmount.mul(settings.milestones[(i-1)].funding_percentage);
+                // validate vault balances, all should be 0
+                let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
+                let vaultTokenBalanceAfter = await TestBuildHelper.getTokenBalance(vault.address);
+                assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
 
 
-                // save wallet1 state so we can validate after
-                let walletTokenBalance = await TestBuildHelper.getTokenBalance(wallet1);
-                let currentRecordId = await MilestonesAsset.currentRecord.call();
-                // <<<
+                // continue
+                currentTime = await MilestonesAsset.getTimestamp.call();
+                let cashback_duration = await MilestonesAsset.getBylawsCashBackVoteRejectedDuration.call();
+                let after_cashback = currentTime.add(cashback_duration);
+                tx = await TestBuildHelper.timeTravelTo(after_cashback.add(1));
+                await TestBuildHelper.doApplicationStateChanges("after cashback", false);
 
-                // time travel to start of milestone
-                let start_time;
-                if(i === 1) {
-                    start_time = settings.bylaws["development_start"] + 1;
-                } else {
-                    let MilestoneRecord = await MilestonesAsset.Collection.call(currentRecordId);
-                    start_time = MilestoneRecord[4].add(1);
+                for(let i = MilestoneId; i < MilestoneNum; i++ ) {
+
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                    // time travel to start of milestone
+                    let start_time = MilestoneRecord[4].add(1);
+
+                    await TestBuildHelper.timeTravelTo(start_time);
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    ProposalId++;
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor4wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+
+                    if(MilestoneId === 5) {
+                        break;
+                    }
                 }
 
-                await TestBuildHelper.timeTravelTo( start_time );
+                let appState = await ApplicationEntity.CurrentEntityState.call();
+                let appStateCode = helpers.utils.getEntityStateIdByName("ApplicationEntity", "DEVELOPMENT_COMPLETE");
+                assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
+            });
+
+
+            it("VOTE NO @ Milestone 3 - Proposal processed. Investor uses CashBack, validate balances, can continue with next milestones", async () => {
+
+                let ProposalId = 0;
+                let MilestoneNum = await MilestonesAsset.RecordNum.call();
+                let tx;
+
+                for(let i = 1; i <= 2; i++ ) {
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+
+                    // time travel to start of milestone
+
+                    let start_time;
+                    if (i === 1) {
+                        start_time = settings.bylaws["development_start"] + 1;
+                    } else {
+                        start_time = MilestoneRecord[4].add(1);
+                    }
+                    await TestBuildHelper.timeTravelTo(start_time);
+
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    await TestBuildHelper.doApplicationStateChanges("timeTravelTo", false);
+                    ProposalId++;
+
+                    // vote yes
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor1wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+                }
+
+                ProposalId++;
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), 3, "MilestoneId should be 3");
+
+                let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
 
                 let currentTime = await MilestonesAsset.getTimestamp.call();
                 // set meeting time 10 days from now.
-                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
-
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
                 await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
-
-                await TestBuildHelper.doApplicationStateChanges("set meeting time", false);
-
-                // console.log( await helpers.utils.showAllStates(helpers, TestBuildHelper));
-
                 tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("At Milestone Release Voting", false);
 
-                await TestBuildHelper.doApplicationStateChanges("timeTravelTo", false);
+                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: investor1wallet});
 
-                // Milestone Release Proposal should exist here
-                // increment proposal id
-                ProposalId++;
-                // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
+                // time travel to end of proposal
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                let proposalEndTime = ProposalRecord[9].toNumber();
+                tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
 
-                // vote yes
-                tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: wallet1});
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let canCashBack = await vault.canCashBack.call();
+                let checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isTrue(canCashBack, "Should be able to CashBack");
+                assert.isTrue(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be true");
 
-                await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
+                // vault 4 has locked tokens, but should not be allowed to cash back since they did not vote NO
+                vault = await TestBuildHelper.getMyVaultAddress(investor4wallet);
+                canCashBack = await vault.canCashBack.call();
+                checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isFalse(canCashBack, "Should not be able to CashBack");
+                assert.isFalse(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be false");
 
-                // >>> new values, validation
-                let etherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, platformWalletAddress);
+                // cashback validated
+                // now do it
 
-                if(i === MilestoneNum.toNumber()) {
+                let platformTokenBalanceInitial = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let FMLockedTokensInitial = await FundingManagerAsset.LockedVotingTokens.call();
+                vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let EtherBalanceInitial = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceLeft = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                let vaultTokenBalanceInitial = await TestBuildHelper.getTokenBalance(vault.address);
 
-                    // Validate Ending Ether Balances - Owner
-                    let MilestoneAmountRaised = await FundingAsset.MilestoneAmountRaised.call();
-                    let EmergencyAmount = MilestoneAmountRaised.div(100);
-                    EmergencyAmount = EmergencyAmount.mul(settings.bylaws["emergency_fund_percentage"]);
-                    let initialPlusMilestoneAndEmergency = etherBalance.add(EmergencyAmount);
-                    initialPlusMilestoneAndEmergency = initialPlusMilestoneAndEmergency.add(MilestoneActualAmount);
-                    assert.equal(etherBalanceAfter.toString(), initialPlusMilestoneAndEmergency.toString(), "etherBalanceAfter should match initialPlusMilestoneAndEmergency ");
+                // since the investor calls this, we need to take GasUsage into account.
+                tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
+                let gasUsed = new helpers.BigNumber( tx.receipt.cumulativeGasUsed );
+                let gasPrice = await helpers.utils.getGasPrice(helpers);
+                let gasDifference = gasUsed.mul(gasPrice);
 
-                    // Validate Ending Token Balances - Owner
-                    let tokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
-                    let perc = settings.bylaws["token_sale_percentage"];
-                    let supply = settings.token.supply;
-                    let saleTotal = supply.mul( perc );
-                    saleTotal = saleTotal.div( 100 );
-                    let ownerSupply = new helpers.BigNumber(supply);
-                    ownerSupply = ownerSupply.sub( saleTotal );
-                    assert.equal(ownerSupply.toString(), tokenBalanceAfter.toString(), "tokenBalances should match");
+                // validate investor ether balances
+                let EtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceInitialPlusLeft = EtherBalanceInitial.add(EtherBalanceLeft);
+                // sub used gas from initial
+                EtherBalanceInitialPlusLeft = EtherBalanceInitialPlusLeft.sub(gasDifference);
+                assert.equal(EtherBalanceAfter.toString(), EtherBalanceInitialPlusLeft.toString(), "EtherBalanceAfter should match EtherBalanceInitialPlusContributed");
 
-                    // Validate Ending Token Balances - Investor
-                    let walletTokenBalanceAfter = await TestBuildHelper.getTokenBalance(wallet1);
-                    let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
-                    let vaultReleaseTokenMilestoneBalance = await vault.tokenBalances.call( MilestoneNum.toNumber() );
-                    let vaultReleaseTokenEmergencyBalance = await vault.tokenBalances.call( 0 );
-                    let walletInitialPlusMilestoneAndEmergency = walletTokenBalance.add(vaultReleaseTokenMilestoneBalance);
-                    walletInitialPlusMilestoneAndEmergency = walletInitialPlusMilestoneAndEmergency.add(vaultReleaseTokenEmergencyBalance);
-                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusMilestoneAndEmergency.toString(), "walletTokenBalanceAfter should match walletInitialPlusMilestoneAndEmergency ");
+                // validate Funding Manager Locked Token value
+                let FMLockedTokensAfter = await FundingManagerAsset.LockedVotingTokens.call();
+                let FMLockedTokensValidate = await FMLockedTokensAfter.add(vaultTokenBalanceInitial);
+                assert.equal(FMLockedTokensInitial.toString(), FMLockedTokensValidate.toString(), "Funding Manager Locked Token value does not match");
 
-                } else {
+                // validate platform owner wallet new token balances
+                let platformTokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let platformTokenBalanceValidate = await platformTokenBalanceInitial.add( vaultTokenBalanceInitial );
+                assert.equal(platformTokenBalanceAfter.toString(), platformTokenBalanceValidate.toString(), "Platform Owner wallet token balance does not match");
 
-                    let initialPlusMilestone = etherBalance.add(MilestoneActualAmount);
-                    assert.equal(etherBalanceAfter.toString(), initialPlusMilestone.toString(), "etherBalanceAfter should match initialPlusMilestone ");
+                // validate vault balances, all should be 0
+                let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
+                let vaultTokenBalanceAfter = await TestBuildHelper.getTokenBalance(vault.address);
+                assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
 
-                    let currentRecordIdCheck = currentRecordId.add(1);
-                    let currentRecordIdAfter = await MilestonesAsset.currentRecord.call();
-                    assert.equal(currentRecordIdCheck.toString(), currentRecordIdAfter.toString(), "currentRecordIdAfter should match currentRecordId + 1 ");
 
-                    let walletTokenBalanceAfter = await TestBuildHelper.getTokenBalance(wallet1);
-                    let vault = await TestBuildHelper.getMyVaultAddress(wallet1);
-                    let vaultReleaseTokenBalance = await vault.tokenBalances.call( currentRecordIdAfter );
-                    let walletInitialPlusMilestone = walletTokenBalance.add(vaultReleaseTokenBalance);
-                    assert.equal(walletTokenBalanceAfter.toString(), walletInitialPlusMilestone.toString(), "walletTokenBalanceAfter should match walletInitialPlusMilestone ");
+                // continue
+                currentTime = await MilestonesAsset.getTimestamp.call();
+                let cashback_duration = await MilestonesAsset.getBylawsCashBackVoteRejectedDuration.call();
+                let after_cashback = currentTime.add(cashback_duration);
+                tx = await TestBuildHelper.timeTravelTo(after_cashback.add(1));
+                await TestBuildHelper.doApplicationStateChanges("after cashback", false);
 
+                for(let i = MilestoneId; i < MilestoneNum; i++ ) {
+
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                    // time travel to start of milestone
+                    let start_time = MilestoneRecord[4].add(1);
+
+                    await TestBuildHelper.timeTravelTo(start_time);
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    ProposalId++;
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor4wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+
+                    if(MilestoneId === 5) {
+                        break;
+                    }
                 }
-                // <<<
-            }
 
-            // end, coverage
-            tx = await ApplicationEntity.doStateChanges();
+                let appState = await ApplicationEntity.CurrentEntityState.call();
+                let appStateCode = helpers.utils.getEntityStateIdByName("ApplicationEntity", "DEVELOPMENT_COMPLETE");
+                assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
+            });
 
+            it("VOTE NO @ Milestone 3 - Proposal processed. Investor does not use CashBack, validate balances, can continue with next milestones", async () => {
+
+                let ProposalId = 0;
+                let MilestoneNum = await MilestonesAsset.RecordNum.call();
+                let tx;
+
+                for(let i = 1; i <= 2; i++ ) {
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+
+                    // time travel to start of milestone
+
+                    let start_time;
+                    if (i === 1) {
+                        start_time = settings.bylaws["development_start"] + 1;
+                    } else {
+                        start_time = MilestoneRecord[4].add(1);
+                    }
+                    await TestBuildHelper.timeTravelTo(start_time);
+
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    await TestBuildHelper.doApplicationStateChanges("timeTravelTo", false);
+                    ProposalId++;
+
+                    // vote yes
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor1wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+                }
+
+                ProposalId++;
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), 3, "MilestoneId should be 3");
+
+                let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                let currentTime = await MilestonesAsset.getTimestamp.call();
+                // set meeting time 10 days from now.
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("At Milestone Release Voting", false);
+
+                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: investor1wallet});
+
+                // time travel to end of proposal
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                let proposalEndTime = ProposalRecord[9].toNumber();
+                tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let canCashBack = await vault.canCashBack.call();
+                let checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isTrue(canCashBack, "Should be able to CashBack");
+                assert.isTrue(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be true");
+
+                // vault 4 has locked tokens, but should not be allowed to cash back since they did not vote NO
+                vault = await TestBuildHelper.getMyVaultAddress(investor4wallet);
+                canCashBack = await vault.canCashBack.call();
+                checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isFalse(canCashBack, "Should not be able to CashBack");
+                assert.isFalse(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be false");
+
+                // continue
+                currentTime = await MilestonesAsset.getTimestamp.call();
+                let cashback_duration = await MilestonesAsset.getBylawsCashBackVoteRejectedDuration.call();
+                let after_cashback = currentTime.add(cashback_duration);
+                tx = await TestBuildHelper.timeTravelTo(after_cashback.add(1));
+                await TestBuildHelper.doApplicationStateChanges("after cashback", false);
+
+                for(let i = MilestoneId; i < MilestoneNum; i++ ) {
+
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                    // time travel to start of milestone
+                    let start_time = MilestoneRecord[4].add(1);
+
+                    await TestBuildHelper.timeTravelTo(start_time);
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    ProposalId++;
+                    // tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor4wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+
+                    if(MilestoneId === 5) {
+                        break;
+                    }
+                }
+
+                let appState = await ApplicationEntity.CurrentEntityState.call();
+                let appStateCode = helpers.utils.getEntityStateIdByName("ApplicationEntity", "DEVELOPMENT_COMPLETE");
+                assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
+            });
+
+            it("VOTE NO @ Milestone LAST - Proposal processed. Investor uses CashBack, validate balances", async () => {
+
+                let ProposalId = 0;
+                let MilestoneNum = await MilestonesAsset.RecordNum.call();
+                let tx;
+
+                for(let i = 1; i < MilestoneNum.toNumber(); i++ ) {
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+
+                    // time travel to start of milestone
+
+                    let start_time;
+                    if (i === 1) {
+                        start_time = settings.bylaws["development_start"] + 1;
+                    } else {
+                        start_time = MilestoneRecord[4].add(1);
+                    }
+                    await TestBuildHelper.timeTravelTo(start_time);
+
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    await TestBuildHelper.doApplicationStateChanges("timeTravelTo", false);
+                    ProposalId++;
+
+                    // vote yes
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor1wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+                }
+
+
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), MilestoneNum.toString(), "MilestoneId should be 5");
+
+                let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                await TestBuildHelper.timeTravelTo( MilestoneRecord[6] );
+                await TestBuildHelper.doApplicationStateChanges("Owner MIA", false);
+
+
+                let platformTokenBalanceInitial = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let FMLockedTokensInitial = await FundingManagerAsset.LockedVotingTokens.call();
+
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let EtherBalanceInitial = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceLeft = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                let vaultTokenBalanceInitial = await TestBuildHelper.getTokenBalance(vault.address);
+
+                // since the investor calls this, we need to take GasUsage into account.
+                tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
+                let gasUsed = new helpers.BigNumber( tx.receipt.cumulativeGasUsed );
+                let gasPrice = await helpers.utils.getGasPrice(helpers);
+                let gasDifference = gasUsed.mul(gasPrice);
+
+                // validate investor ether balances
+                let EtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceInitialPlusLeft = EtherBalanceInitial.add(EtherBalanceLeft);
+                // sub used gas from initial
+                EtherBalanceInitialPlusLeft = EtherBalanceInitialPlusLeft.sub(gasDifference);
+                assert.equal(EtherBalanceAfter.toString(), EtherBalanceInitialPlusLeft.toString(), "EtherBalanceAfter should match EtherBalanceInitialPlusContributed");
+
+                // validate Funding Manager Locked Token value
+                let FMLockedTokensAfter = await FundingManagerAsset.LockedVotingTokens.call();
+                let FMLockedTokensValidate = await FMLockedTokensAfter.add(vaultTokenBalanceInitial);
+                assert.equal(FMLockedTokensInitial.toString(), FMLockedTokensValidate.toString(), "Funding Manager Locked Token value does not match");
+
+                // validate platform owner wallet new token balances
+                let platformTokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let platformTokenBalanceValidate = await platformTokenBalanceInitial.add( vaultTokenBalanceInitial );
+                assert.equal(platformTokenBalanceAfter.toString(), platformTokenBalanceValidate.toString(), "Platform Owner wallet token balance does not match");
+
+                // validate vault balances, all should be 0
+                let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
+                let vaultTokenBalanceAfter = await TestBuildHelper.getTokenBalance(vault.address);
+                assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
+
+            });
+
+            // cashback at vote no milestone 3 investor 1 / cashback at vote no milestone 4 investor 4, no more locked, complete
+
+            it("All investors VOTE NO and cashback at @ Milestone 3, Milestone releases now require 0 votes, automatically finalise as successful", async () => {
+
+                let ProposalId = 0;
+                let MilestoneNum = await MilestonesAsset.RecordNum.call();
+                let tx;
+
+                for(let i = 1; i <= 2; i++ ) {
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+
+                    // time travel to start of milestone
+
+                    let start_time;
+                    if (i === 1) {
+                        start_time = settings.bylaws["development_start"] + 1;
+                    } else {
+                        start_time = MilestoneRecord[4].add(1);
+                    }
+                    await TestBuildHelper.timeTravelTo(start_time);
+
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+                    ProposalId++;
+
+                    // vote yes
+                    tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor1wallet});
+
+                    // time travel to end of proposal
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let proposalEndTime = ProposalRecord[9].toNumber();
+                    tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+                }
+
+                ProposalId++;
+
+                let MilestoneId = await MilestonesAsset.currentRecord.call();
+                assert.equal(MilestoneId.toString(), 3, "MilestoneId should be 3");
+
+                let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                let currentTime = await MilestonesAsset.getTimestamp.call();
+                // set meeting time 10 days from now.
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+                await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("At Milestone Release Voting", false);
+
+                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: investor1wallet});
+                tx = await ProposalsAsset.RegisterVote(ProposalId, false, {from: investor4wallet});
+
+                // time travel to end of proposal
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                let proposalEndTime = ProposalRecord[9].toNumber();
+                tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
+
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let canCashBack = await vault.canCashBack.call();
+                let checkMilestoneStateInvestorVotedNoVotingEndedNo = await vault.checkMilestoneStateInvestorVotedNoVotingEndedNo.call();
+                assert.isTrue(canCashBack, "Should be able to CashBack");
+                assert.isTrue(checkMilestoneStateInvestorVotedNoVotingEndedNo, "checkMilestoneStateInvestorVotedNoVotingEndedNo should be true");
+
+
+                // cashback validated
+                // now do it
+
+                let platformTokenBalanceInitial = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let FMLockedTokensInitial = await FundingManagerAsset.LockedVotingTokens.call();
+                vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let EtherBalanceInitial = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceLeft = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                let vaultTokenBalanceInitial = await TestBuildHelper.getTokenBalance(vault.address);
+
+                // since the investor calls this, we need to take GasUsage into account.
+                tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
+                let gasUsed = new helpers.BigNumber( tx.receipt.cumulativeGasUsed );
+                let gasPrice = await helpers.utils.getGasPrice(helpers);
+                let gasDifference = gasUsed.mul(gasPrice);
+
+                // validate investor ether balances
+                let EtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceInitialPlusLeft = EtherBalanceInitial.add(EtherBalanceLeft);
+                // sub used gas from initial
+                EtherBalanceInitialPlusLeft = EtherBalanceInitialPlusLeft.sub(gasDifference);
+                assert.equal(EtherBalanceAfter.toString(), EtherBalanceInitialPlusLeft.toString(), "EtherBalanceAfter should match EtherBalanceInitialPlusContributed");
+
+                // validate Funding Manager Locked Token value
+                let FMLockedTokensAfter = await FundingManagerAsset.LockedVotingTokens.call();
+                let FMLockedTokensValidate = await FMLockedTokensAfter.add(vaultTokenBalanceInitial);
+                assert.equal(FMLockedTokensInitial.toString(), FMLockedTokensValidate.toString(), "Funding Manager Locked Token value does not match");
+
+                // validate platform owner wallet new token balances
+                let platformTokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
+                let platformTokenBalanceValidate = await platformTokenBalanceInitial.add( vaultTokenBalanceInitial );
+                assert.equal(platformTokenBalanceAfter.toString(), platformTokenBalanceValidate.toString(), "Platform Owner wallet token balance does not match");
+
+                // validate vault balances, all should be 0
+                let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
+                let vaultTokenBalanceAfter = await TestBuildHelper.getTokenBalance(vault.address);
+                assert.equal(vaultTokenBalanceAfter.toString(), 0, "vaultTokenBalanceAfter should be 0");
+
+
+                // await TestBuildHelper.showApplicationStates();
+                // await helpers.utils.displayCashBackStatus(helpers, TestBuildHelper, investor4wallet);
+
+                // TEST: also release funds for the other investors
+                vault = await TestBuildHelper.getMyVaultAddress(investor4wallet);
+                tx = await vault.ReleaseFundsToInvestor({from: investor4wallet});
+                // await TestBuildHelper.doApplicationStateChanges("after cashback", false);
+
+                // continue
+                currentTime = await MilestonesAsset.getTimestamp.call();
+                let cashback_duration = await MilestonesAsset.getBylawsCashBackVoteRejectedDuration.call();
+                let after_cashback = currentTime.add(cashback_duration);
+                tx = await TestBuildHelper.timeTravelTo(after_cashback.add(1));
+                await TestBuildHelper.doApplicationStateChanges("after cashback", false);
+
+                for(let i = MilestoneId; i < MilestoneNum; i++ ) {
+
+
+                    let MilestoneId = await MilestonesAsset.currentRecord.call();
+                    let MilestoneRecord = await MilestonesAsset.Collection.call( MilestoneId );
+
+                    // time travel to start of milestone
+                    let start_time = MilestoneRecord[4].add(1);
+
+                    await TestBuildHelper.timeTravelTo(start_time);
+                    let currentTime = await MilestonesAsset.getTimestamp.call();
+                    // set meeting time 10 days from now.
+                    let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600 );
+
+                    await MilestonesAsset.setCurrentMilestoneMeetingTime(meetingTime);
+                    await TestBuildHelper.doApplicationStateChanges("Set Meeting Time", false);
+
+                    tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
+                    await TestBuildHelper.doApplicationStateChanges("At Meeting Time", false);
+
+                    ProposalId++;
+
+                    // not voting anymore.. because we don't have any voters left.
+                    // proposal should close automatically
+                    // tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: investor4wallet});
+                    // await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
+
+                    // validate proposal closes
+                    let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                    let ProposalState = helpers.utils.getRecordStateNameById("Proposals", ProposalRecord[3].toNumber() );
+                    assert.equal(ProposalState, "VOTING_RESULT_YES", "Proposal state should be VOTING_RESULT_YES");
+
+                    if(MilestoneId.toNumber() === MilestoneNum.toNumber()) {
+                        break;
+                    }
+                }
+
+                let appState = await ApplicationEntity.CurrentEntityState.call();
+                let appStateCode = helpers.utils.getEntityStateIdByName("ApplicationEntity", "DEVELOPMENT_COMPLETE");
+                assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
+            });
         });
-        */
 
     });
 

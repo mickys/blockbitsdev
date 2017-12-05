@@ -404,7 +404,11 @@ contract Proposals is ApplicationAsset {
 
         proposal.state = getRecordState("ACCEPTING_VOTES");
         addActiveProposal(_proposalId);
+
+        tryFinaliseNonLockedTokensProposal(_proposalId);
     }
+
+
 
     /*
 
@@ -695,17 +699,21 @@ contract Proposals is ApplicationAsset {
         ResultRecord storage result = ResultsByProposalId[_proposalId];
         ProposalRecord storage proposal = ProposalsById[_proposalId];
 
-        // read results,
-        if(result.yes > result.requiredForResult) {
-            // voting resulted in YES
-            proposal.state = getRecordState("VOTING_RESULT_YES");
-        } else if (result.no >= result.requiredForResult) {
-            // voting resulted in NO
-            proposal.state = getRecordState("VOTING_RESULT_NO");
+        // Milestone Deadline proposals cannot be ended "by majority vote", we rely on finaliseExpiredProposal here
+        // because we want to allow everyone to be able to vote "NO" if they choose to cashback.
+
+        if( proposal.actionType != getActionType("MILESTONE_DEADLINE")) {
+            // read results,
+            if(result.yes > result.requiredForResult) {
+                // voting resulted in YES
+                proposal.state = getRecordState("VOTING_RESULT_YES");
+            } else if (result.no >= result.requiredForResult) {
+                // voting resulted in NO
+                proposal.state = getRecordState("VOTING_RESULT_NO");
+            }
         }
 
         runActionAfterResult(_proposalId);
-
     }
 
     function finaliseExpiredProposal(uint256 _proposalId) internal {
@@ -713,19 +721,33 @@ contract Proposals is ApplicationAsset {
         ResultRecord storage result = ResultsByProposalId[_proposalId];
         ProposalRecord storage proposal = ProposalsById[_proposalId];
 
-        // read results,
-        if(result.yes > result.no) {
-            // voting resulted in YES
+        // an expired proposal with no votes will end as YES
+        if(result.yes == 0 && result.no == 0) {
             proposal.state = getRecordState("VOTING_RESULT_YES");
-        } else if (result.no >= result.yes) {
-            // tie equals no
-            // voting resulted in NO
-            proposal.state = getRecordState("VOTING_RESULT_NO");
+        } else {
+            // read results,
+            if(result.yes > result.no) {
+                // voting resulted in YES
+                proposal.state = getRecordState("VOTING_RESULT_YES");
+            } else if (result.no >= result.yes) {
+                // tie equals no
+                // voting resulted in NO
+                proposal.state = getRecordState("VOTING_RESULT_NO");
+            }
         }
         runActionAfterResult(_proposalId);
     }
 
+    function tryFinaliseNonLockedTokensProposal(uint256 _proposalId) internal {
 
+        ResultRecord storage result = ResultsByProposalId[_proposalId];
+        ProposalRecord storage proposal = ProposalsById[_proposalId];
+
+        if(result.requiredForResult == 0) {
+            proposal.state = getRecordState("VOTING_RESULT_YES");
+            runActionAfterResult(_proposalId);
+        }
+    }
 
     function addActiveProposal(uint256 _proposalId) internal {
         ActiveProposalIds[ActiveProposalNum++]= _proposalId;

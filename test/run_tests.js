@@ -18,6 +18,7 @@ const EmptyStub                 = artifacts.require('EmptyStub');
 
 const GatewayInterface          = artifacts.require('TestGatewayInterface');
 const ApplicationEntity         = artifacts.require('TestApplicationEntity');
+const ApplicationEntitySecond   = artifacts.require('TestApplicationEntitySecond');
 const Proposals                 = artifacts.require('TestProposals');
 const Token                     = artifacts.require('TestToken');
 const TokenManager              = artifacts.require('TestTokenManager');
@@ -81,6 +82,7 @@ const setup = {
         EmptyStub:EmptyStub,
         GatewayInterface:GatewayInterface,
         ApplicationEntity:ApplicationEntity,
+        ApplicationEntitySecond:ApplicationEntitySecond,
         Proposals:Proposals,
         Token:Token,
         TokenManager:TokenManager
@@ -109,6 +111,7 @@ tests.push("external/SafeMath");
 tests.push("1_GatewayInterface");
 tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
+tests.push("3_ApplicationEntity_Second");
 tests.push("integration_Gateway_and_ApplicationEntity");
 tests.push("4_Asset_TokenManager");
 tests.push("4_Asset_ListingContract");
@@ -127,6 +130,7 @@ tests.push("4_Asset_Proposals_Type_2_EmergencyRelease");
 tests.push("4_Asset_Proposals_Type_3_MilestonePostponing");
 tests.push("4_Asset_Proposals_Type_4_MilestoneRelease");
 tests.push("4_Asset_Proposals_Type_5_Delisting");
+tests.push("4_Asset_Proposals_Type_6_Complete_CodeUpgrade");
 tests.push("5_Project_Completion");
 tests.push("5_CashBack_Tests");
 
@@ -137,9 +141,20 @@ tests.push("5_CashBack_Tests");
 
 
 // tests = [];
+// tests.push("4_Asset_Proposals_Type_6_Complete_CodeUpgrade");
+
+// tests.push("ERC20Token");
+// tests.push("4_Asset_Proposals_Type_1_Dev_CodeUpgrade");
+
+// tests.push("4_Asset_Milestones_Locked");
 // tests.push("5_CashBack_Tests");
 
-// tests.push("4_FundingVault");
+// tests.push("4_Asset_Proposals_Type_4_MilestoneRelease");
+
+
+// tests.push("5_Project_Completion");
+// tests.push("5_Project_Completion");
+// tests.push("5_CashBack_Tests");
 
 /*
 tests.push("4_Asset_Proposals");

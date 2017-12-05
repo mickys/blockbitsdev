@@ -38,6 +38,7 @@ contract Token is StandardToken {
         version = _version;                                     // Set token version string
     }
 
+    /*
     function transferAndCall(address receiver, uint256 amount) public returns (bool success) {
         if(transfer(receiver, amount)) {
             if(receiver.call(bytes4(bytes32(keccak256("tokenCallback(address,uint256)"))), msg.sender, amount)) {
@@ -49,4 +50,5 @@ contract Token is StandardToken {
             revert();
         }
     }
+    */
 }

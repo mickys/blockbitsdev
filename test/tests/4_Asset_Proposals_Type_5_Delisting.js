@@ -177,7 +177,7 @@ module.exports = function(setup) {
             let ResultRecord = await ProposalsAsset.ResultsByProposalId.call(1);
 
             // PROJECT_DELISTING is only voted by "locked" tokens
-            assert(ResultRecord[5].toString(), "true", "Vote Recounting should be true.");
+            assert.isTrue(ResultRecord[5], "Vote Recounting should be true.");
 
         });
 

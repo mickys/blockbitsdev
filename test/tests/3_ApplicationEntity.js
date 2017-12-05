@@ -336,6 +336,17 @@ module.exports = function(setup) {
                 });
             });
 
+            it('throws if any asset has a 0x0 address', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+
+                await app.setTestAsset("Test", 0);
+
+                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.initializeAssetsToThisApplication();
+                });
+            });
+
             it('throws if caller is not gateway', async () => {
                 await app.setTestGatewayInterfaceEntity(gateway.address);
 

@@ -52,7 +52,7 @@ contract GatewayInterface {
         validCodeUpgradeInitiator
         returns (bool)
     {
-        require(_newAddress != address(0));
+        require(_newAddress != address(0x0));
 
         EventGatewayNewLinkRequest ( _newAddress );
 
@@ -91,12 +91,13 @@ contract GatewayInterface {
     */
     function approveCodeUpgrade( address _newAddress ) external returns (bool) {
         require(msg.sender == currentApplicationEntityAddress);
-
+        uint8 atState = currentApp.CurrentEntityState();
         lockCurrentApp();
         if(!currentApp.transferAssetsToNewApplication(_newAddress)) {
             revert();
         }
         link(_newAddress);
+        currentApp.setUpgradeState( atState );
         return true;
     }
 

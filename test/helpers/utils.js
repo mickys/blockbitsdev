@@ -125,6 +125,7 @@ let StateArray = {
 
         {key: 5, name: "IN_DEVELOPMENT"},
         {key: 50, name: "IN_CODE_UPGRADE"},
+        {key: 100, name: "UPGRADED"},
         {key: 150, name: "IN_GLOBAL_CASHBACK"},
         {key: 200, name: "LOCKED"},
         {key: 250, name: "DEVELOPMENT_COMPLETE"},
@@ -632,7 +633,14 @@ module.exports = {
         cols.push("");
         cols.push("");
         cols.push( helpers.utils.toDate(contractTimeStamp) );
-        cols.push("");
+
+        let ApplicationEntityLocked = await assetContract._locked.call();
+        if(ApplicationEntityLocked) {
+            cols.push( "LOCKED" );
+        } else {
+            cols.push( "" );
+        }
+
 
         return cols;
     },

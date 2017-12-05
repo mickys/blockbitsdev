@@ -82,9 +82,12 @@ module.exports = function(setup) {
 
         });
 
+        it('isRecordUpdateAllowed should return false', async () => {
+            let isRecordUpdateAllowed = await MilestonesContract.isRecordUpdateAllowed.call(1);
+            assert.isFalse(isRecordUpdateAllowed, 'isRecordUpdateAllowed should be false');
+        });
 
         context("states", async () => {
-
 
             it('handles ENTITY state change from WAITING to WAITING_MEETING_TIME when current time is after development start', async () => {
 
@@ -183,36 +186,6 @@ module.exports = function(setup) {
                 );
                 assert.isTrue(validation, 'State validation failed..');
 
-
-                /*
-                // time travel after meetingTime
-                // duration = settings.milestones[0].duration;
-                // time = settings.bylaws["development_start"] + 1 + duration;
-                tx = await TestBuildHelper.timeTravelTo(meetingTime + 1);
-
-                let getBylawsProposalVotingDuration = await MilestonesContract.getBylawsProposalVotingDuration.call();
-                let currentRecordId = await assetContract.currentRecord.call();
-                let record = await assetContract.Collection.call(currentRecordId);
-                let meeting_time = record[8];
-                console.log("duration:      ", getBylawsProposalVotingDuration.toString() );
-                console.log("meeting_time:  ", await helpers.utils.toDate(meeting_time) );
-
-
-                // await helpers.utils.showCurrentState(helpers, MilestonesContract);
-                await TestBuildHelper.showApplicationStates();
-
-                 // time travel to end of milestone
-                 let duration = settings.milestones[0].duration;
-                 let time = settings.bylaws["development_start"] + 1 + duration;
-                 tx = await TestBuildHelper.timeTravelTo(time);
-                 */
-
-                // await TestBuildHelper.doApplicationStateChanges("Milestone End", true);
-                // await helpers.utils.showCurrentState(helpers, MilestonesContract);
-
-                /*
-
-                 */
             });
 
             it('throws if trying to set Meeting time after it was already set.', async () => {
@@ -242,6 +215,33 @@ module.exports = function(setup) {
                 return helpers.assertInvalidOpcode(async () => {
                     await MilestonesContract.setCurrentMilestoneMeetingTime(meetingTime + 10);
                 });
+            });
+
+            it('throws if now is @ expiry time and trying to set Meeting time at expiry time.', async () => {
+
+
+                await TestBuildHelper.timeTravelTo(settings.bylaws["development_start"] + 1);
+                await TestBuildHelper.doApplicationStateChanges("Development Started", false);
+
+                // time travel to end of milestone
+                let duration = settings.milestones[0].duration;
+                let time = settings.bylaws["development_start"] + duration +1;
+
+                let currentTime = await MilestonesContract.getTimestamp.call();
+                let meetingTime = currentTime.toNumber() + ( 10 * 24 * 3600);
+
+
+                let meetingCreationMaxTime = time - 1;
+                let getBylawsMinTimeInTheFutureForMeetingCreation = await MilestonesContract.getBylawsMinTimeInTheFutureForMeetingCreation.call();
+                meetingCreationMaxTime = getBylawsMinTimeInTheFutureForMeetingCreation.sub(meetingCreationMaxTime);
+
+                await TestBuildHelper.timeTravelTo(meetingCreationMaxTime);
+                // await TestBuildHelper.doApplicationStateChanges("Meeting time set", false);
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await MilestonesContract.setCurrentMilestoneMeetingTime(meetingCreationMaxTime);
+                });
+
             });
 
         });

@@ -170,7 +170,11 @@ module.exports = function(setup) {
                 // vote yes
                 tx = await ProposalsAsset.RegisterVote(ProposalId, true, {from: wallet1});
 
-                await TestBuildHelper.doApplicationStateChanges("RegisterVote", false);
+                // time travel to end of proposal
+                let ProposalRecord = await ProposalsAsset.ProposalsById.call(ProposalId);
+                let proposalEndTime = ProposalRecord[9].toNumber();
+                tx = await TestBuildHelper.timeTravelTo(proposalEndTime + 1);
+                await TestBuildHelper.doApplicationStateChanges("Voting ended", false);
                 // await helpers.utils.displayProposal(helpers, ProposalsAsset, ProposalId);
 
                 // >>> new values, validation
@@ -226,6 +230,11 @@ module.exports = function(setup) {
 
             // end, coverage
             tx = await ApplicationEntity.doStateChanges();
+
+            let appState = await ApplicationEntity.CurrentEntityState.call();
+            let appStateCode = helpers.utils.getEntityStateIdByName("ApplicationEntity", "DEVELOPMENT_COMPLETE");
+            assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
+
 
         });
 

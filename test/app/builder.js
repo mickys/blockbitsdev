@@ -7,6 +7,7 @@ function TestBuildHelper(setup, assert, accounts, platformWalletAddress) {
     this.deployed = [];
     this.platformWalletAddress = platformWalletAddress;
     this.gatewayAddress = this.accounts[0];
+    this.needsSettings = [];
 }
 
 TestBuildHelper.prototype.linkToRealGateway = async function () {
@@ -15,6 +16,48 @@ TestBuildHelper.prototype.linkToRealGateway = async function () {
 };
 
 
+TestBuildHelper.prototype.deployUpgradeApplication = async function (gatewayAddress, oldBuildHelper) {
+    this.gatewayAddress = await gatewayAddress;
+
+    let app = await this.deploy("ApplicationEntitySecond");
+    this.replaceDeployed("ApplicationEntity", "ApplicationEntitySecond");
+    await this.addBylawsIntoApp();
+
+    // add requirement asset contracts
+    for (let i = 0; i < this.setup.assetContractNames.length; i++) {
+        let name = this.setup.assetContractNames[i];
+        let deployed = await oldBuildHelper.getDeployedByName(name);
+        await app["addAsset" + name](await deployed.address);
+        this.deployed[name] = deployed;
+    }
+
+    let newAssetName = "UpgradeTestAsset";
+    let newAssetContract = await oldBuildHelper.getDeployedByName(newAssetName);
+    // deploy only if asset is missing!
+    if(typeof newAssetContract === "undefined") {
+        // deploy and add new asset contracts
+        let deployed = await this.deploy("UpgradeTestAsset");
+        await deployed.setInitialApplicationAddress(app.address);
+        await app.addAssetUpgradeTestAsset(await deployed.address);
+        await app.initializeNewAssetToThisApplication("UpgradeTestAsset");
+        this.needsSettings["UpgradeTestAsset"] = true;
+    }
+    // link to gateway ad
+    await app.linkToGateway(this.gatewayAddress, this.setup.settings.sourceCodeUrl);
+};
+
+TestBuildHelper.prototype.addSettingsAndLockOnNewAssetsInApplication = async function () {
+    if(typeof this.needsSettings["UpgradeTestAsset"] !== "undefined") {
+        let deployed = await this.getDeployedByName("UpgradeTestAsset");
+        // add settings if they exist.
+        await deployed.applyAndLockSettings();
+    }
+};
+
+TestBuildHelper.prototype.replaceDeployed = async function (a, b) {
+    let aDeployed = this.deployed[a];
+    this.deployed[a] = this.deployed[b];
+};
 
 TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
 

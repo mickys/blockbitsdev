@@ -133,7 +133,7 @@ module.exports = function(setup) {
             let ResultRecord = await ProposalsAsset.ResultsByProposalId.call(1);
 
             // EMERGENCY_FUND_RELEASE is only voted by "locked" tokens
-            assert(ResultRecord[5].toString(), "false", "Vote Recounting is not false.");
+            assert.isFalse(ResultRecord[5], "Vote Recounting should be false.");
 
         });
 

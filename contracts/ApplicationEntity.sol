@@ -87,6 +87,8 @@ contract ApplicationEntity {
         EntityStates["IN_DEVELOPMENT"]              = 5;
         EntityStates["IN_CODE_UPGRADE"]             = 50;
 
+        EntityStates["UPGRADED"]                    = 100;
+
         EntityStates["IN_GLOBAL_CASHBACK"]          = 150;
         EntityStates["LOCKED"]                      = 200;
 
@@ -124,6 +126,9 @@ contract ApplicationEntity {
         GatewayInterfaceEntity.requestCodeUpgrade( address(this), sourceCodeUrl );
     }
 
+    function setUpgradeState(uint8 state) public onlyGatewayInterface {
+        CurrentEntityState = state;
+    }
 
     /*
         For the sake of simplicity, and solidity warnings about "unknown gas usage" do this.. instead of sending
@@ -252,7 +257,11 @@ contract ApplicationEntity {
         for(uint8 i = 0; i < AssetCollectionNum; i++ ) {
             bytes32 _name = AssetCollectionIdToName[i];
             address current = AssetCollection[_name];
-            if(!current.call(bytes4(keccak256("setInitialOwnerAndName(bytes32)")), _name) ) {
+            if(current != address(0x0)) {
+                if(!current.call(bytes4(keccak256("setInitialOwnerAndName(bytes32)")), _name) ) {
+                    revert();
+                }
+            } else {
                 revert();
             }
         }
@@ -266,7 +275,11 @@ contract ApplicationEntity {
             
             bytes32 _name = AssetCollectionIdToName[i];
             address current = AssetCollection[_name];
-            if(!current.call(bytes4(keccak256("transferToNewOwner(address)")), _newAddress) ) {
+            if(current != address(0x0)) {
+                if(!current.call(bytes4(keccak256("transferToNewOwner(address)")), _newAddress) ) {
+                    revert();
+                }
+            } else {
                 revert();
             }
         }
@@ -281,6 +294,7 @@ contract ApplicationEntity {
     */
     function lock() external onlyGatewayInterface returns (bool) {
         _locked = true;
+        CurrentEntityState = getEntityState("UPGRADED");
         EventAppEntityLocked(address(this));
         return true;
     }
@@ -358,34 +372,38 @@ contract ApplicationEntity {
 
     function doStateChanges() public {
 
-        // process assets first so we can initialize them from NEW to WAITING
-        AssetProcessor();
+        if(!_locked) {
+            // process assets first so we can initialize them from NEW to WAITING
+            AssetProcessor();
 
-        var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
-        bool callAgain = false;
+            var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
+            bool callAgain = false;
 
-        DebugApplicationRequiredChanges( returnedCurrentEntityState, EntityStateRequired );
+            DebugApplicationRequiredChanges( returnedCurrentEntityState, EntityStateRequired );
 
-        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-            EntityProcessor(EntityStateRequired);
-            callAgain = true;
+            if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+                EntityProcessor(EntityStateRequired);
+                callAgain = true;
+            }
+        } else {
+            revert();
         }
-
     }
 
     function hasRequiredStateChanges() public view returns (bool) {
         bool hasChanges = false;
-        var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
-        // suppress unused local variable warning
-        returnedCurrentEntityState = 0;
-        if(EntityStateRequired != getEntityState("__IGNORED__") ) {
-            hasChanges = true;
-        }
+        if(!_locked) {
+            var (returnedCurrentEntityState, EntityStateRequired) = getRequiredStateChanges();
+            // suppress unused local variable warning
+            returnedCurrentEntityState = 0;
+            if(EntityStateRequired != getEntityState("__IGNORED__") ) {
+                hasChanges = true;
+            }
 
-        if(anyAssetHasChanges()) {
-            hasChanges = true;
+            if(anyAssetHasChanges()) {
+                hasChanges = true;
+            }
         }
-
         return hasChanges;
     }
 
@@ -403,7 +421,21 @@ contract ApplicationEntity {
             return true;
         }
 
+        return extendedAnyAssetHasChanges();
+    }
 
+    // use this when extending "has changes"
+    function extendedAnyAssetHasChanges() internal view returns (bool) {
+        if(_initialized) {}
+        return false;
+    }
+
+    // use this when extending "asset state processor"
+    function extendedAssetProcessor() internal  {
+        // does not exist, but we check anyway to bypass compier warning about function state mutability
+        if ( CurrentEntityState == 255 ) {
+            ProposalsEntity.process();
+        }
     }
 
     // view methods decide if changes are to be made
@@ -463,6 +495,8 @@ contract ApplicationEntity {
                 ProposalsEntity.process();
             }
         }
+
+        extendedAssetProcessor();
     }
 
     function EntityProcessor(uint8 EntityStateRequired) internal {
@@ -534,7 +568,6 @@ contract ApplicationEntity {
 
         uint8 EntityStateRequired = getEntityState("__IGNORED__");
 
-
         if( CurrentEntityState == getEntityState("NEW") ) {
             // general so we know we initialized
             EntityStateRequired = getEntityState("WAITING");
@@ -603,5 +636,8 @@ contract ApplicationEntity {
         return (CurrentEntityState, EntityStateRequired);
     }
 
+    function getTimestamp() view public returns (uint256) {
+        return now;
+    }
 
 }
