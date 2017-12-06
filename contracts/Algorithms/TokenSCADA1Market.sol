@@ -99,7 +99,7 @@ contract TokenSCADA1Market is TokenSCADAGeneric {
         TokenSCADAGeneric( _tokenContract,  _fundingContract )
         public
     {
-        // this needs hard cap on funding phases to not exist!
+        // this algorithm needs hard cap on funding phases to not exist!
         SCADA_requires_hard_cap = false;
     }
 

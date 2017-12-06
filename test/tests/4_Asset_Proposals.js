@@ -13,6 +13,13 @@ module.exports = function(setup) {
             assetContract = await helpers.getContract("Test" + assetName).new();
         });
 
+        it("setVoteCountPerProcess throws if value is not higher than 0", async () => {
+            let newValue = 0x0;
+            helpers.assertInvalidOpcode(async () => {
+                await assetContract.setVoteCountPerProcess(newValue);
+            });
+        });
+
         it("setVoteCountPerProcess properly sets value", async () => {
             let newValue = 50;
             await assetContract.setVoteCountPerProcess(newValue);
@@ -20,11 +27,5 @@ module.exports = function(setup) {
             assert.equal(VoteCountPerProcessAfter.toNumber(), newValue, 'VoteCountPerProcessAfter should be newValue');
         });
 
-        it("setVoteCountPerProcess throws if value is not higher than 0", async () => {
-            let newValue = 0x0;
-            helpers.assertInvalidOpcode(async () => {
-                await assetContract.setVoteCountPerProcess(newValue);
-            });
-        });
     });
 };

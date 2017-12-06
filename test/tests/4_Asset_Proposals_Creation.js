@@ -374,26 +374,7 @@ module.exports = function(setup) {
                 // move application to complete, then release all tokens to all investors.
                 // after that we can test this case
 
-                /*
-                it( "throws if called by any address other than ApplicationEntity", async () => {
-                    return helpers.assertInvalidOpcode(async () => {
-                        await ProposalsAsset.addCodeUpgradeProposal(await ProposalsAsset.address, "testurl");
-                    });
-                });
-
-                it( "creates the proposal if called by the current ApplicationEntity", async () => {
-                    let app = await contracts.ApplicationEntity.new();
-
-                    let eventFilter = helpers.utils.hasEvent(
-                        await ApplicationEntity.callTestAddCodeUpgradeProposal(await app.address, "url"),
-                        'EventNewProposalCreated(bytes32,uint256)'
-                    );
-                    assert.equal(eventFilter.length, 1, 'EventNewProposalCreated event not received.');
-
-                    let RecordNum = await ProposalsAsset.RecordNum.call();
-                    assert.equal(RecordNum, 1, 'RecordNum does not match');
-                });
-                */
+                // done in 4_Asset_Proposals_Type_6_Complete_CodeUpgrade
 
             });
 

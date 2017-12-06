@@ -192,6 +192,61 @@ module.exports = function(setup) {
             });
         });
 
+
+        context('initializeAssetsToThisApplication()', async () => {
+            beforeEach(async () => {
+                gateway = await contracts.GatewayInterface.new();
+            });
+
+            it('throws if not an asset', async () => {
+                // gateway is accounts[0].. deployment account
+                await app.setTestGatewayInterfaceEntity(accounts[0]);
+
+                let emptystub = await contracts.EmptyStub.new();
+                await app.setTestAsset("Test", emptystub.address);
+
+                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.initializeAssetsToThisApplication();
+                });
+            });
+
+            it('throws if any asset has a 0x0 address', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+
+                await app.setTestAsset("Test", 0);
+
+                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.initializeAssetsToThisApplication();
+                });
+            });
+
+            it('throws if caller is not gateway', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+
+                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.initializeAssetsToThisApplication();
+                });
+            });
+        });
+
+        context('acceptCodeUpgradeProposal()', async () => {
+            beforeEach(async () => {
+                gateway = await contracts.GatewayInterface.new();
+            });
+
+            it('throws if caller is not Proposals Asset', async () => {
+                await app.setTestGatewayInterfaceEntity(gateway.address);
+                let app2 = await contracts.ApplicationEntity.new();
+                return helpers.assertInvalidOpcode(async () => {
+                    await app.acceptCodeUpgradeProposal(app2.address);
+                });
+            });
+        });
+
+
         context('lock()', async () => {
             beforeEach(async () => {
                 gateway = await contracts.GatewayInterface.new();
@@ -316,59 +371,6 @@ module.exports = function(setup) {
 
             });
 
-        });
-
-        context('initializeAssetsToThisApplication()', async () => {
-            beforeEach(async () => {
-                gateway = await contracts.GatewayInterface.new();
-            });
-
-            it('throws if not an asset', async () => {
-                // gateway is accounts[0].. deployment account
-                await app.setTestGatewayInterfaceEntity(accounts[0]);
-
-                let emptystub = await contracts.EmptyStub.new();
-                await app.setTestAsset("Test", emptystub.address);
-
-                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
-                return helpers.assertInvalidOpcode(async () => {
-                    await app.initializeAssetsToThisApplication();
-                });
-            });
-
-            it('throws if any asset has a 0x0 address', async () => {
-                await app.setTestGatewayInterfaceEntity(gateway.address);
-
-                await app.setTestAsset("Test", 0);
-
-                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
-                return helpers.assertInvalidOpcode(async () => {
-                    await app.initializeAssetsToThisApplication();
-                });
-            });
-
-            it('throws if caller is not gateway', async () => {
-                await app.setTestGatewayInterfaceEntity(gateway.address);
-
-                // should revert in app @ call setInitialOwnerAndName as it is missing in the empty stub
-                return helpers.assertInvalidOpcode(async () => {
-                    await app.initializeAssetsToThisApplication();
-                });
-            });
-        });
-
-        context('acceptCodeUpgradeProposal()', async () => {
-            beforeEach(async () => {
-                gateway = await contracts.GatewayInterface.new();
-            });
-
-            it('throws if caller is not Proposals Asset', async () => {
-                await app.setTestGatewayInterfaceEntity(gateway.address);
-                let app2 = await contracts.ApplicationEntity.new();
-                return helpers.assertInvalidOpcode(async () => {
-                    await app.acceptCodeUpgradeProposal(app2.address);
-                });
-            });
         });
 
     });

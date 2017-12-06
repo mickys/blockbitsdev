@@ -106,13 +106,13 @@ const setup = {
 
 
 let tests = [];
-tests.push("ERC20Token");
 tests.push("external/SafeMath");
+tests.push("0_ERC20Token");
 tests.push("1_GatewayInterface");
 tests.push("2_ApplicationAsset");
 tests.push("3_ApplicationEntity");
 tests.push("3_ApplicationEntity_Second");
-tests.push("integration_Gateway_and_ApplicationEntity");
+tests.push("3_integration_Gateway_and_ApplicationEntity");
 tests.push("4_Asset_TokenManager");
 tests.push("4_Asset_ListingContract");
 tests.push("4_Asset_NewsContract");
@@ -141,6 +141,8 @@ tests.push("5_CashBack_Tests");
 
 
 // tests = [];
+// tests.push("3_ApplicationEntity_Second");
+
 // tests.push("4_Asset_Proposals_Type_6_Complete_CodeUpgrade");
 
 // tests.push("ERC20Token");

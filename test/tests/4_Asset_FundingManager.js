@@ -224,20 +224,20 @@ module.exports = function (setup) {
 
             });
 
-            it("setVaultCountPerProcess properly sets value", async () => {
-                // let VaultCountPerProcessInitial = await FundingManager.VaultCountPerProcess.call();
-                let newValue = 50;
-                await FundingManager.setVaultCountPerProcess(newValue);
-                let VaultCountPerProcessAfter = await FundingManager.VaultCountPerProcess.call();
-                assert.equal(VaultCountPerProcessAfter.toNumber(), newValue, 'VaultCountPerProcessAfter should be newValue');
-            });
-
             it("setVaultCountPerProcess throws if value is not higher than 0", async () => {
                 // let VaultCountPerProcessInitial = await FundingManager.VaultCountPerProcess.call();
                 let newValue = 0x0;
                 helpers.assertInvalidOpcode(async () => {
                     await FundingManager.setVaultCountPerProcess(newValue);
                 });
+            });
+
+            it("setVaultCountPerProcess properly sets value", async () => {
+                // let VaultCountPerProcessInitial = await FundingManager.VaultCountPerProcess.call();
+                let newValue = 50;
+                await FundingManager.setVaultCountPerProcess(newValue);
+                let VaultCountPerProcessAfter = await FundingManager.VaultCountPerProcess.call();
+                assert.equal(VaultCountPerProcessAfter.toNumber(), newValue, 'VaultCountPerProcessAfter should be newValue');
             });
 
         });

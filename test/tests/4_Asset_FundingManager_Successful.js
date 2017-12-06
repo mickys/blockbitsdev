@@ -387,6 +387,24 @@ module.exports = function (setup) {
 
         context('misc for extra coverage', async () => {
             let tx;
+
+            it('SCADA - initCacheForVariables() throws if called by other than FundingManager', async () => {
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
+                await TestBuildHelper.doApplicationStateChanges("", false);
+                await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
+                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+                await TestBuildHelper.doApplicationStateChanges("", false);
+
+                let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
+                let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
+                let SCADAAddress = await TokenManager.TokenSCADAEntity.call();
+                let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
+                helpers.assertInvalidOpcode(async () => {
+                    tx = await TokenSCADA.initCacheForVariables();
+
+                });
+            });
+
             it('should run doStateChanges even if no changes are required', async () => {
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
                 await TestBuildHelper.doApplicationStateChanges("", false);
@@ -430,24 +448,7 @@ module.exports = function (setup) {
                 assert.equal(getUnsoldTokenFraction, 0, "Unsold Token Fraction is not ZERO ?!");
             });
 
-            it('SCADA - initCacheForVariables() throws if called by other than FundingManager', async () => {
-                tx = await TestBuildHelper.timeTravelTo(ico_settings.start_time + 1);
-                await TestBuildHelper.doApplicationStateChanges("", false);
-                await TestBuildHelper.insertPaymentsIntoFunding(false, 1);
-                tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
-                await TestBuildHelper.doApplicationStateChanges("", false);
-
-                let TokenManager = await TestBuildHelper.getDeployedByName("TokenManager");
-                let TokenSCADAContract = await TestBuildHelper.getContract("TestTokenSCADA1Market");
-                let SCADAAddress = await TokenManager.TokenSCADAEntity.call();
-                let TokenSCADA = await TokenSCADAContract.at(SCADAAddress);
-                helpers.assertInvalidOpcode(async () => {
-                    tx = await TokenSCADA.initCacheForVariables();
-
-                });
-            });
         });
-
     });
 };
 
