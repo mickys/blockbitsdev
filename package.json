@@ -41,7 +41,7 @@
     "solidity-inspector": "^0.2.3",
     "solidity-sha3": "^0.4.1",
     "solium": "^0.5.5",
-    "truffle": "git://github.com/mickys/truffle.git#73048b4947057184726ff5a62ef45d7dfb3b56f9",
+    "truffle": "git://github.com/mickys/truffle.git#96613a8c0d165de442da4f2df7303a06337eca32",
     "truffle-config": "^1.0.2",
     "truffle-expect": "0.0.3",
     "truffle-hdwallet-provider": "0.0.3",
