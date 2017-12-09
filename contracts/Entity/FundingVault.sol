@@ -18,14 +18,7 @@ contract FundingVault {
     using FundingVaultLib for FundingVaultLib.VaultStorage;
     FundingVaultLib.VaultStorage VaultStorage;
 
-     /*
-        Addresses:
-        vaultOwner - the address of the wallet that stores purchases in this vault ( investor address )
-        outputAddress - address where funds go upon successful funding or successful milestone release
-        managerAddress - address of the "FundingManager"
-    */
-
-     function vaultOwner() public view returns (address) {
+    function vaultOwner() public view returns (address) {
         return VaultStorage.vaultOwner;
     }
 
@@ -45,27 +38,6 @@ contract FundingVault {
         return VaultStorage.allFundingProcessed;
     }
 
-    function DirectFundingProcessed() public view returns (bool) {
-        return VaultStorage.DirectFundingProcessed;
-    }
-
-    /*
-        Assets
-    */
-    /*
-    ApplicationEntityABI public ApplicationEntity;
-    Funding public FundingEntity;
-    FundingManager public FundingManagerEntity;
-    Milestones public MilestonesEntity;
-    Proposals public ProposalsEntity;
-    TokenManager public TokenManagerEntity;
-    TokenSCADAGeneric public TokenSCADAEntity;
-    Token public TokenEntity ;
-    */
-
-    /*
-        Globals
-    */
     function amount_direct() public view returns (uint256) {
         return VaultStorage.amount_direct;
     }
@@ -78,54 +50,6 @@ contract FundingVault {
         return VaultStorage.emergencyFundReleased;
     }
 
-    /*
-    mapping(uint16 => PurchaseStruct) public purchaseRecords;
-    struct PurchaseStruct {
-        uint256 unix_time;
-        uint8 payment_method;
-        uint256 amount;
-        uint8 funding_stage;
-        uint16 index;
-    }
-    */
-
-    /*
-    {
-    "constant": true,
-    "inputs": [
-    {
-    "name": "",
-    "type": "uint16"
-    }
-    ],
-    "name": "purchaseRecords",
-    "outputs": [
-    {
-    "name": "unix_time",
-    "type": "uint256"
-    },
-    {
-    "name": "payment_method",
-    "type": "uint8"
-    },
-    {
-    "name": "amount",
-    "type": "uint256"
-    },
-    {
-    "name": "funding_stage",
-    "type": "uint8"
-    },
-    {
-    "name": "index",
-    "type": "uint16"
-    }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-    },
-    */
     function purchaseRecords(uint16 record) public view returns (uint256, uint8, uint256, uint8, uint16) {
         return (
             VaultStorage.getPurchaseRecords_unix_time(record),
@@ -164,34 +88,6 @@ contract FundingVault {
         return VaultStorage.BalancesInitialised;
     }
 
-    /*
-    mapping (uint8 => uint256) public etherBalances;
-    mapping (uint8 => uint256) public tokenBalances;
-    uint8 public BalanceNum = 0;
-
-    bool public BalancesInitialised = false;
-    */
-
-
-    /*
-    struct PurchaseStruct {
-        uint256 unix_time;
-        uint8 payment_method;
-        uint256 amount;
-        uint8 funding_stage;
-        uint16 index;
-    }
-    */
-
-    // mapping(uint16 => PurchaseStruct) public purchaseRecords;
-    // uint16 public purchaseRecordsNum;
-
-    event EventPaymentReceived(uint8 indexed _payment_method, uint256 indexed _amount, uint16 indexed _index );
-
-    // mapping(uint16 => bool) public processedRecords;
-
-    event VaultInitialized(address indexed _owner);
-
     function initialize(
         address _owner,
         address _output,
@@ -203,7 +99,6 @@ contract FundingVault {
         requireNotInitialised
         returns(bool)
     {
-
         return VaultStorage.initialize(
             _owner,
             _output,
@@ -212,15 +107,6 @@ contract FundingVault {
             _proposalsAddress
         );
     }
-
-
-
-    /*
-        The funding contract decides if a vault should receive payments or not, since it's the one that creates them,
-        no point in creating one if you can't accept payments.
-    */
-
-
 
     function addPayment(
         uint8 _payment_method,
@@ -235,18 +121,12 @@ contract FundingVault {
         return VaultStorage.addPayment(_payment_method, _funding_stage);
     }
 
-
     function getBoughtTokens() public view returns (uint256) {
         return VaultStorage.getBoughtTokens();
     }
 
     function getDirectBoughtTokens() public view returns (uint256) {
         return VaultStorage.getDirectBoughtTokens();
-    }
-
-    function initMilestoneTokenAndEtherBalances() internal
-    {
-        return VaultStorage.initMilestoneTokenAndEtherBalances();
     }
 
     function ReleaseFundsAndTokens()
@@ -276,13 +156,6 @@ contract FundingVault {
         VaultStorage.ReleaseFundsToInvestor();
     }
 
-    /*
-        1 - if the funding of the project Failed, allows investors to claim their locked ether back.
-        2 - if the Investor votes NO to a Development Milestone Completion Proposal, where the majority
-            also votes NO allows investors to claim their locked ether back.
-        3 - project owner misses to set the time for a Development Milestone Completion Meeting allows investors
-        to claim their locked ether back.
-    */
     function canCashBack() public view requireInitialised returns (bool) {
         return VaultStorage.canCashBack();
     }
@@ -299,24 +172,23 @@ contract FundingVault {
         return VaultStorage.checkOwnerFailedToSetTimeOnMeeting();
     }
 
-
     modifier isOwner() {
-        require(msg.sender == vaultOwner());
+        require(msg.sender == VaultStorage.vaultOwner);
         _;
     }
 
     modifier onlyManager() {
-        require(msg.sender == managerAddress());
+        require(msg.sender == VaultStorage.managerAddress);
         _;
     }
 
     modifier requireInitialised() {
-        require(_initialized() == true);
+        require(VaultStorage._initialized == true);
         _;
     }
 
     modifier requireNotInitialised() {
-        require(_initialized() == false);
+        require(VaultStorage._initialized == false);
         _;
     }
 }

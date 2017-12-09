@@ -20,7 +20,17 @@ import "./../ApplicationEntityABI.sol";
 
 library FundingVaultLib {
 
+
+    struct PurchaseStruct {
+        uint256 unix_time;
+        uint8 payment_method;
+        uint256 amount;
+        uint8 funding_stage;
+        uint16 index;
+    }
+
     struct VaultStorage {
+
         address vaultOwner ;
         address outputAddress;
         address managerAddress;
@@ -45,13 +55,15 @@ library FundingVaultLib {
 
 
 
-        ApplicationEntityABI ApplicationEntity;
+        // ApplicationEntityABI ApplicationEntity;
         Funding FundingEntity;
         FundingManager FundingManagerEntity;
         Milestones MilestonesEntity;
         Proposals ProposalsEntity;
-        TokenManager TokenManagerEntity;
-        TokenSCADAGeneric TokenSCADAEntity;
+        // TokenManager TokenManagerEntity;
+
+        // TokenSCADAGeneric TokenSCADAEntity;
+        address TokenSCADAAddress;
         Token TokenEntity ;
 
         mapping (uint8 => uint256) etherBalances;
@@ -62,6 +74,11 @@ library FundingVaultLib {
         mapping (uint8 => uint256) stageAmounts;
         mapping (uint8 => uint256) stageAmountsDirect;
     }
+
+
+    event EventPaymentReceived(uint8 indexed _payment_method, uint256 indexed _amount, uint16 indexed _index );
+    event VaultInitialized(address indexed _owner);
+
 
     function getPurchaseRecords_unix_time(VaultStorage storage self, uint16 record ) public view returns (uint256) {
         return self.purchaseRecords[record].unix_time;
@@ -84,16 +101,6 @@ library FundingVaultLib {
     }
 
 
-    struct PurchaseStruct {
-        uint256 unix_time;
-        uint8 payment_method;
-        uint256 amount;
-        uint8 funding_stage;
-        uint16 index;
-    }
-
-    event EventPaymentReceived(uint8 indexed _payment_method, uint256 indexed _amount, uint16 indexed _index );
-    event VaultInitialized(address indexed _owner);
 
     function initialize(
         VaultStorage storage self,
@@ -121,23 +128,24 @@ library FundingVaultLib {
         self.ProposalsEntity = Proposals(_proposalsAddress);
 
         address TokenManagerAddress = self.FundingEntity.getApplicationAssetAddressByName("TokenManager");
-        self.TokenManagerEntity = TokenManager(TokenManagerAddress);
+        TokenManager TokenManagerEntity = TokenManager(TokenManagerAddress);
 
-        address TokenAddress = self.TokenManagerEntity.TokenEntity();
+        address TokenAddress = TokenManagerEntity.TokenEntity();
         self.TokenEntity = Token(TokenAddress);
 
-        address TokenSCADAAddress = self.TokenManagerEntity.TokenSCADAEntity();
-        self.TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
+        // address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
+        // self.TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
+        self.TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
 
         // set Emergency Fund Percentage if available.
-        address ApplicationEntityAddress = self.TokenManagerEntity.owner();
-        self.ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
+        address ApplicationEntityAddress = TokenManagerEntity.owner();
+        ApplicationEntityABI ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
 
         // get Application Bylaws
-        self.emergencyFundPercentage             = uint8( self.ApplicationEntity.getBylawUint256("emergency_fund_percentage") );
-        self.BylawsCashBackOwnerMiaDuration      = self.ApplicationEntity.getBylawUint256("cashback_owner_mia_dur") ;
-        self.BylawsCashBackVoteRejectedDuration  = self.ApplicationEntity.getBylawUint256("cashback_investor_no") ;
-        self.BylawsProposalVotingDuration        = self.ApplicationEntity.getBylawUint256("proposal_voting_duration") ;
+        self.emergencyFundPercentage             = uint8( ApplicationEntity.getBylawUint256("emergency_fund_percentage") );
+        self.BylawsCashBackOwnerMiaDuration      = ApplicationEntity.getBylawUint256("cashback_owner_mia_dur") ;
+        self.BylawsCashBackVoteRejectedDuration  = ApplicationEntity.getBylawUint256("cashback_investor_no") ;
+        self.BylawsProposalVotingDuration        = ApplicationEntity.getBylawUint256("proposal_voting_duration") ;
 
         // init
         self._initialized = true;
@@ -201,11 +209,11 @@ library FundingVaultLib {
 
 
     function getBoughtTokens(VaultStorage storage self) public view returns (uint256) {
-        return self.TokenSCADAEntity.getBoughtTokens( address(this), false );
+        return TokenSCADAGeneric(self.TokenSCADAAddress).getBoughtTokens( address(this), false );
     }
 
     function getDirectBoughtTokens(VaultStorage storage self) public view returns (uint256) {
-        return self.TokenSCADAEntity.getBoughtTokens( address(this), true );
+        return TokenSCADAGeneric(self.TokenSCADAAddress).getBoughtTokens( address(this), true );
     }
 
     function initMilestoneTokenAndEtherBalances(VaultStorage storage self) internal

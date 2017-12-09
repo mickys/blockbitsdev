@@ -142,7 +142,7 @@ tests.push("5_CashBack_Tests");
 
 tests = [];
 // tests.push("6_VaultLibrary");
-tests.push("4_Asset_Funding");
+tests.push("4_Asset_Funding_lib");
 
 
 // tests.push("3_ApplicationEntity_Second");
