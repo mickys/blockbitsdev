@@ -8,6 +8,7 @@ function TestBuildHelper(setup, assert, accounts, platformWalletAddress) {
     this.platformWalletAddress = platformWalletAddress;
     this.gatewayAddress = this.accounts[0];
     this.needsSettings = [];
+    this.FundingVaultLib = null;
 }
 
 TestBuildHelper.prototype.linkToRealGateway = async function () {
@@ -59,7 +60,15 @@ TestBuildHelper.prototype.replaceDeployed = async function (a, b) {
     this.deployed[a] = this.deployed[b];
 };
 
+TestBuildHelper.prototype.linkToFundingLib = async function (object) {
+    await object.link("FundingVaultLib", this.FundingVaultLib.address);
+};
+
 TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
+
+    // deploy Vault Library
+    let FundingVaultLibContract = await this.getContract("FundingVaultLib");
+    this.FundingVaultLib = await FundingVaultLibContract.new();
 
     // deploy application
     let app = await this.deploy("ApplicationEntity");
@@ -70,7 +79,15 @@ TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
     // deploy and add requirement asset contracts
     for (let i = 0; i < this.setup.assetContractNames.length; i++) {
         let name = this.setup.assetContractNames[i];
-        let deployed = await this.deploy(name);
+        let deployed;
+        if(name === "FundingManager") {
+            let object = await this.getContract("Test" + name);
+            await this.linkToFundingLib(object);
+            this.deployed[name] = await object.new();
+            deployed = this.deployed[name];
+        } else {
+            deployed = await this.deploy(name);
+        }
         await deployed.setInitialApplicationAddress(app.address);
         await app["addAsset" + name](await deployed.address);
     }

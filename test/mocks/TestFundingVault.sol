@@ -10,9 +10,9 @@ pragma solidity ^0.4.17;
 
 import "../../contracts/Entity/FundingVault.sol";
 
-contract TestFundingVault is FundingVault{
+contract TestFundingVault is FundingVault {
 
     function setTestInitialized() public {
-        _initialized = true;
+        VaultStorage._initialized = true;
     }
 }

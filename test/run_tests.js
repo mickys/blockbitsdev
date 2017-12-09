@@ -140,7 +140,11 @@ tests.push("5_CashBack_Tests");
 //tests.push("3_ApplicationEntity_States");
 
 
-// tests = [];
+tests = [];
+// tests.push("6_VaultLibrary");
+tests.push("4_Asset_Funding");
+
+
 // tests.push("3_ApplicationEntity_Second");
 
 // tests.push("4_Asset_Proposals_Type_6_Complete_CodeUpgrade");
