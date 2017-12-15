@@ -49,14 +49,15 @@ contract FundingVault {
     /*
         Assets
     */
-    ApplicationEntityABI public ApplicationEntity;
-    Funding public FundingEntity;
-    FundingManager public FundingManagerEntity;
-    Milestones public MilestonesEntity;
-    Proposals public ProposalsEntity;
-    TokenManager public TokenManagerEntity;
-    TokenSCADAGeneric public TokenSCADAEntity;
-    Token public TokenEntity ;
+    // ApplicationEntityABI public ApplicationEntity;
+    Funding FundingEntity;
+    FundingManager FundingManagerEntity;
+    Milestones MilestonesEntity;
+    Proposals ProposalsEntity;
+    // TokenManager TokenManagerEntity;
+    // TokenSCADAGeneric TokenSCADAEntity;
+    address TokenSCADAAddress;
+    Token TokenEntity ;
 
     /*
         Globals
@@ -67,9 +68,9 @@ contract FundingVault {
     // bylaws
     bool public emergencyFundReleased = false;
     uint8 emergencyFundPercentage = 0;
-    uint256 public BylawsCashBackOwnerMiaDuration;
-    uint256 public BylawsCashBackVoteRejectedDuration;
-    uint256 public BylawsProposalVotingDuration;
+    uint256 BylawsCashBackOwnerMiaDuration;
+    uint256 BylawsCashBackVoteRejectedDuration;
+    uint256 BylawsProposalVotingDuration;
 
     struct PurchaseStruct {
         uint256 unix_time;
@@ -83,9 +84,6 @@ contract FundingVault {
     uint16 public purchaseRecordsNum;
 
     event EventPaymentReceived(uint8 indexed _payment_method, uint256 indexed _amount, uint16 indexed _index );
-
-    mapping(uint16 => bool) public processedRecords;
-
     event VaultInitialized(address indexed _owner);
 
     function initialize(
@@ -114,17 +112,17 @@ contract FundingVault {
         ProposalsEntity = Proposals(_proposalsAddress);
 
         address TokenManagerAddress = FundingEntity.getApplicationAssetAddressByName("TokenManager");
-        TokenManagerEntity = TokenManager(TokenManagerAddress);
+        TokenManager TokenManagerEntity = TokenManager(TokenManagerAddress);
 
         address TokenAddress = TokenManagerEntity.TokenEntity();
         TokenEntity = Token(TokenAddress);
 
-        address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
-        TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
+        TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
+        // TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
 
         // set Emergency Fund Percentage if available.
         address ApplicationEntityAddress = TokenManagerEntity.owner();
-        ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
+        ApplicationEntityABI ApplicationEntity = ApplicationEntityABI(ApplicationEntityAddress);
 
         // get Application Bylaws
         emergencyFundPercentage             = uint8( ApplicationEntity.getBylawUint256("emergency_fund_percentage") );
@@ -193,11 +191,11 @@ contract FundingVault {
 
 
     function getBoughtTokens() public view returns (uint256) {
-        return TokenSCADAEntity.getBoughtTokens( address(this), false );
+        return TokenSCADAGeneric(TokenSCADAAddress).getBoughtTokens( address(this), false );
     }
 
     function getDirectBoughtTokens() public view returns (uint256) {
-        return TokenSCADAEntity.getBoughtTokens( address(this), true );
+        return TokenSCADAGeneric(TokenSCADAAddress).getBoughtTokens( address(this), true );
     }
 
     mapping (uint8 => uint256) public etherBalances;
@@ -395,6 +393,20 @@ contract FundingVault {
         if(FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("FAILED_FINAL") ) {
             return true;
         }
+
+        // also check if funding period ended, and 7 days have passed and no processing was done.
+        if( FundingEntity.getTimestamp() >= FundingEntity.Funding_Setting_cashback_time_start() ) {
+
+            // should only be possible if funding entity has been stuck in processing for more than 7 days.
+            if(
+                FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("FAILED_FINAL") &&
+                FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("SUCCESSFUL_FINAL")
+            ) {
+
+            }
+            return true;
+        }
+
         return false;
     }
 

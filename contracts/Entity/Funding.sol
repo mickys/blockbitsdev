@@ -77,12 +77,12 @@ contract Funding is ApplicationAsset {
     uint256 public Funding_Setting_funding_time_end = 0;
 
     uint256 public Funding_Setting_cashback_time_start = 0;
+    // end time is ignored at this stage, anyone can cashback forever if funding fails.
     uint256 public Funding_Setting_cashback_time_end = 0;
 
     // to be taken from application bylaws
-    uint256 public Funding_Setting_cashback_before_start_wait_duration = 1 days;
+    uint256 public Funding_Setting_cashback_before_start_wait_duration = 7 days;
     uint256 public Funding_Setting_cashback_duration = 90 days;
-
 
     event LifeCycle();
     event DebugRecordRequiredChanges( bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required );

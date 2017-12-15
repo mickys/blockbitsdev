@@ -18,6 +18,24 @@ module.exports = function(setup) {
             ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
         });
 
+        context("setManagerAddress()", async () => {
+
+            it('throws if caller is not deployer', async () => {
+                return helpers.assertInvalidOpcode(async () => {
+                    await assetContract.setManagerAddress( accounts[5] , {from: accounts[2]} );
+                });
+
+            });
+
+            it('works if caller is applicationEntity', async () => {
+                let managerAddress = await assetContract.managerAddress.call();
+                assert.equal(managerAddress, 0, "managerAddress should be 0");
+                await assetContract.setManagerAddress( accounts[5] , {from: accounts[0]} );
+                managerAddress = await assetContract.managerAddress.call();
+                assert.equal(managerAddress, accounts[5], "managerAddress should be accounts[5]");
+            });
+        });
+
         context("addItem()", async () => {
 
             it('throws if addItem caller is not applicationEntity', async () => {
@@ -41,6 +59,26 @@ module.exports = function(setup) {
                 let itemName = helpers.web3util.toUtf8(item[0]);
                 assert.equal(itemName, testName, "Item name mismatch!");
             });
+
+            it('works if caller is manager address', async () => {
+
+                let managerAddress = await assetContract.managerAddress.call();
+                assert.equal(managerAddress, 0, "managerAddress should be 0");
+                await assetContract.setManagerAddress( accounts[5] , {from: accounts[0]} );
+                managerAddress = await assetContract.managerAddress.call();
+                assert.equal(managerAddress, accounts[5], "managerAddress should be accounts[5]");
+
+                let testName = "TestName";
+                await assetContract.addItem(testName, await assetContract.address.toString(), {from: accounts[5]});
+
+                let itemNum = await assetContract.itemNum.call();
+                assert.equal(itemNum, 1, "Item number mismatch");
+
+                let item = await assetContract.items.call(1);
+                let itemName = helpers.web3util.toUtf8(item[0]);
+                assert.equal(itemName, testName, "Item name mismatch!");
+            });
+
         });
 
         context("getNewsContractAddress()", async () => {

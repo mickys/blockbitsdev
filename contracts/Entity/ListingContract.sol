@@ -19,6 +19,8 @@ import "./../ApplicationEntityABI.sol";
 
 contract ListingContract is ApplicationAsset {
 
+    address public managerAddress;
+
     // child items
     struct item {
         bytes32 name;
@@ -36,8 +38,13 @@ contract ListingContract is ApplicationAsset {
 
     }
 
+    // deployer address, sets the address who is allowed to add entries, in order to avoid a code upgrade at first milestone.
+    function setManagerAddress(address _manager) public onlyDeployer {
+        managerAddress = _manager;
+    }
+
     function addItem(bytes32 _name, address _address) public requireInitialised {
-        require(msg.sender == owner); // only application
+        require(msg.sender == owner || msg.sender == managerAddress); // only application
 
         item storage child = items[++itemNum];
         child.name = _name;

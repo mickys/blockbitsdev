@@ -72,7 +72,8 @@ module.exports = function(setup) {
 
         // await helpers.utils.displayCashBackStatus(helpers, TestBuildHelper, investor1wallet);
 
-        context("Platform Funding Failed - Cashback Type 1", async () => {
+        /*
+        context("Platform Funding Failed - Cashback Type 1 - Funding processed", async () => {
 
             let investor1wallet = wallet1;
             let investor1amount = 1 * helpers.solidity.ether;
@@ -103,14 +104,14 @@ module.exports = function(setup) {
                 let checkFundingStateFailed = await vault.checkFundingStateFailed.call();
 
                 assert.isTrue(canCashBack, "Should be able to CashBack");
-                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be able true");
+                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be true");
 
                 vault = await TestBuildHelper.getMyVaultAddress(investor2wallet);
                 canCashBack = await vault.canCashBack.call();
                 checkFundingStateFailed = await vault.checkFundingStateFailed.call();
 
                 assert.isTrue(canCashBack, "Should be able to CashBack");
-                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be able true");
+                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be true");
             });
 
             it("throws if CashBack is requested by other address than vault owner (investor)", async () => {
@@ -145,7 +146,120 @@ module.exports = function(setup) {
                 let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
                 assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
             });
+
         });
+        */
+
+        context("Platform Funding Failed - Cashback Type 1 - Funding not processed", async () => {
+
+            let investor1wallet = wallet1;
+            let investor1amount = 20000 * helpers.solidity.ether;
+            let investor2wallet = wallet2;
+            let investor2amount = 20000 * helpers.solidity.ether;
+
+            beforeEach(async () => {
+                await FundingInputMilestone.sendTransaction({
+                    value: investor1amount,
+                    from: investor1wallet
+                });
+
+                await FundingInputDirect.sendTransaction({
+                    value: investor2amount,
+                    from: investor2wallet
+                });
+
+                // time travel to end of ICO, and change states
+                await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
+
+                // don't change states, we're checking if cashback works when states are not processed.
+                // await TestBuildHelper.doApplicationStateChanges("Funding End", false);
+                await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1 + ( 7 * 24 * 3600 ) );
+
+            });
+
+            it("Funding Vaults allow all investors to CashBack", async () => {
+
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let canCashBack = await vault.canCashBack.call();
+                let checkFundingStateFailed = await vault.checkFundingStateFailed.call();
+
+                assert.isTrue(canCashBack, "Should be able to CashBack");
+                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be true");
+
+                vault = await TestBuildHelper.getMyVaultAddress(investor2wallet);
+                canCashBack = await vault.canCashBack.call();
+                checkFundingStateFailed = await vault.checkFundingStateFailed.call();
+
+                assert.isTrue(canCashBack, "Should be able to CashBack");
+                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be true");
+            });
+
+            it("throws if CashBack is requested by other address than vault owner (investor)", async () => {
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let checkFundingStateFailed = await vault.checkFundingStateFailed.call();
+                assert.isTrue(checkFundingStateFailed, "checkFundingStateFailed should be true");
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await vault.ReleaseFundsToInvestor({from: accounts[0]})
+                });
+            });
+
+            it("Requesting CashBack transfers all locked ether back to the investor, validates balances and gas usage", async () => {
+
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let EtherBalanceInitial = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+
+                // since the investor calls this, we need to take GasUsage into account.
+                let tx = await vault.ReleaseFundsToInvestor({from: investor1wallet});
+                let gasUsed = new helpers.BigNumber( tx.receipt.cumulativeGasUsed );
+                let gasPrice = await helpers.utils.getGasPrice(helpers);
+                let gasDifference = gasUsed.mul(gasPrice);
+
+                // validate investor ether balances
+                let EtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, investor1wallet);
+                let EtherBalanceInitialPlusContributed = EtherBalanceInitial.add(investor1amount);
+                // sub used gas from initial
+                EtherBalanceInitialPlusContributed = EtherBalanceInitialPlusContributed.sub(gasDifference);
+                assert.equal(EtherBalanceAfter.toString(), EtherBalanceInitialPlusContributed.toString(), "EtherBalanceAfter should match EtherBalanceInitialPlusContributed");
+
+                // validate vault balances, all should be 0
+                let VaultEtherBalanceAfter = await helpers.utils.getBalance(helpers.artifacts, vault.address);
+                assert.equal(VaultEtherBalanceAfter.toString(), 0, "VaultEtherBalanceAfter should be 0");
+            });
+
+            it("Once processed Funding Vaults do not allow CashBack", async () => {
+
+                // time is before cashback and processing is done, cashback cannot be initiated
+                await TestBuildHelper.timeTravelTo(ico_settings.end_time + ( 7 * 24 * 3600 ) - 1 );
+                await TestBuildHelper.doApplicationStateChanges("Funding End", false);
+
+                let vault = await TestBuildHelper.getMyVaultAddress(investor1wallet);
+                let canCashBack = await vault.canCashBack.call();
+                let checkFundingStateFailed = await vault.checkFundingStateFailed.call();
+
+                assert.isFalse(canCashBack, "Should not be able to CashBack");
+                assert.isFalse(checkFundingStateFailed, "checkFundingStateFailed should be false");
+
+                vault = await TestBuildHelper.getMyVaultAddress(investor2wallet);
+                canCashBack = await vault.canCashBack.call();
+                checkFundingStateFailed = await vault.checkFundingStateFailed.call();
+
+                assert.isFalse(canCashBack, "Should not be able to CashBack");
+                assert.isFalse(checkFundingStateFailed, "checkFundingStateFailed should be false");
+            });
+
+            it("If not processed in time, and CashBack is active, throws if trying to process", async () => {
+                // time is before cashback and processing is done, cashback cannot be initiated
+                await TestBuildHelper.timeTravelTo(ico_settings.end_time + ( 7 * 24 * 3600 ) + 1 );
+
+                return helpers.assertInvalidOpcode(async () => {
+                    await TestBuildHelper.doApplicationStateChanges("Funding End", false);
+                });
+            });
+
+        });
+
+        /*
 
         context("Platform Funding Successful - Cashback Type 2 - Owner Missing in Action Cashback", async () => {
 
@@ -1306,7 +1420,7 @@ module.exports = function(setup) {
                 assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
             });
         });
-
+        */
     });
 
 };
