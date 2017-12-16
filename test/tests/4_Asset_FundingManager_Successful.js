@@ -33,6 +33,12 @@ module.exports = function (setup) {
         let FundingInputDirect, FundingInputMilestone, tx, FundingManager, FundingContract;
         let validation;
 
+        let FundingBountyTokenPercentage = settings.bylaws["token_bounty_percentage"];
+        let BountySupply = token_settings.supply.div( 100 );
+        BountySupply = BountySupply.mul( FundingBountyTokenPercentage );
+        let soldTokenSupply = token_settings.supply;
+        soldTokenSupply = soldTokenSupply.sub( BountySupply );
+
         beforeEach(async () => {
 
             let SnapShotKey = "ApplicationInit";
@@ -98,10 +104,10 @@ module.exports = function (setup) {
 
                     // await TestBuildHelper.displayAllVaultDetails();
 
-                    // validate investor vault has 50% of total tokens
+                    // validate investor vault has 50% of total sold tokens
                     let vaultAddress = await FundingManager.vaultById.call(1);
                     let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
-                    let soldTokens = token_settings.supply.mul(settings.bylaws["token_sale_percentage"] / 100);
+                    let soldTokens = soldTokenSupply.mul(settings.bylaws["token_sale_percentage"] / 100);
                     assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
                 });
 
@@ -130,10 +136,10 @@ module.exports = function (setup) {
 
                     // await TestBuildHelper.displayAllVaultDetails();
 
-                    // validate investor vault has 50% of total tokens
+                    // validate investor vault has 50% of total sold tokens
                     let vaultAddress = await FundingManager.vaultById.call(1);
                     let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
-                    let soldTokens = token_settings.supply.mul(settings.bylaws["token_sale_percentage"] / 100);
+                    let soldTokens = soldTokenSupply.mul(settings.bylaws["token_sale_percentage"] / 100);
                     assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
                 });
 
@@ -172,10 +178,10 @@ module.exports = function (setup) {
 
                     // await TestBuildHelper.displayAllVaultDetails();
 
-                    // validate investor vault has 50% of total tokens
+                    // validate investor vault has 50% of total sold tokens
                     let vaultAddress = await FundingManager.vaultById.call(1);
                     let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
-                    let soldTokens = token_settings.supply.mul(settings.bylaws["token_sale_percentage"] / 100);
+                    let soldTokens = soldTokenSupply.mul(settings.bylaws["token_sale_percentage"] / 100);
                     assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
                 });
 
@@ -213,10 +219,10 @@ module.exports = function (setup) {
 
                     // await TestBuildHelper.displayAllVaultDetails();
 
-                    // validate investor vault has 50% of total tokens
+                    // validate investor vault has 50% of total sold tokens
                     let vaultAddress = await FundingManager.vaultById.call(1);
                     let balance = await TestBuildHelper.getTokenBalance(vaultAddress);
-                    let soldTokens = token_settings.supply.mul(settings.bylaws["token_sale_percentage"] / 100);
+                    let soldTokens = soldTokenSupply.mul(settings.bylaws["token_sale_percentage"] / 100);
                     assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
                 });
 
@@ -261,7 +267,7 @@ module.exports = function (setup) {
                     // let vaultAddress2 = await FundingManager.vaultById.call(2);
                     // let balance1 = await TestBuildHelper.getTokenBalance(vaultAddress1);
                     // let balance2 = await TestBuildHelper.getTokenBalance(vaultAddress2);
-                    // let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                    // let soldTokens = soldTokenSupply.mul( settings.bylaws["token_sale_percentage"] / 100 );
                     // assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
 
                 });
@@ -306,12 +312,14 @@ module.exports = function (setup) {
                     let balance1 = await TestBuildHelper.getTokenBalance(vaultAddress1);
                     let balance2 = await TestBuildHelper.getTokenBalance(vaultAddress2);
 
+
+
                     // validate investor 1 vault has 10% of total tokens
-                    let preTokens = token_settings.supply.mul(0.1);
+                    let preTokens = soldTokenSupply.mul(0.1);
                     assert.equal(balance1.toString(), preTokens.toString(), 'Token balance validation failed');
 
                     // validate investor 2 vault has 40% of total tokens
-                    let icoTokens = token_settings.supply.mul(0.4);
+                    let icoTokens = soldTokenSupply.mul(0.4);
                     assert.equal(balance2.toString(), icoTokens.toString(), 'Token balance validation failed');
                 });
 
@@ -373,7 +381,7 @@ module.exports = function (setup) {
                     // let vaultAddress2 = await FundingManager.vaultById.call(2);
                     // let balance1 = await TestBuildHelper.getTokenBalance(vaultAddress1);
                     // let balance2 = await TestBuildHelper.getTokenBalance(vaultAddress2);
-                    // let soldTokens = token_settings.supply.mul( settings.bylaws["token_sale_percentage"] / 100 );
+                    // let soldTokens = soldTokenSupply.mul( settings.bylaws["token_sale_percentage"] / 100 );
                     // assert.equal(balance.toString(), soldTokens.toString(), 'Token balance validation failed');
 
 

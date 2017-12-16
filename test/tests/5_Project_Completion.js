@@ -105,8 +105,6 @@ module.exports = function(setup) {
 
         it("Development started, processes all milestones, and after last one sets application into DEVELOPMENT_COMPLETE state, validates balances each step", async () => {
 
-
-
             let ProposalId = 0;
             let MilestoneNum = await MilestonesAsset.RecordNum.call();
 
@@ -190,14 +188,26 @@ module.exports = function(setup) {
                     initialPlusMilestoneAndEmergency = initialPlusMilestoneAndEmergency.add(MilestoneActualAmount);
                     assert.equal(etherBalanceAfter.toString(), initialPlusMilestoneAndEmergency.toString(), "etherBalanceAfter should match initialPlusMilestoneAndEmergency ");
 
+
+
+                    let FundingBountyTokenPercentage = settings.bylaws["token_bounty_percentage"];
+                    let BountySupply = settings.token.supply.div( 100 );
+                    BountySupply = BountySupply.mul( FundingBountyTokenPercentage );
+                    let actualTokenSupply = settings.token.supply;
+                    actualTokenSupply = actualTokenSupply.sub( BountySupply );
+
                     // Validate Ending Token Balances - Owner
                     let tokenBalanceAfter = await TestBuildHelper.getTokenBalance(platformWalletAddress);
                     let perc = settings.bylaws["token_sale_percentage"];
-                    let supply = settings.token.supply;
+                    let supply = actualTokenSupply;
                     let saleTotal = supply.mul( perc );
                     saleTotal = saleTotal.div( 100 );
                     let ownerSupply = new helpers.BigNumber(supply);
                     ownerSupply = ownerSupply.sub( saleTotal );
+
+                    // remove 1 full token from owner supply, as it's in the FundingManager
+                    ownerSupply = ownerSupply.sub( 1 * helpers.solidity.ether );
+
                     assert.equal(ownerSupply.toString(), tokenBalanceAfter.toString(), "tokenBalances should match");
 
                     // Validate Ending Token Balances - Investor

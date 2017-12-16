@@ -394,8 +394,9 @@ contract Proposals is ApplicationAsset {
             }
 
         } else if(getApplicationState() == getApplicationEntityState("DEVELOPMENT_COMPLETE") ) {
-            // we also count owner tokens, as they're unlocked now.
-            result.totalAvailable = TokenEntity.totalSupply();
+            // remove residual token balance from TokenManagerEntity.
+            uint256 residualLockedTokens = TokenEntity.balanceOf(TokenManagerEntity);
+            result.totalAvailable = TokenEntity.totalSupply() - residualLockedTokens;
 
             // since we're counting unlocked tokens, we need to recount votes each time we want to end the voting period
             result.requiresCounting = true;

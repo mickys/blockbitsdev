@@ -15,7 +15,7 @@ import "./Entity/Proposals.sol";
 import "./Entity/Funding.sol";
 import "./Entity/Meetings.sol";
 import "./Entity/Milestones.sol";
-import "./Entity/GeneralVault.sol";
+import "./Entity/BountyManager.sol";
 import "./Entity/TokenManager.sol";
 import "./Entity/FundingManager.sol";
 import "./Entity/ListingContract.sol";
@@ -49,7 +49,7 @@ contract ApplicationEntity {
     Funding public FundingEntity;
     Milestones public MilestonesEntity;
     Meetings public MeetingsEntity;
-    GeneralVault public GeneralVaultEntity;
+    BountyManager public BountyManagerEntity;
     TokenManager public TokenManagerEntity;
     ListingContract public ListingContractEntity;
     FundingManager public FundingManagerEntity;
@@ -154,9 +154,9 @@ contract ApplicationEntity {
         assetInitialized("Meetings", _assetAddresses);
     }
 
-    function addAssetGeneralVault(address _assetAddresses) external requireNotInitialised onlyDeployer {
-        GeneralVaultEntity = GeneralVault(_assetAddresses);
-        assetInitialized("GeneralVault", _assetAddresses);
+    function addAssetBountyManager(address _assetAddresses) external requireNotInitialised onlyDeployer {
+        BountyManagerEntity = BountyManager(_assetAddresses);
+        assetInitialized("BountyManager", _assetAddresses);
     }
 
     function addAssetTokenManager(address _assetAddresses) external requireNotInitialised onlyDeployer {

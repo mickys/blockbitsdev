@@ -46,7 +46,6 @@ module.exports = function (setup) {
         });
 
 
-
         it('starts with state as New and requires a change to WAITING if current time is before any funding stage', async () => {
             validation = await TestBuildHelper.ValidateFundingState(
                 helpers.utils.getFundingEntityStateIdByName("NEW").toString(),
@@ -91,10 +90,15 @@ module.exports = function (setup) {
             let FundingManagerAddress = await assetContract.getApplicationAssetAddressByName.call('FundingManager');
 
             let TokenSupply = await TokenContract.totalSupply.call();
+
+            let FundingBountyTokenPercentage = settings.bylaws["token_bounty_percentage"];
+            let BountySupply = TokenSupply / 100 * FundingBountyTokenPercentage;
+
             let FundingSellTokenPercentage = await assetContract.TokenSellPercentage.call();
 
             let FundingManagerBalance = await TokenContract.balanceOf.call( FundingManagerAddress );
-            let SellValue = TokenSupply / 100 * FundingSellTokenPercentage;
+
+            let SellValue = ( TokenSupply / 100 * FundingSellTokenPercentage ) - ( BountySupply / 2);
 
             assert.equal(FundingManagerBalance.toNumber(), SellValue, 'Balances do not match..');
         });
@@ -354,10 +358,7 @@ module.exports = function (setup) {
 
         });
 
-
-
         context('FundingManager Tasks', async () => {
-
 
             it('handles ENTITY state change from FAILED to FAILED_FINAL after FundingManager Task Process finished', async () => {
 
@@ -416,6 +417,11 @@ module.exports = function (setup) {
                 // time travel to end of ICO, and change states
                 tx = await TestBuildHelper.timeTravelTo(ico_settings.end_time + 1);
 
+                // let ApplicationEntity = await TestBuildHelper.getDeployedByName("ApplicationEntity");
+                // tx = await ApplicationEntity.doStateChanges();
+                // await TestBuildHelper.displayAllVaultDetails();
+                // await TestBuildHelper.FundingManagerProcessVaults(true, 1);
+
                 await TestBuildHelper.doApplicationStateChanges("ICO END", false);
 
                 validation = await TestBuildHelper.ValidateFundingState(
@@ -450,7 +456,6 @@ module.exports = function (setup) {
                 tx = await assetContract.doStateChanges();
             });
         });
-
 
         // receive some payments and move to COOLDOWN by updating time to after pre_ico
         // receive payments over hard cap, should move to funding ended

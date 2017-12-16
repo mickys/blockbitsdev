@@ -55,8 +55,8 @@ contract FundingVault {
     Milestones MilestonesEntity;
     Proposals ProposalsEntity;
     // TokenManager TokenManagerEntity;
-    // TokenSCADAGeneric TokenSCADAEntity;
-    address TokenSCADAAddress;
+    TokenSCADAGeneric TokenSCADAEntity;
+    // address TokenSCADAAddress;
     Token TokenEntity ;
 
     /*
@@ -117,8 +117,8 @@ contract FundingVault {
         address TokenAddress = TokenManagerEntity.TokenEntity();
         TokenEntity = Token(TokenAddress);
 
-        TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
-        // TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
+        address TokenSCADAAddress = TokenManagerEntity.TokenSCADAEntity();
+        TokenSCADAEntity = TokenSCADAGeneric(TokenSCADAAddress);
 
         // set Emergency Fund Percentage if available.
         address ApplicationEntityAddress = TokenManagerEntity.owner();
@@ -191,11 +191,11 @@ contract FundingVault {
 
 
     function getBoughtTokens() public view returns (uint256) {
-        return TokenSCADAGeneric(TokenSCADAAddress).getBoughtTokens( address(this), false );
+        return TokenSCADAEntity.getBoughtTokens( address(this), false );
     }
 
     function getDirectBoughtTokens() public view returns (uint256) {
-        return TokenSCADAGeneric(TokenSCADAAddress).getBoughtTokens( address(this), true );
+        return TokenSCADAEntity.getBoughtTokens( address(this), true );
     }
 
     mapping (uint8 => uint256) public etherBalances;
@@ -252,7 +252,7 @@ contract FundingVault {
                     // to save gas in future processing runs.
 
                     // transfer tokens to the investor
-                    TokenEntity.transfer(vaultOwner, TokenEntity.balanceOf(address(this)) );
+                    TokenEntity.transfer(vaultOwner, TokenEntity.balanceOf( address(this) ) );
 
                     // transfer ether to the owner's wallet
                     outputAddress.transfer(this.balance);
@@ -402,9 +402,8 @@ contract FundingVault {
                 FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("FAILED_FINAL") &&
                 FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("SUCCESSFUL_FINAL")
             ) {
-
+                return true;
             }
-            return true;
         }
 
         return false;

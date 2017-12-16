@@ -72,7 +72,6 @@ module.exports = function(setup) {
 
         // await helpers.utils.displayCashBackStatus(helpers, TestBuildHelper, investor1wallet);
 
-        /*
         context("Platform Funding Failed - Cashback Type 1 - Funding processed", async () => {
 
             let investor1wallet = wallet1;
@@ -148,7 +147,6 @@ module.exports = function(setup) {
             });
 
         });
-        */
 
         context("Platform Funding Failed - Cashback Type 1 - Funding not processed", async () => {
 
@@ -258,8 +256,6 @@ module.exports = function(setup) {
             });
 
         });
-
-        /*
 
         context("Platform Funding Successful - Cashback Type 2 - Owner Missing in Action Cashback", async () => {
 
@@ -1420,7 +1416,6 @@ module.exports = function(setup) {
                 assert.equal(appState.toString(), appStateCode, "ApplicationEntity state should be DEVELOPMENT_COMPLETE");
             });
         });
-        */
     });
 
 };

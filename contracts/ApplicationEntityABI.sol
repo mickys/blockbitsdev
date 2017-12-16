@@ -18,14 +18,13 @@ contract ApplicationEntityABI {
     address public FundingEntity;
     address public MilestonesEntity;
     address public MeetingsEntity;
-    address public GeneralVaultEntity;
+    address public BountyManagerEntity;
     address public TokenManagerEntity;
     address public ListingContractEntity;
     address public FundingManagerEntity;
     address public NewsContractEntity;
 
     address public deployerAddress;
-
 
     uint8 public CurrentEntityState;
 
@@ -39,5 +38,4 @@ contract ApplicationEntityABI {
     function canInitiateCodeUpgrade(address _sender) public view returns(bool);
 
     function acceptCodeUpgradeProposal(address _newAddress) external ;
-
 }

@@ -51,7 +51,7 @@ contract TokenManager is ApplicationAsset {
         // we need funding contract address.. let's ask application entity ABI for it :D
         address fundingContractAddress = getApplicationAssetAddressByName('Funding');
 
-        TokenSCADAEntity = new TokenSCADA1Market(address(TokenEntity),  fundingContractAddress);
+        TokenSCADAEntity = new TokenSCADA1Market(address(TokenEntity), fundingContractAddress);
         EventRunBeforeApplyingSettings(assetName);
     }
 
@@ -63,7 +63,11 @@ contract TokenManager is ApplicationAsset {
     event EventAllocatedInitialTokenBalances(address _addr, uint256 _value);
     bool InitialTokenBalancesAllocated = false;
 
-    function AllocateInitialTokenBalances(uint8 _sellPercentage, address _FundingManagerAddress)
+    function AllocateInitialTokenBalances(
+        uint8 _sellPercentage,
+        address _FundingManagerAddress,
+        address _BountyManagerAddress
+    )
         public
         onlyAsset('Funding')
         returns (bool)
@@ -71,10 +75,20 @@ contract TokenManager is ApplicationAsset {
         require(InitialTokenBalancesAllocated == false);
         // TokenManager owns all tokens.
 
+        // first we subtract bounty percentage, the rest is then distributed to funding and owner
+        uint256 bountyPercent = getAppBylawUint256("token_bounty_percentage");
+        uint256 bountyValue = TokenEntity.balanceOf(address(this)) / 100 * bountyPercent;
+        // Allocate the percentage we're distributing using bounty to the BountyManager
+        // from this as ( msg.sender ) , to BountyManager, value
+        TokenEntity.transfer( _BountyManagerAddress, bountyValue );
+
         // calculate token value based on selling percentage
         uint256 tokenValue = TokenEntity.balanceOf(address(this)) / 100 * _sellPercentage;
-
         // Allocate the percentage we're selling to the FundingManager
+
+        // in order to handle fraction and percentage rounding errors, we're allocating 1 full token from owners to sale.
+        tokenValue = tokenValue + ( 1 ether );
+
         // from this as ( msg.sender ) , to FundingManager, value
         TokenEntity.transfer( _FundingManagerAddress, tokenValue );
         EventAllocatedInitialTokenBalances(_FundingManagerAddress, tokenValue);

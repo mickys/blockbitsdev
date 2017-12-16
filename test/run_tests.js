@@ -97,7 +97,7 @@ const setup = {
         'Funding',          // requires TokenManager & FundingManager initialized
         'Milestones',
         'Meetings',
-        'GeneralVault',
+        'BountyManager',
     ]
 };
 
@@ -117,6 +117,7 @@ tests.push("4_Asset_TokenManager");
 tests.push("4_Asset_ListingContract");
 tests.push("4_Asset_NewsContract");
 tests.push("4_FundingVault");
+tests.push("4_BountyManager");
 tests.push("4_Asset_Funding");
 tests.push("4_Asset_Funding_States");
 tests.push("4_Asset_FundingManager");
@@ -140,87 +141,7 @@ tests.push("5_CashBack_Tests");
 //tests.push("3_ApplicationEntity_States");
 
 
-tests = [];
-// tests.push("4_Asset_Funding");
-// tests.push("4_Asset_FundingManager_Successful");
-tests.push("5_CashBack_Tests");
-
-
-// tests.push("3_ApplicationEntity_Second");
-
-// tests.push("4_Asset_Proposals_Type_6_Complete_CodeUpgrade");
-
-// tests.push("ERC20Token");
-// tests.push("4_Asset_Proposals_Type_1_Dev_CodeUpgrade");
-
-// tests.push("4_Asset_Milestones_Locked");
-// tests.push("5_CashBack_Tests");
-
-// tests.push("4_Asset_Proposals_Type_4_MilestoneRelease");
-
-
-// tests.push("5_Project_Completion");
-// tests.push("5_Project_Completion");
-// tests.push("5_CashBack_Tests");
-
-/*
-tests.push("4_Asset_Proposals");
-tests.push("4_Asset_Proposals_Creation");
-tests.push("4_Asset_Proposals_Type_1_Dev_CodeUpgrade");
-tests.push("4_Asset_Proposals_Type_2_EmergencyRelease");
-tests.push("4_Asset_Proposals_Type_3_MilestonePostponing");
-tests.push("4_Asset_Proposals_Type_4_MilestoneRelease");
-tests.push("4_Asset_Proposals_Type_5_Delisting");
-tests.push("5_Project_Completion");
-tests.push("5_CashBack_Tests");
-*/
-
-// tests.push("4_Asset_Proposals");
-// tests.push("4_Asset_FundingManager");
-
-//tests.push("5_Project_Completion");
-
-
-//tests.push("4_Asset_Proposals_Creation");
-// tests.push("4_Asset_Proposals_Type_2_EmergencyRelease");
-
-// tests.push("4_Asset_Proposals_Type_5_Delisting");
-
-
-// tests.push("3_ApplicationEntity");
-
-
-// tests.push("3_ApplicationEntity");
-
-// tests.push("integration_Gateway_and_ApplicationEntity");
-// tests.push("4_Asset_Proposals_Type_3_MilestonePostponing");
-
-// tests.push("4_Asset_Milestones_Locked");
-
-// tests.push("4_Asset_Milestones_Locked");
-// tests.push("4_Asset_Proposals_Creation");
-
-// tests.push("4_Asset_FundingManager_Successful");
-//tests.push("4_Asset_Proposals_Type1");
-
-// tests.push("4_Asset_Proposals_Creation");
-
-//tests.push("4_Asset_Proposals_Type1");
-// tests.push("4_Asset_Proposals_Type2");
-// tests.push("4_Asset_Proposals_Type3");
-// tests.push("4_Asset_Proposals_Type4");
-
-
-/*
-tests.push("4_Asset_Proposals_Type2");
-tests.push("4_Asset_Proposals_Type3");
-tests.push("4_Asset_Proposals_Type4");
-tests.push("4_Asset_Proposals_Type5");
-tests.push("4_Asset_Proposals_Type6");
-*/
-
-// tests.push("4_Asset_FundingManager");
-// tests.push("4_Asset_FundingManager_Successful");
+// tests = [];
 
 
 if(! process.env.SOLIDITY_COVERAGE ) {

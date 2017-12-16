@@ -161,6 +161,8 @@ let project_bylaws = {
     "funding_global_soft_cap": funding_global_soft_cap,
     "funding_global_hard_cap": funding_global_hard_cap,
 
+    // Bounty
+    "token_bounty_percentage": 1,
 
     // Proposal Bylaws
     // (X days) proposal voting duration

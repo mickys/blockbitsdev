@@ -207,6 +207,12 @@ contract TokenSCADAGeneric {
     }
 
     function initCacheForVariables() public onlyFundingManager returns(bool) {
+
+        // remove bounty supply from total for easier calculations
+        uint256 bountyPercent = FundingEntity.getAppBylawUint256("token_bounty_percentage");
+        uint256 bountyValue = tokenSupply * bountyPercent / 100;
+        tokenSupply = tokenSupply - bountyValue;
+
         setTokenParityInCache(1);
         setTokenParityInCache(2);
         setStageTwoParityInCache();

@@ -12,7 +12,7 @@ pragma solidity ^0.4.17;
 import "./../ApplicationAsset.sol";
 import "./Token.sol";
 import "./TokenManager.sol";
-import "./FundingManager.sol";
+import "./Funding.sol";
 
 contract BountyManager is ApplicationAsset {
 
@@ -35,12 +35,16 @@ contract BountyManager is ApplicationAsset {
         EventRunBeforeApplyingSettings(assetName);
     }
 
-    function doStuff()
+    function sendBounty( address _receiver, uint256 _amount )
         public
-        view
         requireInitialised
         requireSettingsApplied
+        onlyDeployer
     {
-
+        if( FundingEntity.CurrentEntityState() == FundingEntity.getEntityState("SUCCESSFUL_FINAL") ) {
+            TokenEntity.transfer( _receiver, _amount );
+        } else {
+            revert();
+        }
     }
 }

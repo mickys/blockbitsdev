@@ -20,8 +20,6 @@ import "./../Entity/TokenManager.sol";
 import "./../Inputs/FundingInputDirect.sol";
 import "./../Inputs/FundingInputMilestone.sol";
 
-
-
 contract Funding is ApplicationAsset {
 
     address public multiSigOutputAddress;
@@ -295,14 +293,8 @@ contract Funding is ApplicationAsset {
     event EventAllocateTokens(address _addr, uint8 _value);
 
     function AllocateTokens() internal {
-
         EventAllocateTokens(address(FundingManagerEntity), TokenSellPercentage);
-        TokenManagerEntity.AllocateInitialTokenBalances(TokenSellPercentage, address(FundingManagerEntity));
-        /*
-        if(!) {
-            revert();
-        }
-        */
+        TokenManagerEntity.AllocateInitialTokenBalances(TokenSellPercentage, address(FundingManagerEntity), getApplicationAssetAddressByName('BountyManager'));
     }
 
     function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool) {
