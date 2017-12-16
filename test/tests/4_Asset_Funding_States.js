@@ -98,7 +98,7 @@ module.exports = function (setup) {
 
             let FundingManagerBalance = await TokenContract.balanceOf.call( FundingManagerAddress );
 
-            let SellValue = ( TokenSupply / 100 * FundingSellTokenPercentage ) - ( BountySupply / 2);
+            let SellValue = ( TokenSupply / 100 * FundingSellTokenPercentage ) - ( BountySupply / 2) + ( 1 * helpers.solidity.ether );
 
             assert.equal(FundingManagerBalance.toNumber(), SellValue, 'Balances do not match..');
         });
