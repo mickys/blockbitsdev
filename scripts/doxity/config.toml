@@ -1,0 +1,14 @@
+linkPrefix = ""
+name = "blockbits-core"
+license = "MIT"
+version = "0.1.0"
+description = "BlockBits Core Contracts"
+author = "BlockBits"
+buildTime = 2017-12-16T21:15:09.998Z
+target = "scripts/doxity"
+src = "contracts/*"
+dir = "pages/docs"
+source = "https://github.com/DigixGlobal/doxity-gatsby-starter-project/archive/a4886b7a7a04c018ac04fed3125d7d4785e74bed.tar.gz"
+out = "docs"
+
+[interaction]

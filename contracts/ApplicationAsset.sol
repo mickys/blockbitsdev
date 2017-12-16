@@ -50,7 +50,7 @@ contract ApplicationAsset {
 
     function setInitialOwnerAndName(bytes32 _name) external
         requireNotInitialised
-    //    onlyOwner
+        onlyOwner
         returns (bool)
     {
         // init states

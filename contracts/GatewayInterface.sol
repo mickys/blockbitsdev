@@ -31,21 +31,25 @@ contract GatewayInterface {
         deployerAddress = msg.sender;
     }
 
-    /*
-    * Get current ApplicationEntity Contract address
-    *
-    * @return       address currentApplicationEntityAddress
+    /**
+    @notice Get current ApplicationEntity Contract address
+    @return {
+        "currentApplicationEntityAddress": Currently bound application address
+    }
     */
     function getApplicationAddress() external view returns (address) {
         return currentApplicationEntityAddress;
     }
 
-    /*
-    * ApplicationEntity Contract requests to be linked
-    *
-    * @param        address _newAddress
-    * @param        bytes32 _sourceCodeUrl
-    * @modifier     validCodeUpgradeInitiator
+
+    /**
+    @notice ApplicationEntity Contract requests to be linked
+    @dev modifier validCodeUpgradeInitiator
+    @param _newAddress address, The address of the application contract
+    @param _sourceCodeUrl bytes32, The url of the application source code on etherscan
+    @return {
+        "bool": TRUE if successfully processed
+    }
     */
     function requestCodeUpgrade( address _newAddress, bytes32 _sourceCodeUrl )
         external
@@ -83,11 +87,13 @@ contract GatewayInterface {
         }
     }
 
-    /*
-    * ApplicationEntity Contract approves code Upgrade
-    *
-    * @param        address _newAddress
-    * @modifier     onlyCurrentApplicationEntity
+    /**
+    @notice ApplicationEntity Contract approves code Upgrade
+    @dev modifier onlyCurrentApplicationEntity
+    @param _newAddress address, The address of the new application contract
+    @return {
+        "bool": TRUE if successfully processed
+    }
     */
     function approveCodeUpgrade( address _newAddress ) external returns (bool) {
         require(msg.sender == currentApplicationEntityAddress);
@@ -101,8 +107,9 @@ contract GatewayInterface {
         return true;
     }
 
-    /*
-    * Locks current Application Entity
+    /**
+    @notice Locks current application entity
+    @dev Internally used by gateway to lock current application entity before switching to the new one
     */
     function lockCurrentApp() internal {
         if(!currentApp.lock()) {
@@ -110,10 +117,12 @@ contract GatewayInterface {
         }
     }
 
-    /*
-    * Link to new Application Entity
-    *
-    * @param        address _newAddress
+    /**
+    @notice Link to new Application Entity
+    @param _newAddress address, The address of the new application contract
+    @return {
+        "bool": TRUE if successfully processed
+    }
     */
     function link( address _newAddress ) internal returns (bool) {
 
@@ -126,19 +135,22 @@ contract GatewayInterface {
         return true;
     }
 
-    /*
-    * Get current News Contract address
-    *
-    * @return       address NewsContractEntity
+
+    /**
+    @notice Get current News Contract address
+    @return {
+        "address": 0x address of the News Contract
+    }
     */
     function getNewsContractAddress() external view returns (address) {
         return currentApp.NewsContractEntity();
     }
 
-    /*
-    * Get current Listing Contract address
-    *
-    * @return       address ListingContractEntity
+    /**
+    @notice Get current Listing Contract address
+    @return {
+        "address": 0x address of the Listing Contract
+    }
     */
     function getListingContractAddress() external view returns (address) {
         return currentApp.ListingContractEntity();
@@ -146,6 +158,10 @@ contract GatewayInterface {
 
     /*
     * Validates if new application's deployer is allowed to upgrade current app
+    */
+
+    /**
+    @notice Validates if new application's deployer is allowed to upgrade current app
     */
     modifier validCodeUpgradeInitiator() {
         bool valid = false;
