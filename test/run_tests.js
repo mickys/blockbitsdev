@@ -50,18 +50,6 @@ web3._extend({
     })]
 });
 
-/*
-web3._extend({
-    property: 'evm',
-    methods: [new web3._extend.Method({
-        name: 'mine',
-        call: 'evm_mine',
-        params: 0,
-    })]
-});
-*/
-
-
 let settings = ProjectSettings.application_settings;
 settings.sourceCodeUrl = sourceCodeUrl;
 
@@ -101,10 +89,6 @@ const setup = {
     ]
 };
 
-// fix this shit first - 1 test .. add more - tests.push("Algorithms/TokenSCADA1Market");
-// - obsolete - tests.push("4_Asset_Funding_Payments");
-
-
 let tests = [];
 tests.push("external/SafeMath");
 tests.push("0_ERC20Token");
@@ -136,66 +120,18 @@ tests.push("5_Project_Completion");
 tests.push("5_CashBack_Tests");
 
 
-// tests.push("4_Asset_Proposals_Type_6_Complete_CodeUpgrade");
-
-//tests.push("3_ApplicationEntity_States");
-
-
-// tests = [];
-
-
 if(! process.env.SOLIDITY_COVERAGE ) {
 
 }
-
-
 
 utils.toLog('\n  ----------------------------------------------------------------');
 utils.toLog("  Running test collections ["+utils.colors.orange+tests.length+utils.colors.none+"]." );
 utils.toLog(' ----------------------------------------------------------------');
 
-
 tests.map( async (name) => {
     if(name.length > 0) {
-        // console.log("started running "+name);
         let filename = './tests/' + name + '.js';
         let runTest = require(filename);
         await runTest(setup);
-        // console.log("finished running "+name);
     }
 });
-
-
-/*
-
-let currentTest = 0;
-RecursiveTestLoop();
-
-async function RecursiveTestLoop() {
-    if(currentTest < tests.length) {
-        console.log("tests[currentTest]", tests[currentTest]);
-
-        let name = tests[currentTest];
-        console.log("started running " + name);
-        let filename = './tests/' + name + '.js';
-        let runTest = require(filename);
-        await runTest(setup);
-        console.log("finished running " + name);
-        currentTest++;
-        // setTimeout( function() { RecursiveTestLoop() }, 1000);
-        await RecursiveTestLoop()
-    }
-}
-*/
-
-/*
-
-for(i = 0; i < tests.length; i++) {
-    console.log("started running "+i);
-    let name =  tests[i];
-    let filename = './tests/' + name + '.js';
-    let runTest = require(filename);
-    runTest(setup);
-    console.log("finished running "+i);
-}
-*/
