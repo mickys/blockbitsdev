@@ -15,9 +15,9 @@ let solidity = {
 // Project Token settings
 
 let token_settings = {
-    supply: new BigNumber(5).mul(10 ** 6).mul( 10 ** 18 ),   // 5 mil tokens * decimals
+    supply: new BigNumber(500).mul(10 ** 6).mul( 10 ** 18 ),   // 500 mil tokens * decimals
     decimals: 18,                           // make sure to update supply decimals if updated
-    name: "Block Bits IO Tokens",
+    name: "BlockBitsIO Token",
     symbol: "BBX",
     version: "v1"                           // required in order to be able to deploy a new version if need arises
 };
@@ -33,8 +33,8 @@ let tokenSCADA = {
     requires_global_hard_cap: false
 };
 
-let funding_global_soft_cap = new BigNumber(20000).mul( 10 ** 18 );
-let funding_global_hard_cap = new BigNumber(60000).mul( 10 ** 18 );
+let funding_global_soft_cap = new BigNumber(10000).mul( 10 ** 18 );
+let funding_global_hard_cap = new BigNumber(30000).mul( 10 ** 18 );
 
 let funding_next_phase_price_increase = 20; // percentage increase in next funding phase
 

@@ -1,14 +1,9 @@
 {
   "name": "blockbits-core",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "BlockBits Core Contracts",
   "main": "index.js",
   "scripts": {
-    "docs:init": "node_modules/.bin/doxity init",
-    "docs:compile": "node_modules/.bin/doxity compile",
-    "docs:develop": "node_modules/.bin/doxity develop",
-    "docs:publish": "node_modules/.bin/doxity publish",
-    "docs:build": "node_modules/.bin/doxity build",
     "test": "scripts/test.sh",
     "deploy": "scripts/deploy.sh",
     "deploytest": "scripts/deploytest.sh",

@@ -34,10 +34,6 @@ Once you have everything installed
 
 ```npm run coverageToHtml```
 
-## Doxity support
-```npm run docs:build```
-
-
 # Structure
 
 ----------------------------
@@ -54,8 +50,6 @@ Once you have everything installed
 | test/mocks/ | Smart Contract - Test Mocks | 
 | test/tests/ | Truffle Tests | 
 ----------------------------
-    
-
 
 # Technical Documentation
 View Live Documentation at [http://docs.blockbits.io](http://docs.blockbits.io) or Sources at [https://github.com/blockbitsio/documentation](https://github.com/blockbitsio/documentation)
