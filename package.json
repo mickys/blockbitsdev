@@ -10,6 +10,8 @@
     "docs:publish": "node_modules/.bin/doxity publish",
     "docs:build": "node_modules/.bin/doxity build",
     "test": "scripts/test.sh",
+    "deploy": "scripts/deploy.sh",
+    "deploytest": "scripts/deploytest.sh",
     "coverage": "scripts/coverage.sh",
     "js": "./node_modules/.bin/truffle --network rpc exec test/run_tests.js",
     "html": "npm run testToHtml && npm run coverageToHtml",

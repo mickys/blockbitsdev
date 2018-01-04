@@ -1316,8 +1316,10 @@ module.exports = {
             settings: newSettings
         };
     },
-
     async getContractBalance(helpers, address) {
         return await helpers.utils.getBalance(helpers.artifacts, address);
-    }
+    },
+    getAssetContractByName(array, name) {
+        return array.filter(x => x.name === name)[0];
+    },
 };

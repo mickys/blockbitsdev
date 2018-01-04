@@ -88,6 +88,8 @@ contract Proposals is ApplicationAsset {
 
         address MilestonesContractAddress = getApplicationAssetAddressByName('Milestones');
         MilestonesEntity = Milestones(MilestonesContractAddress);
+
+        EventRunBeforeApplyingSettings(assetName);
     }
 
     function getBylawsProposalVotingDuration() public view returns (uint256) {

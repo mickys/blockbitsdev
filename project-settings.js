@@ -196,7 +196,8 @@ let application_settings = {
     token:token_settings,
     tokenSCADA:tokenSCADA,
     solidity:solidity,
-    doDeployments: false
+    doDeployments: true,
+    platformWalletAddress: "0x93f46df4161f1dd333a99a2ec6f53156c027f83f"
 };
 
 module.exports = {

@@ -127,7 +127,7 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     // deploy asset contract
     let assetContract = await this.deploy(assetName);
 
-    // as deployer, set asset owner, so we make sure noone else can initialize except app.
+    // as deployer, set asset owner, so we make sure no one else can initialize except app.
     await assetContract.setInitialApplicationAddress(app.address);
 
     // if requiredAssets exists

@@ -15,7 +15,7 @@ contract ApplicationAsset {
 
     event EventAppAssetOwnerSet(bytes32 indexed _name, address indexed _owner);
     event EventRunBeforeInit(bytes32 indexed _name);
-    event EventRunBeforeApplyingSettings(bytes32 _name);
+    event EventRunBeforeApplyingSettings(bytes32 indexed _name);
 
 
     mapping (bytes32 => uint8) public EntityStates;

@@ -26,7 +26,6 @@ contract BountyManager is ApplicationAsset {
     {
         address FundingAddress = getApplicationAssetAddressByName('Funding');
         FundingEntity = Funding(FundingAddress);
-        EventRunBeforeApplyingSettings(assetName);
 
         address TokenManagerAddress = getApplicationAssetAddressByName('TokenManager');
         TokenManager TokenManagerEntity = TokenManager(TokenManagerAddress);

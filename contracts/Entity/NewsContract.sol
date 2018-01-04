@@ -29,7 +29,7 @@ contract NewsContract is ApplicationAsset {
 
     // news items
     struct item {
-        bytes32 hash;
+        string hash;
         uint8 itemType;
         uint256 length;
     }
@@ -37,7 +37,7 @@ contract NewsContract is ApplicationAsset {
     mapping ( uint256 => item ) public items;
     uint256 public itemNum = 0;
 
-    event EventNewsItem(bytes32 _hash);
+    event EventNewsItem(string _hash);
     event EventNewsState(uint8 itemType);
 
     function NewsContract() ApplicationAsset() public {
@@ -51,7 +51,7 @@ contract NewsContract is ApplicationAsset {
         EventNewsState(state);
     }
 
-    function addItem(bytes32 _hash, uint256 _length) public onlyAppDeployer requireInitialised {
+    function addItem(string _hash, uint256 _length) public onlyAppDeployer requireInitialised {
         item storage child = items[++itemNum];
         child.hash = _hash;
         child.itemType = 1;
