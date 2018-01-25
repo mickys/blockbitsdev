@@ -89,8 +89,6 @@ pragma solidity 0.4.17;
 
 import "./TokenSCADAGeneric.sol";
 
-
-
 contract TokenSCADA1Market is TokenSCADAGeneric {
 
     // __constructor, passes arguments to parent constructor
