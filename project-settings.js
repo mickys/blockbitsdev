@@ -137,7 +137,6 @@ project_milestones.push(
     }
 );
 
-
 project_milestones.push(
     {
         name: "Milestone 6",                    // bytes32 _name
@@ -146,7 +145,6 @@ project_milestones.push(
         funding_percentage: 10,                 // uint8   _funding_percentage
     }
 );
-
 
 project_milestones.push(
     {
