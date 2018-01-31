@@ -632,7 +632,6 @@ contract ApplicationEntity {
 
         }
 
-
         return (CurrentEntityState, EntityStateRequired);
     }
 

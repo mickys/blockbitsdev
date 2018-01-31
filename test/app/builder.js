@@ -855,6 +855,25 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
             token_settings.version
         );
 
+        // deploy the "ExtraFundingInputMarketing" contract and set it's address in the Token Manager
+        let extra = await this.deploy("ExtraFundingInputMarketing");
+        await extra.addSettings(
+            object.address,                                      // TokenManager Entity address
+            this.platformWalletAddress,                          // Output Address
+            this.setup.settings.extra_marketing.hard_cap,        // 300 ether hard cap
+            this.setup.settings.extra_marketing.tokens_per_eth,  // 20 000 BBX per ETH
+            this.setup.settings.extra_marketing.start_date,      // 31.01.2018
+            this.setup.settings.extra_marketing.end_date         // 10.03.2018
+        );
+
+        await object.setMarketingMethodAddress( extra.address );
+
+        // tests only
+        let app = await this.getDeployedByName("ApplicationEntity");
+        await extra.setAppAddress( app.address );
+
+
+
     } else if (name === "Funding") {
         // add funding phases
 
@@ -880,6 +899,12 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
 TestBuildHelper.prototype.deploy = async function (name) {
     let object = await this.getContract("Test" + name);
     this.deployed[name] = await object.new();
+    return this.deployed[name];
+};
+
+TestBuildHelper.prototype.deployWithParams = async function (name, params) {
+    let object = await this.getContract("Test" + name);
+    this.deployed[name] = await object.new(params);
     return this.deployed[name];
 };
 

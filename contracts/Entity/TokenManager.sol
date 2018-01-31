@@ -20,6 +20,7 @@ contract TokenManager is ApplicationAsset {
 
     TokenSCADAVariable public TokenSCADAEntity;
     Token public TokenEntity;
+    address public MarketingMethodAddress;
 
     function addTokenSettingsAndInit(
         uint256 _tokenSupply,
@@ -40,6 +41,17 @@ contract TokenManager is ApplicationAsset {
             _tokenSymbol,
             _version
         );
+    }
+
+
+    /* Marketing fund */
+    function setMarketingMethodAddress( address _address)
+        requireInitialised
+        requireSettingsNotApplied
+        onlyDeployer
+        public
+    {
+        MarketingMethodAddress = _address;
     }
 
     function runBeforeApplyingSettings()
@@ -74,6 +86,21 @@ contract TokenManager is ApplicationAsset {
     {
         return TokenEntity.finishMinting();
     }
+
+    function mintForMarketingPool(address _to, uint256 _amount)
+        onlyMarketingPoolAsset
+        requireSettingsApplied
+        external
+        returns (bool)
+    {
+        return TokenEntity.mint(_to, _amount);
+    }
+
+    modifier onlyMarketingPoolAsset() {
+        require(msg.sender == MarketingMethodAddress);
+        _;
+    }
+
 
     // Development stage complete, release tokens to Project Owners
     event EventOwnerTokenBalancesReleased(address _addr, uint256 _value);

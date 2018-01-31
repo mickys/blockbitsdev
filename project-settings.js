@@ -207,8 +207,15 @@ let project_bylaws = {
 
     // Cashback Bylaws
     "cashback_investor_no": 7 * days,
-    "cashback_owner_mia_dur": 365 * days
+    "cashback_owner_mia_dur": 3650 * days
 
+};
+
+let extra_marketing = {
+    "hard_cap":300 * solidity.ether,    // 300 ether hard cap
+    "tokens_per_eth":20000,             // 20 000 BBX per ETH
+    "start_date":1517356800,            // 31.01.2018
+    "end_date":1520640000               // 10.03.2018
 };
 
 let application_settings = {
@@ -219,7 +226,8 @@ let application_settings = {
     tokenSCADA:tokenSCADA,
     solidity:solidity,
     doDeployments: false, // true
-    platformWalletAddress: "0x93f46df4161f1dd333a99a2ec6f53156c027f83f"
+    platformWalletAddress: "0x93f46df4161f1dd333a99a2ec6f53156c027f83f",
+    extra_marketing:extra_marketing
 };
 
 module.exports = {

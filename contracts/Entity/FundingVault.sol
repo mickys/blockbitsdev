@@ -398,10 +398,7 @@ contract FundingVault {
         if( FundingEntity.getTimestamp() >= FundingEntity.Funding_Setting_cashback_time_start() ) {
 
             // should only be possible if funding entity has been stuck in processing for more than 7 days.
-            if(
-                FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("FAILED_FINAL") &&
-                FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("SUCCESSFUL_FINAL")
-            ) {
+            if( FundingEntity.CurrentEntityState() != FundingEntity.getEntityState("SUCCESSFUL_FINAL") ) {
                 return true;
             }
         }

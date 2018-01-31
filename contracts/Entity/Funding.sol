@@ -80,7 +80,7 @@ contract Funding is ApplicationAsset {
 
     // to be taken from application bylaws
     uint256 public Funding_Setting_cashback_before_start_wait_duration = 7 days;
-    uint256 public Funding_Setting_cashback_duration = 90 days;
+    uint256 public Funding_Setting_cashback_duration = 365 days;
 
     event LifeCycle();
     event DebugRecordRequiredChanges( bytes32 indexed _assetName, uint8 indexed _current, uint8 indexed _required );
@@ -105,21 +105,6 @@ contract Funding is ApplicationAsset {
         EventRunBeforeInit(assetName);
     }
 
-    /*
-    function runBeforeApplyingSettings() internal requireInitialised requireSettingsNotApplied {
-        AllocateTokens();
-        EventRunBeforeApplyingSettings(assetName);
-    }
-
-    event EventAllocateTokens(address _addr, uint8 _value);
-
-    function AllocateTokens() internal {
-        EventAllocateTokens(address(FundingManagerEntity), TokenSellPercentage);
-        TokenManagerEntity.AllocateInitialTokenBalances(TokenSellPercentage, address(FundingManagerEntity), getApplicationAssetAddressByName('BountyManager'));
-    }
-    */
-
-
     function setAssetStates() internal {
         // Asset States
         EntityStates["__IGNORED__"]     = 0;
@@ -139,15 +124,6 @@ contract Funding is ApplicationAsset {
         RecordStates["IN_PROGRESS"]     = 2;
         RecordStates["FINAL"]           = 3;
     }
-
-
-    /*
-        When using a funding model that can sell tokens at the market decided value, then a global hard cap is required.
-        If global hard cap is defined:
-            - funding stage caps are ignored.
-            - token distribution is done based on fractions in each funding stage
-            - tokens left unsold in funding stages get redistributed to all participants
-    */
 
     function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage )
         public
@@ -287,7 +263,6 @@ contract Funding is ApplicationAsset {
         // set funding end
         Funding_Setting_funding_time_end = Collection[FundingStageNum].time_end;
 
-        // set cashback just in case
         // cashback starts 1 day after funding status is failed
         Funding_Setting_cashback_time_start = Funding_Setting_funding_time_end + Funding_Setting_cashback_before_start_wait_duration;
         Funding_Setting_cashback_time_end = Funding_Setting_cashback_time_start + Funding_Setting_cashback_duration;
@@ -703,7 +678,6 @@ contract Funding is ApplicationAsset {
                 */
             }
         }
-
 
         return (CurrentRecordState, RecordStateRequired, EntityStateRequired);
     }
