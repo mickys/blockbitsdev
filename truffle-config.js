@@ -8,8 +8,8 @@ if (!process.env.SOLIDITY_COVERAGE) {
 }
 
 let HDWalletProvider = require('truffle-hdwallet-provider');
-const mnemonic = 'call will neutral van sponsor select present lion pizza dice resist gate';
-const addr = '0x52b333c238Bf73888fDDe266E9D2A39B75752807';
+const mnemonic = 'lunch release trick fluid omit about fatigue suffer dentist minute cube want';
+const addr = '0x4b70518d879a4e2da4ad9cf0189b32d8dc6b7a9b';
 
 //if (process.env.LIVE_NETWORKS) {
 ropstenProvider = new HDWalletProvider(mnemonic, 'https://ropsten.infura.io/')
@@ -33,7 +33,9 @@ module.exports = {
             // gas: 4.7e6,
             // gas: 6.7e6, < max @ nov 29 2017
             gas: 6.1e6,
-            gasPrice: 100000000 // 0.1 gwei -> 100 mil wei
+            // gasPrice: 20000000000, // 0.1 gwei -> 100 mil wei
+            gasPrice: 1010000000, // 0.1 gwei -> 100 mil wei
+            // gasPrice: 100000000 // 0.1 gwei -> 100 mil wei
         },
         ropsten: {
             network_id: 3,
@@ -43,13 +45,16 @@ module.exports = {
             gasPrice: 100000000 // 0.1 gwei -> 100 mil wei
         },
         rinkeby: {
+            synchronization_timeout: 3600000,
+            from: addr,
             provider: rinkebyProvider,
             // from: addr,
             network_id: 4,
             gas: 6.7e6,
+            gasPrice: 100000000000, // 100 gwei -> 100000 mil wei
             // gasPrice: 100000000, // 0.1 gwei -> 100 mil wei
-            gasPrice: 20000000000, // 0.1 gwei -> 100 mil wei
-            synchronization_timeout: 3600000
+            // gasPrice: 4000000000, // 0.1 gwei -> 100 mil wei
+            // gasPrice: 20000000000, // 0.1 gwei -> 100 mil wei
         },
         coverage: {
             host: "localhost",

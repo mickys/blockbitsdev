@@ -67,6 +67,12 @@ TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
     // add bylaws into app
     await this.addBylawsIntoApp();
 
+    // deploy token and scada
+
+    let token = await this.deploy("Token");
+    let scada = await this.deploy("TokenSCADAVariable");
+    let extra = await this.deploy("ExtraFundingInputMarketing");
+
     // deploy and add requirement asset contracts
     for (let i = 0; i < this.setup.assetContractNames.length; i++) {
         let name = this.setup.assetContractNames[i];
@@ -841,22 +847,27 @@ TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (Funding
 };
 
 TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
+
     let object = this.getDeployedByName(name);
 
     if (name === "TokenManager") {
         // add token settings
         let token_settings = this.setup.settings.token;
+        let FundingAsset = this.getDeployedByName("Funding");
+        let ScadaAsset = this.getDeployedByName("TokenSCADAVariable");
+        await ScadaAsset.addSettings(FundingAsset.address);
 
-        await object.addTokenSettingsAndInit(
+        let tokenContract = this.getDeployedByName("Token");
+        await tokenContract.addSettings(
             token_settings.supply.toString(),
-            token_settings.decimals,
             token_settings.name,
+            token_settings.decimals,
             token_settings.symbol,
-            token_settings.version
+            token_settings.version,
+            object.address
         );
 
-        // deploy the "ExtraFundingInputMarketing" contract and set it's address in the Token Manager
-        let extra = await this.deploy("ExtraFundingInputMarketing");
+        let extra = this.getDeployedByName("ExtraFundingInputMarketing");
         await extra.addSettings(
             object.address,                                      // TokenManager Entity address
             this.platformWalletAddress,                          // Output Address
@@ -866,13 +877,13 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
             this.setup.settings.extra_marketing.end_date         // 10.03.2018
         );
 
-        await object.setMarketingMethodAddress( extra.address );
+        await object.addSettings(
+            ScadaAsset.address, tokenContract.address, extra.address
+        );
 
         // tests only
         let app = await this.getDeployedByName("ApplicationEntity");
         await extra.setAppAddress( app.address );
-
-
 
     } else if (name === "Funding") {
         // add funding phases

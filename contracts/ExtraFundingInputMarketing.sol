@@ -1,5 +1,7 @@
 /*
 
+ * source       https://github.com/blockbitsio/
+
  * @name        Marketing Funding Input Contract
  * @package     BlockBitsIO
  * @author      Micky Socaci <micky@nowlive.ro>
@@ -15,11 +17,11 @@
 */
 
 pragma solidity ^0.4.17;
-import "./Entity/TokenManager.sol";
+import "./abis/ABITokenManager.sol";
 
 contract ExtraFundingInputMarketing {
 
-    TokenManager public TokenManagerEntity;
+    ABITokenManager public TokenManagerEntity;
     address public outputWalletAddress;
     uint256 public hardCap;
     uint256 public tokensPerEth;
@@ -49,7 +51,7 @@ contract ExtraFundingInputMarketing {
         require(msg.sender == deployer);
         require(settings_added == false);
 
-        TokenManagerEntity = TokenManager(_tokenManager);
+        TokenManagerEntity = ABITokenManager(_tokenManager);
         outputWalletAddress = _outputWalletAddress;
         hardCap = _cap;
         tokensPerEth = _price;
@@ -88,7 +90,6 @@ contract ExtraFundingInputMarketing {
                 if( !outputWalletAddress.send(contributed_value) ) {
                     revert();
                 }
-
 
                 if(amountOverCap > 0) {
                     // last step, if we received more than we can accept, send remaining back

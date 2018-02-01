@@ -1,4 +1,6 @@
 const BigNumber = require('bignumber.js');    // using bn.js from web3-utils
+const web3util                  = require('web3-utils');
+
 // these settings are used in both deployments and tests
 
 // ethereum network related variables
@@ -36,20 +38,21 @@ let tokenSCADA = {
 };
 
 let funding_global_soft_cap = new BigNumber(5000).mul( ether );
-let funding_global_hard_cap = new BigNumber(35000).mul( ether);
+let funding_global_hard_cap = new BigNumber(34700).mul( ether );
 
-let funding_next_phase_price_increase = 20; // percentage increase in next funding phase
+let pre_ico_start = 1517443201;         // 00:00:01 1st of feb 2018
+let pre_ico_end = 1519862399;
 
-let pre_ico_duration = 7 * days;
-let pre_ico_start = now + 10 * days;
-let pre_ico_end = pre_ico_start + pre_ico_duration;
+let pre_amount_in_ether = new BigNumber(7000).mul( 10 ** 18 );
+let pre_ico_amount_cap_hard_in_wei = web3util.fromWei(pre_amount_in_ether, "wei");
+
 
 let pre_ico_settings = {
     name: "PRE ICO",                                        //  bytes32 _name,
     start_time: pre_ico_start,                              //  uint256 _time_start,
     end_time: pre_ico_end,                                  //  uint256 _time_end,
     amount_cap_soft: 0,                                     //  uint256 _amount_cap_soft,
-    amount_cap_hard: new BigNumber(7000).mul( 10 ** 18 ),   //  uint256 _amount_cap_hard,
+    amount_cap_hard: pre_ico_amount_cap_hard_in_wei,        //  uint256 _amount_cap_hard,
     methods: 3,                                             //  uint8   _methods, 3 = DIRECT_AND_MILESTONE
     minimum_entry: 0,                                       //  uint256 _minimum_entry,
     fixed_tokens: 9800,                                     //  uint256 _fixed_tokens
@@ -57,16 +60,15 @@ let pre_ico_settings = {
     token_share_percentage: 0,                              //  uint8
 };
 
-let ico_duration = 30 * days;
-let ico_start = pre_ico_end + 7 * days;
-let ico_end = ico_start + ico_duration;
+let ico_start = 1520640001;
+let ico_end = 1525219199;
 
 let ico_settings = {
     name: "ICO",
     start_time: ico_start,
     end_time: ico_end,
     amount_cap_soft: 0,
-    amount_cap_hard: new BigNumber(35000).mul( 10 ** 18 ),  // includes pre-ico cap
+    amount_cap_hard: new BigNumber(35000).mul( 10 ** 18 ).toString(),  // includes pre-ico cap
     methods: 3,
     minimum_entry: 0,
     fixed_tokens: 7000,
@@ -225,7 +227,7 @@ let application_settings = {
     token:token_settings,
     tokenSCADA:tokenSCADA,
     solidity:solidity,
-    doDeployments: false, // true
+    doDeployments: true, // true
     platformWalletAddress: "0x93f46df4161f1dd333a99a2ec6f53156c027f83f",
     extra_marketing:extra_marketing
 };
