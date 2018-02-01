@@ -279,6 +279,15 @@ async function doStage(deployer)  {
         await contract.setInitialApplicationAddress(app.address);
     }
 
+
+    await deployer.deploy(artifacts.require("Token"));
+    utils.toLog("    Contract: Token" );
+    await deployer.deploy(artifacts.require("TokenSCADAVariable"));
+    utils.toLog("    Contract: TokenSCADAVariable" );
+    await deployer.deploy(artifacts.require("ExtraFundingInputMarketing"));
+    utils.toLog("    Contract: ExtraFundingInputMarketing" );
+
+
     deployedAssets = assets.map(mapDeployedAssets);
 
     utils.toLog("  Link assets to ApplicationEntity");
@@ -306,33 +315,47 @@ async function doStage(deployer)  {
     let TokenManagerAssetContract = await artifacts.require(TokenManagerAsset.name);
     TokenManagerAssetContract = await TokenManagerAssetContract.at(TokenManagerAsset.address);
 
-    await TokenManagerAssetContract.addTokenSettingsAndInit(
-        token_settings.supply,
-        token_settings.decimals,
+    let ScadaAssetContract = await artifacts.require("TokenSCADAVariable");
+    let ScadaAsset = await ScadaAssetContract.at(ScadaAssetContract.address);
+    await ScadaAsset.addSettings(FundingAsset.address);
+
+    utils.toLog("  Added TokenSCADAVariable Settings");
+
+    let tokenContract = await artifacts.require("Token");
+    let tokenAsset = await tokenContract.at(tokenContract.address);
+
+    await tokenAsset.addSettings(
+        token_settings.supply.toString(),
         token_settings.name,
+        token_settings.decimals,
         token_settings.symbol,
-        token_settings.version
+        token_settings.version,
+        TokenManagerAssetContract.address
+    );
+
+    utils.toLog("  Added Token Settings");
+
+
+    let ExtraContract = await artifacts.require("ExtraFundingInputMarketing");
+    let ExtraAsset = await ExtraContract.at(ExtraContract.address);
+
+    await ExtraAsset.addSettings(
+        TokenManagerAssetContract.address,        // TokenManager Entity address
+        settings.platformWalletAddress,           // Output Address
+        settings.extra_marketing.hard_cap,        // 300 ether hard cap
+        settings.extra_marketing.tokens_per_eth,  // 20 000 BBX per ETH
+        settings.extra_marketing.start_date,      // 31.01.2018
+        settings.extra_marketing.end_date         // 10.03.2018
+    );
+
+    utils.toLog("  Added ExtraFundingInput Settings");
+
+
+    await TokenManagerAssetContract.addSettings(
+        ScadaAsset.address, tokenContract.address, ExtraAsset.address
     );
 
     utils.toLog("  Added TokenManager Settings");
-
-    // deploy the "ExtraFundingInputMarketing" contract and set it's address in the Token Manager
-
-    await deployer.deploy(ExtraFundingInputMarketing);
-    let extraFunding = await ExtraFundingInputMarketing.at( ExtraFundingInputMarketing.address );
-
-    await extraFunding.addSettings(
-        TokenManagerAsset.address,                          // TokenManager Entity address
-        settings.platformWalletAddress,                     // Output Address
-        settings.extra_marketing.hard_cap,                  // 300 ether hard cap
-        settings.extra_marketing.tokens_per_eth,            // 20 000 BBX per ETH
-        settings.extra_marketing.start_date,                // 31.01.2018
-        settings.extra_marketing.end_date                   // 10.03.2018
-    );
-
-    await TokenManagerAssetContract.setMarketingMethodAddress( extraFunding.address );
-
-    utils.toLog("  Added ExtraFundingInput Settings");
 
     // Setup Funding
     let FundingAssetContract = await artifacts.require(FundingAsset.name);
@@ -396,19 +419,17 @@ async function doStage(deployer)  {
         let arts = await artifacts.require(name);
         let contract = await arts.at(arts.address);
 
-        if(i > 3) {
+        let eventFilter = await utils.hasEvent(
+            await contract.applyAndLockSettings(),
+            'EventRunBeforeApplyingSettings(bytes32)'
+        );
 
-            let eventFilter = await utils.hasEvent(
-                await contract.applyAndLockSettings(),
-                'EventRunBeforeApplyingSettings(bytes32)'
-            );
-
-            if (eventFilter.length === 1) {
-                utils.toLog("    Successfully locked: " + utils.colors.green + name + utils.colors.none);
-            } else {
-                throw name + ': EventRunBeforeApplyingSettings event not received.';
-            }
+        if (eventFilter.length === 1) {
+            utils.toLog("    Successfully locked: " + utils.colors.green + name + utils.colors.none);
+        } else {
+            throw name + ': EventRunBeforeApplyingSettings event not received.';
         }
+
 
     }
 
@@ -467,7 +488,7 @@ async function doStage(deployer)  {
 
     utils.toLog(
         ' Entities:\n'+
-        '  ----------------------------------------------------------------\n');
+        '  ----------------------------------------------------------------');
 
     utils.toLog("    "+GatewayInterface.contract_name+": "+ GatewayInterface.address);
     utils.toLog("    "+ApplicationEntity.contract_name+": "+ ApplicationEntity.address);
@@ -475,6 +496,22 @@ async function doStage(deployer)  {
     entities.map((entity) => {
         utils.toLog("      "+entity.contract_name+": "+ entity.address);
     });
+
+    // funding inputs
+    let FundingInputDirectAddress = await FundingAssetContract.DirectInput.call();
+    let FundingInputMilestoneAddress = await FundingAssetContract.MilestoneInput.call();
+
+    utils.toLog("  ----------------------------------------------------------------");
+    utils.toLog("    InputDirect:    "+ FundingInputDirectAddress);
+    utils.toLog("    InputMilestone: "+ FundingInputMilestoneAddress);
+    utils.toLog("    InputMarketing: "+ ExtraAsset.address);
+
+
+    utils.toLog("  ----------------------------------------------------------------");
+    utils.toLog("    TokenSCADA:     "+ ScadaAsset.address);
+    utils.toLog("    TokenEntity:    "+ tokenAsset.address);
+    utils.toLog("  ----------------------------------------------------------------\n");
+
 
 
     /*

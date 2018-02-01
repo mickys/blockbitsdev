@@ -51,10 +51,10 @@ module.exports = {
             // from: addr,
             network_id: 4,
             gas: 6.7e6,
-            gasPrice: 100000000000, // 100 gwei -> 100000 mil wei
-            // gasPrice: 100000000, // 0.1 gwei -> 100 mil wei
-            // gasPrice: 4000000000, // 0.1 gwei -> 100 mil wei
-            // gasPrice: 20000000000, // 0.1 gwei -> 100 mil wei
+            gasPrice:  20000000000, // 20 gwei
+            // gasPrice: 100000000000, // 100 gwei -> 100000 mil wei
+            // gasPrice:    100000000, // 0.1 gwei -> 100 mil wei
+            // gasPrice:  20000000000, // 20 gwei -> 100 mil wei
         },
         coverage: {
             host: "localhost",
