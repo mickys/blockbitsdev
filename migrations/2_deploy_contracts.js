@@ -514,7 +514,6 @@ addBylawsIntoApp = async function (app, settings) {
 };
 
 
-
 async function doTest(deployer) {
     await deployer.deploy("NewsContract");
 }
@@ -525,11 +524,12 @@ module.exports = (deployer, network) => {
 
     if(settings.doDeployments) {
         // deployer.then(async () => await doTest(deployer));
-
         // deployer.then(async () => await doStage(deployer));
         // deployer.then(async () => await resumeStage(deployer));
         // deployer.then(async () => await doStateChanges());
+        // deployer.then(async () => await doStages(deployer));
 
+        deployer.then(async () => await doStage(deployer));
     }
 
 };

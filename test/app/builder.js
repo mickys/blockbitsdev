@@ -130,6 +130,12 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     // add bylaws into app
     await this.addBylawsIntoApp();
 
+    // deploy token and scada
+
+    let token = await this.deploy("Token");
+    let scada = await this.deploy("TokenSCADAVariable");
+    let extra = await this.deploy("ExtraFundingInputMarketing");
+
     // deploy asset contract
     let assetContract = await this.deploy(assetName);
 

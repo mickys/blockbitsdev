@@ -15,13 +15,16 @@ module.exports = function(setup) {
         let mintedSupply = new helpers.BigNumber(500).mul(10 ** 6).mul( 10 ** 18 ); // 500 mil tokens;
 
         beforeEach(async () => {
-            HST = await TokenContract.new(
+
+            HST = await TokenContract.new();
+
+            await HST.addSettings(
                 TokenSettings.supply,
                 TokenSettings.name,
                 TokenSettings.decimals,
                 TokenSettings.symbol,
                 TokenSettings.version,
-                {from: accounts[0]}
+                accounts[0]
             );
 
             await HST.mint(accounts[0], mintedSupply);
@@ -61,14 +64,21 @@ module.exports = function(setup) {
 
         it('creation: should succeed in creating over 2^256 - 1 (max) tokens', async () => {
             // 2^256 - 1
-            let HST2 = await TokenContract.new(
-                '115792089237316195423570985008687907853269984665640564039457584007913129639935',
+
+            let HST2 = await TokenContract.new();
+
+            await HST2.addSettings(
+                TokenSettings.supply,
                 TokenSettings.name,
                 TokenSettings.decimals,
                 TokenSettings.symbol,
                 TokenSettings.version,
-                {from: accounts[0]}
+                accounts[0]
             );
+
+            await HST2.mint(accounts[0], '115792089237316195423570985008687907853269984665640564039457584007913129639935');
+            await HST2.finishMinting();
+
             const totalSupply = await HST2.totalSupply();
             const match = totalSupply.equals('1.15792089237316195423570985008687907853269984665640564039457584007913129639935e+77');
             assert(match, 'result is not correct')

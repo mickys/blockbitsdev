@@ -1,21 +1,6 @@
 pragma solidity ^0.4.17;
 
 /**
- * @title ERC20Basic
- * @dev Simpler version of ERC20 interface
- * @dev see https://github.com/ethereum/EIPs/issues/179
- */
-contract ERC20Basic {
-    uint256 public totalSupply;
-
-    function balanceOf(address who) public view returns (uint256);
-
-    function transfer(address to, uint256 value) public returns (bool);
-
-    event Transfer(address indexed from, address indexed to, uint256 indexed value);
-}
-
-/**
  * @title SafeMath
  * @dev Math operations with safety checks that throw on error
  */
@@ -47,81 +32,89 @@ library SafeMath {
   }
 }
 
-/**
- * @title Basic token
- * @dev Basic version of StandardToken, with no allowances.
- */
-contract BasicToken is ERC20Basic {
+/*
+
+ * source       https://github.com/blockbitsio/
+
+ * @name        Token Contract
+ * @package     BlockBitsIO
+ * @author      Micky Socaci <micky@nowlive.ro>
+
+  Mintable ERC20 Standard Token
+
+*/
+
+
+
+
+
+contract Token {
     using SafeMath for uint256;
 
-    mapping (address => uint256) public balances;
+    string public  symbol;
+    string public  name;
+    uint8 public   decimals;
+    uint256 public totalSupply;
+    string public  version = 'v1';
 
-    /**
-    * @dev transfer token for a specified address
-    * @param _to The address to transfer to.
-    * @param _value The amount to be transferred.
-    */
+    mapping (address => uint256) public balances;
+    mapping (address => mapping (address => uint256)) allowed;
+
+    address public manager;
+    address public deployer;
+
+    bool public mintingFinished = false;
+    bool public initialized = false;
+
+    event Transfer(address indexed from, address indexed to, uint256 indexed value);
+    event Approval(address indexed owner, address indexed spender, uint256 indexed value);
+    event Mint(address indexed to, uint256 amount);
+    event MintFinished();
+
+    function Token() public {
+        deployer = msg.sender;
+    }
+
+    function addSettings(
+        uint256 _initialAmount,
+        string _tokenName,
+        uint8 _decimalUnits,
+        string _tokenSymbol,
+        string _version,
+        address _manager
+    )
+        onlyDeployer
+        public
+    {
+        // can only set these once.
+        require(initialized == false);
+
+        decimals = _decimalUnits;                               // Amount of decimals for display purposes
+        totalSupply = _initialAmount;                           // Set initial supply.. should be 0 if we're minting
+        name = _tokenName;                                      // Set the name for display purposes
+        symbol = _tokenSymbol;                                  // Set the symbol for display purposes
+        version = _version;                                     // Set token version string
+
+        // set internal owner that can mint tokens.
+        manager = _manager;
+        initialized = true;
+    }
+
     function transfer(address _to, uint256 _value) public returns (bool) {
         require(_to != address(0));
-
-        // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
         Transfer(msg.sender, _to, _value);
         return true;
     }
 
-    /**
-    * @dev Gets the balance of the specified address.
-    * @param _owner The address to query the the balance of.
-    * @return An uint256 representing the amount owned by the passed address.
-    */
     function balanceOf(address _owner) public view returns (uint256 balance) {
         return balances[_owner];
     }
 
-}
-
-/**
- * @title ERC20 interface
- * @dev see https://github.com/ethereum/EIPs/issues/20
- */
-contract ERC20 is ERC20Basic {
-    function allowance(address owner, address spender) public view returns (uint256);
-
-    function transferFrom(address from, address to, uint256 value) public returns (bool);
-
-    function approve(address spender, uint256 value) public returns (bool);
-
-    event Approval(address indexed owner, address indexed spender, uint256 indexed value);
-}
-
-/**
- * @title Standard ERC20 token
- *
- * @dev Implementation of the basic standard token.
- * @dev https://github.com/ethereum/EIPs/issues/20
- * @dev Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
- */
-contract StandardToken is ERC20, BasicToken {
-
-    mapping (address => mapping (address => uint256)) allowed;
-
-
-    /**
-     * @dev Transfer tokens from one address to another
-     * @param _from address The address which you want to send tokens from
-     * @param _to address The address which you want to transfer to
-     * @param _value uint256 the amount of tokens to be transferred
-     */
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
         require(_to != address(0));
-
         uint256 _allowance = allowed[_from][msg.sender];
-
-        // Check is not needed because sub(_allowance, _value) will already throw if this condition is not met
-        // require (_value <= _allowance);
-
         balances[_from] = balances[_from].sub(_value);
         balances[_to] = balances[_to].add(_value);
         allowed[_from][msg.sender] = _allowance.sub(_value);
@@ -129,49 +122,23 @@ contract StandardToken is ERC20, BasicToken {
         return true;
     }
 
-    /**
-     * @dev Approve the passed address to spend the specified amount of tokens on behalf of msg.sender.
-     *
-     * Beware that changing an allowance with this method brings the risk that someone may use both the old
-     * and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this
-     * race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards:
-     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-     * @param _spender The address which will spend the funds.
-     * @param _value The amount of tokens to be spent.
-     */
     function approve(address _spender, uint256 _value) public returns (bool) {
         allowed[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
     }
 
-    /**
-     * @dev Function to check the amount of tokens that an owner allowed to a spender.
-     * @param _owner address The address which owns the funds.
-     * @param _spender address The address which will spend the funds.
-     * @return A uint256 specifying the amount of tokens still available for the spender.
-     */
     function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
         return allowed[_owner][_spender];
     }
 
-    /**
-     * approve should be called when allowed[_spender] == 0. To increment
-     * allowed value is better to use this function to avoid 2 calls (and wait until
-     * the first transaction is mined)
-     * From MonolithDAO Token.sol
-     */
-    function increaseApproval(address _spender, uint _addedValue)
-    public
-    returns (bool success) {
+    function increaseApproval(address _spender, uint _addedValue) public returns (bool success) {
         allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
         Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
-    function decreaseApproval(address _spender, uint _subtractedValue)
-    public
-    returns (bool success) {
+    function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool success) {
         uint oldValue = allowed[msg.sender][_spender];
         if (_subtractedValue > oldValue) {
             allowed[msg.sender][_spender] = 0;
@@ -183,72 +150,7 @@ contract StandardToken is ERC20, BasicToken {
         return true;
     }
 
-}
-
-/*
-
- * @name        Token Contract
- * @package     BlockBitsIO
- * @author      Micky Socaci <micky@nowlive.ro>
-
- Zeppelin ERC20 Standard Token
-
-*/
-
-
-
-
-
-contract Token is StandardToken {
-    string public  symbol;
-    string public  name;
-    uint8 public   decimals;
-    uint256 public totalSupply;
-    string public  version = 'v1';
-
-    address public owner;
-
-    event Mint(address indexed to, uint256 amount);
-    event MintFinished();
-
-    bool public mintingFinished = false;
-
-    function Token(
-        uint256 _initialAmount,
-        string _tokenName,
-        uint8 _decimalUnits,
-        string _tokenSymbol,
-        string _version
-    )
-    public
-    {
-        decimals = _decimalUnits;                               // Amount of decimals for display purposes
-        totalSupply = _initialAmount;                           // Set initial supply.. should be 0 if we're minting
-        name = _tokenName;                                      // Set the name for display purposes
-        symbol = _tokenSymbol;                                  // Set the symbol for display purposes
-        version = _version;                                     // Set token version string
-
-        // set internal owner that can mint tokens.
-        owner = msg.sender;
-    }
-
-    modifier canMint() {
-        require(!mintingFinished);
-        _;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-
-    /**
-     * @dev Function to mint tokens
-     * @param _to The address that will receive the minted tokens.
-     * @param _amount The amount of tokens to mint.
-     * @return A boolean that indicates if the operation was successful.
-     */
-    function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
+    function mint(address _to, uint256 _amount) onlyManager canMint public returns (bool) {
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
         Mint(_to, _amount);
@@ -256,13 +158,24 @@ contract Token is StandardToken {
         return true;
     }
 
-    /**
-     * @dev Function to stop minting new tokens.
-     * @return True if the operation was successful.
-     */
-    function finishMinting() onlyOwner canMint public returns (bool) {
+    function finishMinting() onlyManager canMint public returns (bool) {
         mintingFinished = true;
         MintFinished();
         return true;
+    }
+
+    modifier canMint() {
+        require(!mintingFinished);
+        _;
+    }
+
+    modifier onlyManager() {
+        require(msg.sender == manager);
+        _;
+    }
+
+    modifier onlyDeployer() {
+        require(msg.sender == deployer);
+        _;
     }
 }
