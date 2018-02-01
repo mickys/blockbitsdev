@@ -631,6 +631,11 @@ contract ABIToken {
     function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool success);
     function mint(address _to, uint256 _amount) public returns (bool);
     function finishMinting() public returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint256 indexed value);
+    event Approval(address indexed owner, address indexed spender, uint256 indexed value);
+    event Mint(address indexed to, uint256 amount);
+    event MintFinished();
 }
 
 /*

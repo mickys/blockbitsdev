@@ -243,11 +243,11 @@ async function doStateChanges() {
 
 async function doStage(deployer)  {
 
-
-    await deployer.deploy(solAccUtils);
-    let balances = await solAccUtils.at( solAccUtils.address );
-
-    let startBalance = new BigNumber( await getBalance(balances, addr) );
+    /*
+        await deployer.deploy(solAccUtils);
+        let balances = await solAccUtils.at( solAccUtils.address );
+        let startBalance = new BigNumber( await getBalance(balances, addr) );
+    */
 
     utils.toLog(
         ' ----------------------------------------------------------------\n'+
@@ -512,8 +512,6 @@ async function doStage(deployer)  {
     utils.toLog("    TokenEntity:    "+ tokenAsset.address);
     utils.toLog("  ----------------------------------------------------------------\n");
 
-
-
     /*
     let afterBalance = await new BigNumber( await getBalance(balances, addr));
     console.log( "start balance: ", web3util.fromWei(startBalance, 'ether') );
@@ -566,7 +564,7 @@ module.exports = (deployer, network) => {
         // deployer.then(async () => await doStateChanges());
         // deployer.then(async () => await doStages(deployer));
 
-        deployer.then(async () => await doStage(deployer));
+        // deployer.then(async () => await doStage(deployer));
     }
 
 };

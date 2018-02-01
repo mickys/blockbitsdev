@@ -14,8 +14,7 @@
     "coverageToHtml": "scripts/coverageOutputToHtml.sh",
     "lint": "solium --dir ./contracts",
     "console": "node_modules/.bin/truffle console",
-    "build-contracts": "sol-merger './contracts/*.sol' ./build-merger",
-    "build-contracts2": "sol-merger './contracts/Entity/*.sol' ./build-merger"
+    "build-contracts": "sol-merger './contracts/*.sol' ./build-merger && sol-merger './contracts/Entity/*.sol' ./build-merger && sol-merger './contracts/Algorithms/*.sol' ./build-merger && sol-merger './contracts/Inputs/*.sol' ./build-merger"
   },
   "files": [
     "index.js",

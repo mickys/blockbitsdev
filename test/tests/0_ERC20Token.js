@@ -28,11 +28,12 @@ module.exports = function(setup) {
             );
 
             await HST.mint(accounts[0], mintedSupply);
-            await HST.finishMinting();
+            // await HST.finishMinting();
 
         });
 
         it('creation: should throw if trying to mint after minting is finished', async () => {
+            await HST.finishMinting();
             return helpers.assertInvalidOpcode(async () => {
                 await HST.mint(accounts[0], 100);
             });
@@ -305,6 +306,23 @@ module.exports = function(setup) {
             await HST.decreaseApproval(accounts[1], 70);
             let postDecrease = await HST.allowance.call(accounts[0], accounts[1]);
             assert.equal(postDecrease, 0, 'Approval after decrease should be 0');
+        });
+
+        it('events: should fire Transfer event when minting', async () => {
+            let tx = await HST.mint(accounts[1], '5000', {from: accounts[0]});
+            let eventFilter = helpers.utils.hasEvent(tx, 'Transfer(address,address,uint256)');
+            assert.equal(eventFilter.length, 1, 'Transfer event not received.');
+
+            let _from = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
+            let _to = helpers.utils.topicToAddress( eventFilter[0].topics[2] );
+            let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
+
+            // assert.strictEqual(_from, accounts[0]);
+            assert.strictEqual(_to, accounts[1]);
+            assert.strictEqual(_value.toString(), '5000');
+
+            console.log(tx.receipt.logs);
+
         });
 
         it('events: should fire Transfer event properly', async () => {

@@ -123,7 +123,9 @@ tests.push("5_Project_Completion");
 tests.push("5_CashBack_Tests");
 tests.push("6_ExtraFundingInput");
 
-// tests = [];
+tests = [];
+tests.push("0_ERC20Token");
+
 // tests.push("4_Asset_TokenManager");
 
 // tests.push("0_ERC20Token");

@@ -43,10 +43,10 @@ let ico_start = 1520640001;
 let ico_end = 1525219199;
 
 // tests
-pre_ico_start = now + 1 * days;
-pre_ico_end = now + 7 * days;
-ico_start = pre_ico_end + 7 * days;
-ico_end = ico_start + 30 * days;
+// pre_ico_start = now + 1 * days;
+// pre_ico_end = now + 7 * days;
+// ico_start = pre_ico_end + 7 * days;
+// ico_end = ico_start + 30 * days;
 
 let funding_global_soft_cap = new BigNumber(5000).mul( ether );
 let funding_global_hard_cap = new BigNumber(34700).mul( ether );

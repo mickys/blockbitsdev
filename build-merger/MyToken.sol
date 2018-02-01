@@ -48,7 +48,7 @@ library SafeMath {
 
 
 
-contract Token {
+contract MyToken {
     using SafeMath for uint256;
 
     string public  symbol;
@@ -71,32 +71,17 @@ contract Token {
     event Mint(address indexed to, uint256 amount);
     event MintFinished();
 
-    function Token() public {
+    function MyToken() public {
         deployer = msg.sender;
-    }
 
-    function addSettings(
-        uint256 _initialAmount,
-        string _tokenName,
-        uint8 _decimalUnits,
-        string _tokenSymbol,
-        string _version,
-        address _manager
-    )
-        onlyDeployer
-        public
-    {
-        // can only set these once.
-        require(initialized == false);
-
-        decimals = _decimalUnits;                               // Amount of decimals for display purposes
-        totalSupply = _initialAmount;                           // Set initial supply.. should be 0 if we're minting
-        name = _tokenName;                                      // Set the name for display purposes
-        symbol = _tokenSymbol;                                  // Set the symbol for display purposes
-        version = _version;                                     // Set token version string
+        decimals = 18;                             // Amount of decimals for display purposes
+        totalSupply = 0;                           // Set initial supply.. should be 0 if we're minting
+        name = "TestToken";                        // Set the name for display purposes
+        symbol = "TestToken";                      // Set the symbol for display purposes
+        version = "3";                             // Set token version string
 
         // set internal owner that can mint tokens.
-        manager = _manager;
+        manager = deployer;
         initialized = true;
     }
 
@@ -153,7 +138,7 @@ contract Token {
     function mint(address _to, uint256 _amount) onlyManager canMint public returns (bool) {
         totalSupply = totalSupply.add(_amount);
         balances[_to] = balances[_to].add(_amount);
-        // Mint(_to, _amount);
+        Mint(_to, _amount);
         Transfer(address(0), _to, _amount);
         return true;
     }
