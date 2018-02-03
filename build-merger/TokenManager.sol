@@ -294,7 +294,6 @@ contract ABIToken {
     bool public mintingFinished = false;
     bool public initialized = false;
 
-    function addSettings( uint256 _initialAmount, string _tokenName, uint8 _decimalUnits, string _tokenSymbol, string _version, address _newOwner ) public;
     function transfer(address _to, uint256 _value) public returns (bool);
     function balanceOf(address _owner) public view returns (uint256 balance);
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool);

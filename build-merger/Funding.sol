@@ -390,7 +390,7 @@ contract ABITokenManager is ABIApplicationAsset {
 
  * source       https://github.com/blockbitsio/
 
- * @name        General Funding Input Contract
+ * @name        General Funding Input Contract ABI
  * @package     BlockBitsIO
  * @author      Micky Socaci <micky@nowlive.ro>
 
@@ -398,85 +398,17 @@ contract ABITokenManager is ABIApplicationAsset {
 
 
 
-contract FundingInputGeneral {
+contract ABIFundingInputGeneral {
 
-    uint8 public typeId = 0;
+    bool public initialized = false;
+    uint8 public typeId;
     address public FundingAssetAddress;
 
     event EventInputPaymentReceived(address sender, uint amount, uint8 _type);
 
-    function FundingInputGeneral() public {
-        FundingAssetAddress = msg.sender;
-    }
-
-    function () public payable {
-        buy();
-    }
-
-    function buy() public payable returns(bool) {
-        if(msg.value > 0) {
-            if(isContract(FundingAssetAddress)) {
-                if(FundingAssetAddress.call.value(msg.value)(bytes4(bytes32(keccak256("receivePayment(address,uint8)"))), msg.sender, typeId)) {
-                    EventInputPaymentReceived(msg.sender, msg.value, typeId);
-                    return true;
-                } else {
-                    revert();
-                }
-            }
-            else {
-                revert();
-            }
-        } else {
-            revert();
-        }
-    }
-
-    // this call adds 704 gas, good enough to keep
-    function isContract(address addr) internal view returns (bool) {
-        uint size;
-        assembly { size := extcodesize(addr) }
-        return size > 0;
-    }
-}
-
-/*
-
- * source       https://github.com/blockbitsio/
-
- * @name        Direct Funding Input Contract
- * @package     BlockBitsIO
- * @author      Micky Socaci <micky@nowlive.ro>
-
-*/
-
-
-
-
-
-contract FundingInputDirect is FundingInputGeneral {
-    function FundingInputDirect() FundingInputGeneral() public {
-        typeId = 1;
-    }
-}
-
-/*
-
- * source       https://github.com/blockbitsio/
-
- * @name        Milestone Funding Input Contract
- * @package     BlockBitsIO
- * @author      Micky Socaci <micky@nowlive.ro>
-
-*/
-
-
-
-
-
-contract FundingInputMilestone is FundingInputGeneral {
-    function FundingInputMilestone() FundingInputGeneral() public {
-        typeId = 2;
-    }
+    function setFundingAssetAddress(address _addr) public;
+    function () public payable;
+    function buy() public payable returns(bool);
 }
 
 /*
@@ -502,12 +434,11 @@ contract FundingInputMilestone is FundingInputGeneral {
 
 
 
-
 contract Funding is ApplicationAsset {
 
     address public multiSigOutputAddress;
-    FundingInputDirect public DirectInput;
-    FundingInputMilestone public MilestoneInput;
+    ABIFundingInputGeneral public DirectInput;
+    ABIFundingInputGeneral public MilestoneInput;
 
     // mapping (bytes32 => uint8) public FundingMethods;
     enum FundingMethodIds {
@@ -577,8 +508,6 @@ contract Funding is ApplicationAsset {
     event EventFundingReceivedPayment(address indexed _sender, uint8 indexed _payment_method, uint256 indexed _amount );
 
     function runBeforeInitialization() internal requireNotInitialised {
-        DirectInput = new FundingInputDirect();
-        MilestoneInput = new FundingInputMilestone();
 
         // instantiate token manager, moved from runBeforeApplyingSettings
         TokenManagerEntity = ABITokenManager( getApplicationAssetAddressByName('TokenManager') );
@@ -607,7 +536,7 @@ contract Funding is ApplicationAsset {
         RecordStates["FINAL"]           = 3;
     }
 
-    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage )
+    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage, address _direct, address _milestone )
         public
         requireInitialised
         requireSettingsNotApplied
@@ -625,6 +554,9 @@ contract Funding is ApplicationAsset {
         }
 
         TokenSellPercentage = sale_percentage;
+
+        DirectInput = ABIFundingInputGeneral(_direct);
+        MilestoneInput = ABIFundingInputGeneral(_milestone);
     }
 
     function addFundingStage(

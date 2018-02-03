@@ -73,6 +73,9 @@ TestBuildHelper.prototype.deployAndInitializeApplication = async function () {
     let scada = await this.deploy("TokenSCADAVariable");
     let extra = await this.deploy("ExtraFundingInputMarketing");
 
+    let direct = await this.deploy("FundingInputDirect");
+    let milestone = await this.deploy("FundingInputMilestone");
+
     // deploy and add requirement asset contracts
     for (let i = 0; i < this.setup.assetContractNames.length; i++) {
         let name = this.setup.assetContractNames[i];
@@ -135,6 +138,9 @@ TestBuildHelper.prototype.deployAndInitializeAsset = async function (assetName, 
     let token = await this.deploy("Token");
     let scada = await this.deploy("TokenSCADAVariable");
     let extra = await this.deploy("ExtraFundingInputMarketing");
+
+    let direct = await this.deploy("FundingInputDirect");
+    let milestone = await this.deploy("FundingInputMilestone");
 
     // deploy asset contract
     let assetContract = await this.deploy(assetName);
@@ -822,12 +828,22 @@ TestBuildHelper.prototype.getMyVaultAddress = async function (myAddress) {
 
 TestBuildHelper.prototype.addFundingSettings = async function () {
     let fundingAsset = this.getDeployedByName("Funding");
+
+    let direct = this.getDeployedByName("FundingInputDirect");
+    let milestone = this.getDeployedByName("FundingInputMilestone");
+
     await fundingAsset.addSettings(
         this.platformWalletAddress,
         this.setup.settings.bylaws["funding_global_soft_cap"],
         this.setup.settings.bylaws["funding_global_hard_cap"],
         this.setup.settings.bylaws["token_sale_percentage"],
+        direct.address,
+        milestone.address
     );
+
+    await direct.setFundingAssetAddress(fundingAsset.address);
+    await milestone.setFundingAssetAddress(fundingAsset.address);
+
 };
 
 TestBuildHelper.prototype.getTokenStakeInFundingPeriod = async function (FundingPeriodId, DirectPaymentValue) {
@@ -864,14 +880,8 @@ TestBuildHelper.prototype.AddAssetSettingsAndLock = async function (name) {
         await ScadaAsset.addSettings(FundingAsset.address);
 
         let tokenContract = this.getDeployedByName("Token");
-        await tokenContract.addSettings(
-            token_settings.supply.toString(),
-            token_settings.name,
-            token_settings.decimals,
-            token_settings.symbol,
-            token_settings.version,
-            object.address
-        );
+
+        await tokenContract.transferOwnership(object.address);
 
         let extra = this.getDeployedByName("ExtraFundingInputMarketing");
         await extra.addSettings(

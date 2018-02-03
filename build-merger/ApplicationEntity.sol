@@ -334,7 +334,7 @@ contract ABIFunding is ABIApplicationAsset {
     )
     public;
 
-    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage ) public;
+    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage, address _direct, address _milestone ) public;
     function getStageAmount(uint8 StageId) public view returns ( uint256 );
     function allowedPaymentMethod(uint8 _payment_method) public pure returns (bool);
     function receivePayment(address _sender, uint8 _payment_method) payable public returns(bool);

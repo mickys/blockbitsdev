@@ -15,14 +15,14 @@ let solidity = {
 };
 
 // Project Token settings
-
+// hardcoded in contract atm.
 let token_settings = {
     // supply: new BigNumber(500).mul(10 ** 6).mul( 10 ** 18 ),   // 500 mil tokens * decimals
     supply: 0,
     decimals: 18,                           // make sure to update supply decimals if updated
     name: "BlockBitsIO Token",
     symbol: "BBX",
-    version: "v1"                           // required in order to be able to deploy a new version if need arises
+    version: "1"                           // required in order to be able to deploy a new version if need arises
 };
 
 /*
@@ -37,30 +37,30 @@ let tokenSCADA = {
     requires_global_hard_cap: true
 };
 
+let platformWalletAddress = "0x93f46df4161f1dd333a99a2ec6f53156c027f83f";
+
 let pre_ico_start = 1517443201;         // 00:00:01 1st of feb 2018
 let pre_ico_end = 1519862399;
 let ico_start = 1520640001;
 let ico_end = 1525219199;
 
-// tests
-// pre_ico_start = now + 1 * days;
-// pre_ico_end = now + 7 * days;
-// ico_start = pre_ico_end + 7 * days;
-// ico_end = ico_start + 30 * days;
+// override for tests
+pre_ico_start = now + 1 * days;
+pre_ico_end = now + 7 * days;
+ico_start = pre_ico_end + 7 * days;
+ico_end = ico_start + 30 * days;
 
-let funding_global_soft_cap = new BigNumber(5000).mul( ether );
+let funding_global_soft_cap = new BigNumber(4700).mul( ether );
 let funding_global_hard_cap = new BigNumber(34700).mul( ether );
-let pre_amount_in_ether = new BigNumber(7000).mul( 10 ** 18 );
+let pre_amount_in_ether = new BigNumber(6700).mul( 10 ** 18 );
 let ico_amount_in_ether = new BigNumber(34700).mul( 10 ** 18 ); // includes pre-ico cap, excludes extra marketing
-
 
 let extra_marketing = {
     "hard_cap":300 * solidity.ether,    // 300 ether hard cap
     "tokens_per_eth":20000,             // 20 000 BBX per ETH
-    "start_date":1517356800,            // 31.01.2018
-    "end_date":1520640000               // 10.03.2018
+    "start_date":pre_ico_start,
+    "end_date":ico_start
 };
-
 
 let pre_ico_settings = {
     name: "PRE ICO",                                        //  bytes32 _name,
@@ -220,7 +220,6 @@ let project_bylaws = {
     // the rest gets then split up into milestone balances using their respective percentage settings
     "emergency_fund_percentage": emergency_fund_percentage,
 
-
     // Cashback Bylaws
     "cashback_investor_no": 7 * days,
     "cashback_owner_mia_dur": 3650 * days
@@ -235,7 +234,7 @@ let application_settings = {
     tokenSCADA:tokenSCADA,
     solidity:solidity,
     doDeployments: true, // true
-    platformWalletAddress: "0x93f46df4161f1dd333a99a2ec6f53156c027f83f",
+    platformWalletAddress: platformWalletAddress,
     extra_marketing:extra_marketing
 };
 

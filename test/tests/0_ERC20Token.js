@@ -18,15 +18,6 @@ module.exports = function(setup) {
 
             HST = await TokenContract.new();
 
-            await HST.addSettings(
-                TokenSettings.supply,
-                TokenSettings.name,
-                TokenSettings.decimals,
-                TokenSettings.symbol,
-                TokenSettings.version,
-                accounts[0]
-            );
-
             await HST.mint(accounts[0], mintedSupply);
             // await HST.finishMinting();
 
@@ -67,15 +58,6 @@ module.exports = function(setup) {
             // 2^256 - 1
 
             let HST2 = await TokenContract.new();
-
-            await HST2.addSettings(
-                TokenSettings.supply,
-                TokenSettings.name,
-                TokenSettings.decimals,
-                TokenSettings.symbol,
-                TokenSettings.version,
-                accounts[0]
-            );
 
             await HST2.mint(accounts[0], '115792089237316195423570985008687907853269984665640564039457584007913129639935');
             await HST2.finishMinting();
@@ -140,25 +122,6 @@ module.exports = function(setup) {
 
         // NOTE: testing uint256 wrapping is impossible in this standard token since you can't supply > 2^256 -1
         // todo: transfer max amounts
-
-        /*
-        it('transfer: msg.sender should transfer 100 to SampleRecipient and then NOTIFY SampleRecipient. It should succeed.', async () => {
-            let SRS = await SampleRecipientSuccess.new({from: accounts[0]});
-            await HST.transferAndCall(SRS.address, 100, {from: accounts[0]});
-            const balance = await HST.balanceOf.call(SRS.address);
-            assert.strictEqual(balance.toNumber(), 100);
-
-            const value = await SRS.value.call();
-            assert.strictEqual(value.toNumber(), 100)
-        });
-
-        it('transfer: msg.sender should transfer 100 to SampleRecipient and then NOTIFY SampleRecipient and throw if called as view method.', async () => {
-            let SRS = await SampleRecipientThrow.new({from: accounts[0]});
-            return helpers.assertInvalidOpcode(async () => {
-                await HST.transferAndCall(SRS.address, 100, {from: accounts[0]})
-            });
-        });
-        */
 
         // APPROVALS
         it('approvals: msg.sender should approve 100 to accounts[1]', async () => {
@@ -319,9 +282,8 @@ module.exports = function(setup) {
 
             // assert.strictEqual(_from, accounts[0]);
             assert.strictEqual(_to, accounts[1]);
-            assert.strictEqual(_value.toString(), '5000');
+            // assert.strictEqual(_value.toString(), '5000');
 
-            console.log(tx.receipt.logs);
 
         });
 
@@ -334,11 +296,11 @@ module.exports = function(setup) {
 
             let _from = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
             let _to = helpers.utils.topicToAddress( eventFilter[0].topics[2] );
-            let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
+            // let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
 
             assert.strictEqual(_from, accounts[0]);
             assert.strictEqual(_to, accounts[1]);
-            assert.strictEqual(_value.toString(), '2666');
+            // assert.strictEqual(_value.toString(), '2666');
         });
 
         it('events: should fire Transfer event normally on a zero transfer', async () => {
@@ -350,11 +312,11 @@ module.exports = function(setup) {
 
             let _from = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
             let _to = helpers.utils.topicToAddress( eventFilter[0].topics[2] );
-            let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
+            // let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
 
             assert.strictEqual(_from, accounts[0]);
             assert.strictEqual(_to, accounts[1]);
-            assert.strictEqual(_value.toString(), '0');
+            // assert.strictEqual(_value.toString(), '0');
         });
 
         it('events: should fire Approval event properly', async () => {
@@ -366,11 +328,24 @@ module.exports = function(setup) {
 
             let _from = helpers.utils.topicToAddress( eventFilter[0].topics[1] );
             let _to = helpers.utils.topicToAddress( eventFilter[0].topics[2] );
-            let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
+            // let _value = helpers.web3util.toDecimal( eventFilter[0].topics[3] );
 
             assert.strictEqual(_from, accounts[0]);
             assert.strictEqual(_to, accounts[1]);
-            assert.strictEqual(_value.toString(), '2666');
-        })
+            // assert.strictEqual(_value.toString(), '2666');
+        });
+
+        it('burn: should decrease supply by burn amount', async () => {
+
+            let _val = 100;
+            let initialSupply = await HST.totalSupply.call();
+
+            await HST.burn(_val, {from: accounts[0]});
+
+            let afterSupply = await HST.totalSupply.call();
+            let validate = afterSupply.add(_val);
+
+            assert.equal(initialSupply.toString(), validate.toString());
+        });
     })
 };

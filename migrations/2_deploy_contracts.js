@@ -11,7 +11,7 @@ const ProjectSettings               = require('../project-settings.js');
 const getContract = (obj)           => artifacts.require(obj.name);
 
 let settings = ProjectSettings.application_settings;
-settings.sourceCodeUrl = "http://www.blockbits.io/";
+settings.sourceCodeUrl = "http://www.test.io/";
 
 let token_settings = settings.token;
 
@@ -26,9 +26,6 @@ const assets = [
     {'name' : 'Meetings'},
     {'name' : 'BountyManager'},
 ];
-
-let addr = '0x4b70518d879a4e2da4ad9cf0189b32d8dc6b7a9b';
-// addr = '0x6719dfeadc2a8cb01279a8b74bf5abc6e1e2ad77';
 
 const entities = assets.map(getContract);
 
@@ -45,209 +42,8 @@ const mapDeployedAssets = (asset) => {
     return obj;
 };
 
-let solAccUtils = artifacts.require('DeployUtils');
-
-async function getBalance(obj, address) {
-    return await obj.getBalance.call(address);
-}
-
-let live = [
-    {"name":"GatewayInterface", "address":"0xe755a6972af63a59ab281b9286e9bb3c418712ab"},
-    {"name":"ApplicationEntity", "address":"0x94165db87c8b5c393860442f7f6313444d697ddd"},
-    {"name":"ListingContract", "address":"0xdae8fb10f8a8971d3b1c7967df71dd7504575403"},
-    {"name":"NewsContract", "address":"0x22b47afe667f72302b8bec9b2e0c73cbe671ab94"},
-    {"name":"TokenManager", "address":"0xecf0bcb0e4a0f59b32c27d4b37aa178adb49eab7"},
-    {"name":"Proposals", "address":"0xa8bef5aa47ad6ee4c3ccbb7be46b20c0e900a79a"},
-    {"name":"FundingManager", "address":"0xe3a3bb72e388cc6ecd0fadc8633a460e47dad14e"},
-    {"name":"Funding", "address":"0xb0913d32488685a079f856a133746de5b9f75f50"},
-    {"name":"Milestones", "address":"0xc1086d4cdf036d8289e03aa15097785dc9784a7a"},
-    {"name":"Meetings", "address":"0x19986cd367e9e1223e980a0536ae018256efdd76"},
-    {"name":"BountyManager", "address":"0x1e8744c3e2abe20a83de2904c61ef649d492d5e6"},
-    {"name":"ExtraFundingInputMarketing", "address":"0x227737cf985649c49f90b6b5659b5ff3395e24b0"},
-];
-
-function getLiveAddressForName(name) {
-    for(let i = 0; i < live.length; i++) {
-        let entity = live[i];
-        if(entity.name === name) {
-            return entity.address;
-        }
-    }
-}
-
-function restoreAllAssets() {
-
-}
-
-async function resumeStage(deployer)  {
-
-
-
-    // deployedAssets = assets.map(mapDeployedAssets);
-    /*
-    let resumeAssets = [];
-
-    for(let i = 0; i < assets.length; i++) {
-        let entity = assets[i];
-
-        let name = entity.name;
-        let arts = await artifacts.require(name);
-
-        let contract = arts.at(getLiveAddressForName(name));
-
-        console.log("["+name+"] at ["+contract.address+"] => ["+ getLiveAddressForName(name) +"]");
-    }
-
-    return;
-
-    // deployedAssets = assets.map(mapDeployedAssets);
-
-    for(let i = 0; i < assets.length; i++) {
-        let entity = assets[i];
-
-        let name = entity.name;
-        let arts = await artifacts.require(name);
-        // let contract = await arts.at(arts.address);
-        let contract = arts.at(getLiveAddressForName(name));
-
-        if(i > 2) {
-
-            let eventFilter = await utils.hasEvent(
-                await contract.applyAndLockSettings(),
-                'EventRunBeforeApplyingSettings(bytes32)'
-            );
-
-            if (eventFilter.length === 1) {
-                utils.toLog("    Successfully locked: " + utils.colors.green + name + utils.colors.none);
-            } else {
-                throw name + ': EventRunBeforeApplyingSettings event not received.';
-            }
-        }
-
-    }
-
-    return ;
-
-    */
-
-    utils.toLog(
-        '\n  ----------------------------------------------------------------\n'+
-        '  Stage 1 - VALIDATION\n'+
-        '  ----------------------------------------------------------------\n'
-    );
-
-
-    let app = await ApplicationEntity.at( getLiveAddressForName("ApplicationEntity") );
-
-
-    let gw = await GatewayInterface.at( getLiveAddressForName("GatewayInterface") );
-    let gwAppAddress = await gw.currentApplicationEntityAddress.call();
-    if(gwAppAddress === app.address) {
-        utils.toLog("    " + GatewayInterface.contract_name + ": currentApplicationEntityAddress is correct");
-    } else {
-        throw "Invalid ApplicationEntity address stored in GatewayInterface";
-    }
-
-    let appInit = await app._initialized.call();
-    if(appInit.toString() === "true") {
-        utils.toLog("    " + ApplicationEntity.contract_name + ": is initialized correctly");
-    } else {
-        throw "ApplicationEntity is not initialized";
-    }
-
-    let AssetCollectionNum = await app.AssetCollectionNum.call();
-    if(AssetCollectionNum.toString() === entities.length.toString() ) {
-        utils.toLog("    " + ApplicationEntity.contract_name + ": contains the correct number of assets ["+AssetCollectionNum+"]");
-    } else {
-        throw "ApplicationEntity AssetCollectionNum issue has ["+AssetCollectionNum.toString()+"] should have ["+deployedAssets.length+"]";
-    }
-
-    for(let i = 0; i < assets.length; i++) {
-        let entity = assets[i];
-
-        let name = entity.name;
-        let arts = await artifacts.require(name);
-        let contract = await arts.at( getLiveAddressForName(name) );
-
-        let _initialized = await contract._initialized.call();
-        let _settingsApplied = await contract._settingsApplied.call();
-
-        if(_initialized.toString() === "true" && _settingsApplied.toString() === "true") {
-            utils.toLog("    "+utils.colors.green+ name +utils.colors.white+": locked and settings applied.") ;
-        } else {
-            throw utils.colors.green+ name +utils.colors.none+" is not locked or has settings not applied" ;
-        }
-
-    }
-
-    utils.toLog(
-        '\n  ----------------------------------------------------------------\n'+
-        '  Stage 1 - DONE\n'+
-        '  ----------------------------------------------------------------\n'
-    );
-
-    utils.toLog(
-        ' Entities:\n'+
-        '  ----------------------------------------------------------------\n');
-
-    utils.toLog("    GatewayInterface: "+ gw.address);
-    utils.toLog("    ApplicationEntity: "+ app.address);
-
-
-    let FundingContract = await artifacts.require("Funding");
-    let FundingAsset = await FundingContract.at( getLiveAddressForName("Funding") );
-
-    // funding inputs
-    let FundingInputDirectAddress = await FundingAsset.DirectInput.call();
-    let FundingInputMilestoneAddress = await FundingAsset.MilestoneInput.call();
-
-    assets.map((entity) => {
-        utils.toLog("      "+entity.name+": "+ getLiveAddressForName(entity.name));
-    });
-
-    utils.toLog("    ----------------------------------------------------------------");
-    utils.toLog("    FundingInputDirect:    "+ FundingInputDirectAddress);
-    utils.toLog("    FundingInputMilestone: "+ FundingInputMilestoneAddress);
-    utils.toLog("    FundingInputMarketing: "+ getLiveAddressForName("ExtraFundingInputMarketing"));
-
-
-    let TokenManagerContract = await artifacts.require("TokenManager");
-    let TokenManagerAsset = await TokenManagerContract.at( getLiveAddressForName("TokenManager") );
-    let TokenEntityAddress = await TokenManagerAsset.TokenEntity.call();
-    utils.toLog("    ----------------------------------------------------------------");
-    utils.toLog("    TokenEntityAddress:    "+ TokenEntityAddress);
-
-
-    // let TokenEntityContract = await artifacts.require("Token");
-    // let TokenEntity = await TokenEntityContract.at(TokenEntityAddress);
-
-}
-
-async function doStateChanges() {
-
-    let contract = await artifacts.require("ApplicationEntity");
-    let app = await contract.at( getLiveAddressForName("ApplicationEntity") );
-
-    let hasChanges = await app.hasRequiredStateChanges.call();
-    let tx = await app.doStateChanges();
-    // console.log()
-    utils.toLog("    hasChanges: "+ hasChanges.toString() );
-
-    hasChanges = await app.hasRequiredStateChanges.call();
-    if (hasChanges === true) {
-        await doStateChanges();
-    }
-
-}
-
 
 async function doStage(deployer)  {
-
-    /*
-        await deployer.deploy(solAccUtils);
-        let balances = await solAccUtils.at( solAccUtils.address );
-        let startBalance = new BigNumber( await getBalance(balances, addr) );
-    */
 
     utils.toLog(
         ' ----------------------------------------------------------------\n'+
@@ -287,6 +83,19 @@ async function doStage(deployer)  {
     await deployer.deploy(artifacts.require("ExtraFundingInputMarketing"));
     utils.toLog("    Contract: ExtraFundingInputMarketing" );
 
+    await deployer.deploy(artifacts.require("FundingInputDirect"));     // FundingInputDirect: 0xb05faba79ac993dc1ff7e3a0a764c3d0478cdc1f
+    utils.toLog("    Contract: FundingInputDirect" );
+
+    await deployer.deploy(artifacts.require("FundingInputMilestone"));  // FundingInputMilestone: 0x91ca47b9ec3187c77f324281a1851f4b991103f1
+    utils.toLog("    Contract: FundingInputMilestone" );
+
+
+    let FundingInputDirect = artifacts.require("FundingInputDirect");
+    let FundingInputDirectObject = await FundingInputDirect.at( FundingInputDirect.address );
+
+    let FundingInputMilestone = artifacts.require("FundingInputMilestone");
+    let FundingInputMilestoneObject = await FundingInputMilestone.at( FundingInputMilestone.address );
+
 
     deployedAssets = assets.map(mapDeployedAssets);
 
@@ -324,17 +133,9 @@ async function doStage(deployer)  {
     let tokenContract = await artifacts.require("Token");
     let tokenAsset = await tokenContract.at(tokenContract.address);
 
-    await tokenAsset.addSettings(
-        token_settings.supply.toString(),
-        token_settings.name,
-        token_settings.decimals,
-        token_settings.symbol,
-        token_settings.version,
-        TokenManagerAssetContract.address
-    );
+    await tokenAsset.transferOwnership(TokenManagerAssetContract.address);
 
     utils.toLog("  Added Token Settings");
-
 
     let ExtraContract = await artifacts.require("ExtraFundingInputMarketing");
     let ExtraAsset = await ExtraContract.at(ExtraContract.address);
@@ -383,7 +184,9 @@ async function doStage(deployer)  {
         settings.platformWalletAddress,
         settings.bylaws["funding_global_soft_cap"],
         settings.bylaws["funding_global_hard_cap"],
-        settings.bylaws["token_sale_percentage"]
+        settings.bylaws["token_sale_percentage"],
+        FundingInputDirect.address,
+        FundingInputMilestone.address
     );
 
     utils.toLog("  Added Funding Settings");
@@ -488,7 +291,7 @@ async function doStage(deployer)  {
 
     utils.toLog(
         ' Entities:\n'+
-        '  ----------------------------------------------------------------');
+        '  ----------------------------------------------------------------\n');
 
     utils.toLog("    "+GatewayInterface.contract_name+": "+ GatewayInterface.address);
     utils.toLog("    "+ApplicationEntity.contract_name+": "+ ApplicationEntity.address);
@@ -501,7 +304,7 @@ async function doStage(deployer)  {
     let FundingInputDirectAddress = await FundingAssetContract.DirectInput.call();
     let FundingInputMilestoneAddress = await FundingAssetContract.MilestoneInput.call();
 
-    utils.toLog("  ----------------------------------------------------------------");
+    utils.toLog("  ----------------------------------------------------------------\n");
     utils.toLog("    InputDirect:    "+ FundingInputDirectAddress);
     utils.toLog("    InputMilestone: "+ FundingInputMilestoneAddress);
     utils.toLog("    InputMarketing: "+ ExtraAsset.address);
@@ -512,13 +315,7 @@ async function doStage(deployer)  {
     utils.toLog("    TokenEntity:    "+ tokenAsset.address);
     utils.toLog("  ----------------------------------------------------------------\n");
 
-    /*
-    let afterBalance = await new BigNumber( await getBalance(balances, addr));
-    console.log( "start balance: ", web3util.fromWei(startBalance, 'ether') );
-    console.log( "end balance:   ", web3util.fromWei(afterBalance, 'ether') );
-    let diff = startBalance.sub(afterBalance);
-    console.log( "diff balance:  ", web3util.fromWei(diff, 'ether') );
-    */
+
 }
 
 addBylawsIntoApp = async function (app, settings) {
@@ -555,16 +352,8 @@ async function doTest(deployer) {
 
 module.exports = (deployer, network) => {
 
-    // return;
-
     if(settings.doDeployments) {
-        // deployer.then(async () => await doTest(deployer));
-        // deployer.then(async () => await doStage(deployer));
-        // deployer.then(async () => await resumeStage(deployer));
-        // deployer.then(async () => await doStateChanges());
-        // deployer.then(async () => await doStages(deployer));
-
-        // deployer.then(async () => await doStage(deployer));
+        deployer.then(async () => await doStage(deployer));
     }
 
 };

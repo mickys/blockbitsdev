@@ -19,14 +19,13 @@ import "./../ApplicationAsset.sol";
 import "./../abis/ABIFundingManager.sol";
 import "./../abis/ABITokenManager.sol";
 
-import "./../Inputs/FundingInputDirect.sol";
-import "./../Inputs/FundingInputMilestone.sol";
+import "./../abis/ABIFundingInputGeneral.sol";
 
 contract Funding is ApplicationAsset {
 
     address public multiSigOutputAddress;
-    FundingInputDirect public DirectInput;
-    FundingInputMilestone public MilestoneInput;
+    ABIFundingInputGeneral public DirectInput;
+    ABIFundingInputGeneral public MilestoneInput;
 
     // mapping (bytes32 => uint8) public FundingMethods;
     enum FundingMethodIds {
@@ -96,8 +95,6 @@ contract Funding is ApplicationAsset {
     event EventFundingReceivedPayment(address indexed _sender, uint8 indexed _payment_method, uint256 indexed _amount );
 
     function runBeforeInitialization() internal requireNotInitialised {
-        DirectInput = new FundingInputDirect();
-        MilestoneInput = new FundingInputMilestone();
 
         // instantiate token manager, moved from runBeforeApplyingSettings
         TokenManagerEntity = ABITokenManager( getApplicationAssetAddressByName('TokenManager') );
@@ -126,7 +123,7 @@ contract Funding is ApplicationAsset {
         RecordStates["FINAL"]           = 3;
     }
 
-    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage )
+    function addSettings(address _outputAddress, uint256 soft_cap, uint256 hard_cap, uint8 sale_percentage, address _direct, address _milestone )
         public
         requireInitialised
         requireSettingsNotApplied
@@ -144,6 +141,9 @@ contract Funding is ApplicationAsset {
         }
 
         TokenSellPercentage = sale_percentage;
+
+        DirectInput = ABIFundingInputGeneral(_direct);
+        MilestoneInput = ABIFundingInputGeneral(_milestone);
     }
 
     function addFundingStage(
