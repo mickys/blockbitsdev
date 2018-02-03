@@ -123,30 +123,6 @@ tests.push("5_Project_Completion");
 tests.push("5_CashBack_Tests");
 tests.push("6_ExtraFundingInput");
 
-//tests = [];
-// tests.push("4_Asset_Funding");
-// tests.push("4_Asset_Funding_Payments");
-// tests.push("4_Asset_Funding_States");
-// tests.push("0_ERC20Token");
-
-// tests.push("4_Asset_TokenManager");
-
-// tests.push("0_ERC20Token");
-
-// tests.push("4_Asset_Funding");
-// tests.push("6_ExtraFundingInput");
-// tests.push("0_ERC20Token");
-// tests.push("4_BountyManager");
-
-
-// tests.push("6_ExtraFundingInput");
-// tests.push("4_Asset_ListingContract");
-// tests.push("4_Asset_Proposals_Creation");
-// tests.push("4_Asset_Proposals_Type_5_Delisting");
-// tests.push("4_Asset_ListingContract");
-// tests.push("6_ExtraFundingInput");
-// tests.push("6_ExtraFundingInput_after");
-
 
 if(! process.env.SOLIDITY_COVERAGE ) {
 
